@@ -1,0 +1,37 @@
+.wm-desktop {
+    padding: 1em;
+    height: calc(100% - var(--menubar-height));
+    box-sizing: border-box;
+    background-size:cover;
+    background-position:center;
+    overflow: scroll;
+    display: grid;
+    grid-template-columns: repeat(14, 1fr); 
+    grid-template-row: repeat(14, 1fr);
+    row-gap: 2em;
+}
+
+
+.wm-desktop-icon {
+    background-color: darkred;
+    border-radius: 4px;
+    color: var(--bs-white);
+    padding: 0.3em;
+    width: 2em;
+    height: 2em;
+    display: flex;
+    font-size: 2em;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-elevation-medium);
+    box-sizing: border-box;
+}
+
+.wm-desktop-icon:hover {
+    background-color: red;
+    box-shadow: var(--shadow-elevation-high);
+}
+
+.wm-desktop-icon:active {
+    filter: brightness(50%);
+}
