@@ -1,0 +1,62 @@
+.lde-mbar {
+    width: 100%;
+    padding: 0.2em 0.6em;
+    background-color: var(--bs-dark);
+    box-shadow: 0px 10px 40px 0px rgba(0,0,0,0.70);
+    color: #eeeeee;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: row;
+    gap: .2em;
+    height: var(--menubar-height) !important;
+    align-items: center;
+    font-size: 1.2rem;
+    z-index: 999;
+}
+.lde-mbar-left {
+    display: flex;
+    gap: 0.2em;
+    flex-direction: row;
+    margin-right: auto;
+}
+.lde-mbar-right {
+    display: flex;
+    gap: 0.2em;
+    flex-direction: row;
+}
+.lde-mseperator {
+    padding: 0;
+    margin: 0.4em;
+}
+
+.lde-mbar-item {
+    background-color: transparent;
+    color: #aaaaaa;
+    padding: 0 0.2em;
+    cursor: pointer;
+    user-select: none;
+    outline: none;
+    border:none;
+}
+
+.lde-mbar-item:active,
+.lde-mbar-item:focus,
+.lde-mbar-item:hover {
+    border: none;
+    border-color: none;
+    outline: none;
+}
+
+.lde-mbar-item:hover {
+    color: white;
+    background-color: #aaaaaa11;
+    border-radius: 6px;
+}
+
+.lde-mbar-item:focus {
+    filter: brightness(150%);
+}
+
+.lde-mbar-item-highlight {
+    color: white;
+}

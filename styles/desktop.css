@@ -1,18 +1,22 @@
-.wm-desktop {
+.lde-desktop {
     padding: 1em;
-    height: calc(100% - var(--menubar-height));
+    height: 100%;
+    position: absolute;
+    width: 100%;
     box-sizing: border-box;
     background-size:cover;
     background-position:center;
+    background-image: url("../res/wall.png");
     overflow: scroll;
     display: grid;
     grid-template-columns: repeat(14, 1fr); 
     grid-template-row: repeat(14, 1fr);
     row-gap: 2em;
+    top: 0;
+    z-index: -1;
 }
 
-
-.wm-desktop-icon {
+.lde-desktop-icon {
     background-color: darkred;
     border-radius: 4px;
     color: var(--bs-white);
@@ -27,11 +31,11 @@
     box-sizing: border-box;
 }
 
-.wm-desktop-icon:hover {
+.lde-desktop-icon:hover {
     background-color: red;
     box-shadow: var(--shadow-elevation-high);
 }
 
-.wm-desktop-icon:active {
+.lde-desktop-icon:active {
     filter: brightness(50%);
 }

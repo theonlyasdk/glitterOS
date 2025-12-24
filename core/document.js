@@ -1,4 +1,4 @@
-export function makeDraggable(element) {
+function makeDraggable(element) {
   let pos1 = 0,
     pos2 = 0,
     pos3 = 0,
@@ -46,10 +46,8 @@ export function makeDraggable(element) {
 }
 
 
-export function showBsModal(id) {
+function showBsModal(id) {
   var myModalElement = document.getElementById(id);
-  // lsp might show error but trust me we have bootstrap imported
-  // through script:src
   var myModal = new bootstrap.Modal(myModalElement);
   myModal.show();
 }

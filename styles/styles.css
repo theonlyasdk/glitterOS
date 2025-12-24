@@ -1,4 +1,8 @@
 :root {
+    --menubar-height: 2.3em;
+    --ease: cubic-bezier(.07,-0.07,0,1.03);
+    --blur: blur(5px);
+
     /* Thanks https://www.joshwcomeau.com/shadow-palette/ */
     --shadow-color: 0deg 0% 0%;
     --shadow-elevation-low:
@@ -19,4 +23,44 @@
         0.7px 33.6px 32.3px -2.6px hsl(var(--shadow-color) / 0.07),
         1.1px 53.4px 51.3px -3.1px hsl(var(--shadow-color) / 0.06),
         1.7px 81px 77.8px -3.6px hsl(var(--shadow-color) / 0.05);
+}
+
+#app, html, body {
+    height: 100%;
+    overflow: hidden;
+    cursor: url("../res/default.svg"), auto;
+}
+
+@keyframes kaboom {
+  0% {
+    transform: translateX(-50%) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  10% { transform: translateX(calc(-50% - 3px)) scale(1.1) rotate(-1deg); }
+  20% { transform: translateX(calc(-50% + 3px)) scale(1.1) rotate(1deg); }
+  30% { transform: translateX(calc(-50% - 3px)) scale(1.1) rotate(-1deg); }
+  40% { transform: translateX(calc(-50% + 3px)) scale(1.1) rotate(1deg); }
+  60% {
+    transform: translateX(-50%) scale(2);
+    opacity: 0.8;
+    filter: brightness(2) blur(2px);
+  }
+  100% {
+    transform: translateX(-50%) scale(4);
+    opacity: 0;
+    filter: brightness(5) blur(20px);
+  }
+}
+
+.kaboom {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: max-content;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  transform-origin: center center;
+  animation: kaboom 0.6s ease-out forwards;
+  pointer-events: none;
+  user-select: none;
 }

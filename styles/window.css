@@ -1,12 +1,12 @@
-.wm-win-header {
+.lde-win-header {
 	height: 1em;
 }
 
-.wm-win-header:hover {
+.lde-win-header:hover {
 	background-color: gainsboro;
 }
 
-.wm-win-footer {
+.lde-win-footer {
 	height: 2em;
 	padding: 0 1em;
 	color: var(--bs-secondary);
