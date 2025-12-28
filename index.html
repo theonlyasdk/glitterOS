@@ -23,11 +23,12 @@
 		<div id="menubar" class="lde-mbar">
 			<div class="lde-mbar-left">
 				<div class="dropdown">
-					<button class="lde-mbar-item" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="System Menu">
+					<button class="lde-mbar-item" type="button" data-bs-toggle="dropdown" aria-expanded="false"
+						title="System Menu">
 						<b><i class="bi bi-flower1"></i></b>
 					</button>
 					<ul class="dropdown-menu">
-						<li><a class="dropdown-item" href="#">About glitterOS</a></li>
+						<li><a class="dropdown-item" href="#" onclick="aboutGlitterOS()">About glitterOS</a></li>
 						<li>
 							<hr class="dropdown-divider">
 						</li>
@@ -97,7 +98,7 @@
 						Special
 					</button>
 					<ul class="dropdown-menu">
-						<li><a class="dropdown-item" href="#">Power off...</a></li>
+						<li><a class="dropdown-item" href="#" onclick="showConfirm('Power off?','System will power off',()=>{alert('Powering off...')})">Power off...</a></li>
 						<li>
 							<hr class="dropdown-divider">
 						</li>
@@ -135,6 +136,24 @@
 			<div class="lde-dock-icon">
 				<div class="lde-dock-icon-caption">GitHub</div>
 				<i class="bi bi-github"></i>
+			</div>
+		</div>
+	</div>
+
+	<div class="modal" tabindex="-1" id="alert-dialog">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="alert-title"></h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+				</div>
+				<div class="modal-body" id="alert-body">
+				</div>
+				<div class="modal-footer" id="alert-footer">
+					<button id="alert-btn-close" type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+					<button id="alert-btn-1" type="button" class="btn btn-secondary"></button>
+					<button id="alert-btn-2" type="button" class="btn btn-secondary"></button>
+				</div>
 			</div>
 		</div>
 	</div>
