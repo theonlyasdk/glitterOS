@@ -1,13 +1,18 @@
 .lde-win-header {
 	height: 1em;
+	background-color: #2F2F2F;
 }
 
 .lde-win-header:hover {
-	background-color: gainsboro;
+
 }
 
 .lde-win-footer {
-	height: 2em;
+	height: 3em;
 	padding: 0 1em;
 	color: var(--bs-secondary);
+	display: flex;
+	flex-direction: row;
+	align-content: center;
+	justify-content: flex-end;
 }

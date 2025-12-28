@@ -25,7 +25,7 @@
 				<div class="dropdown">
 					<button class="lde-mbar-item" type="button" data-bs-toggle="dropdown" aria-expanded="false"
 						title="System Menu">
-						<b><i class="bi bi-flower1"></i></b>
+						<b><i class="bi bi-balloon-fill"></i></b>
 					</button>
 					<ul class="dropdown-menu">
 						<li><a class="dropdown-item" href="#" onclick="aboutGlitterOS()">About glitterOS</a></li>
@@ -56,7 +56,7 @@
 				</div>
 				<div class="dropdown">
 					<button class="lde-mbar-item" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-						<b>Desktop</b>
+						<b id="desktop-name">Desktop</b>
 					</button>
 					<ul class="dropdown-menu">
 						<li><a class="dropdown-item" href="#">New Desktop</a></li>
@@ -111,11 +111,26 @@
 				</div>
 			</div>
 			<div class="lde-mbar-right">
-				<div class="lde-mbar-applet-date lde-mbar-item" title="Calendar">
-					<b id="lde-mbar-applet-date">Calendar</b>
+				<div class="dropdown">
+					<button class="lde-mbar-item" type="button" title="Calendar" data-bs-toggle="dropdown" aria-expanded="false">
+						<b id="lde-mbar-applet-date">Calendar</b>
+					</button>
+					<ul class="dropdown-menu p-2">
+						<h5><b>Calendar</b></h5>
+						<hr class="p-0 m-0 mb-2">
+						<i>The calendar is under construction...</i>
+					</ul>
 				</div>
-				<div class="lde-mbar-applet-time lde-mbar-item" title="Clock">
-					<b id="lde-mbar-applet-time">Clock</b>
+
+				<div class="dropdown">
+					<button class="lde-mbar-item" type="button" title="Clock" data-bs-toggle="dropdown" aria-expanded="false">
+						<b id="lde-mbar-applet-time">Clock</b>
+					</button>
+					<ul class="dropdown-menu p-2">
+						<h5><b>Clock</b></h5>
+						<hr class="p-0 m-0 mb-2">
+						<i>The clock is also under construction...</i>
+					</ul>
 				</div>
 			</div>
 		</div>
@@ -140,19 +155,19 @@
 		</div>
 	</div>
 
-	<div class="modal" tabindex="-1" id="alert-dialog">
+	<div class="modal fade" tabindex="-1" id="alert-dialog">
 		<div class="modal-dialog">
 			<div class="modal-content">
-				<div class="modal-header">
+				<div class="modal-header lde-win-header">
 					<h5 class="modal-title" id="alert-title"></h5>
 					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 				</div>
 				<div class="modal-body" id="alert-body">
 				</div>
-				<div class="modal-footer" id="alert-footer">
-					<button id="alert-btn-close" type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
-					<button id="alert-btn-1" type="button" class="btn btn-secondary"></button>
-					<button id="alert-btn-2" type="button" class="btn btn-secondary"></button>
+				<div class="modal-footer lde-win-footer" id="alert-footer">
+					<button id="alert-btn-close" type="button" class="btn wm-button btn-primary" data-bs-dismiss="modal">Close</button>
+					<button id="alert-btn-1"     type="button" class="btn wm-button btn-secondary"></button>
+					<button id="alert-btn-2"     type="button" class="btn wm-button btn-secondary"></button>
 				</div>
 			</div>
 		</div>
@@ -161,6 +176,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
 	crossorigin="anonymous"></script>
 <script src="core/document.js"></script>
+<script src="core/lib.js"></script>
 <script src="core/lilac.js"></script>
 
 </html>

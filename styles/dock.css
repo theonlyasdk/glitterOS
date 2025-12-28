@@ -41,7 +41,6 @@
 .lde-dock-icon .bi {
 	--shadow-color: #00000033;
 	margin-top: -0.5em;  
-	text-shadow: -1px -1px 0 var(--shadow-color) !important;
 }
 .lde-dock-icon {
 	/*background-color: #333333;*/
@@ -59,7 +58,7 @@
 	transition: transform 300ms var(--ease);
 }
 .lde-dock-icon .bi {
-	text-shadow: 0px 4px 7px rgba(0,0,0,0.5);
+	text-shadow: 0px 4px 4px rgba(0,0,0,0.6);
 }
 .lde-dock-icon:hover .bi {
 	text-shadow: 0px 4px 7px rgba(0,0,0,1);

@@ -1,13 +1,22 @@
-const menubar = document.getElementById("menubar");
-const desktop = document.getElementById("desktop");
-const dock = document.getElementById("dock");
+const menubar = fromId("menubar");
+const desktop = fromId("desktop");
+const dock = fromId("dock");
 
-const alertDialog = document.getElementById("alert-dialog");
-const alertDialogTitle = document.getElementById("alert-title");
-const alertDialogBody = document.getElementById("alert-body");
-const alertDialogBtnClose = document.getElementById("alert-btn-close");
-const alertDialogBtn1 = document.getElementById("alert-btn-1");
-const alertDialogBtn2 = document.getElementById("alert-btn-2");
+const alertDialog = fromId("alert-dialog");
+const alertDialogTitle = fromId("alert-title");
+const alertDialogBody = fromId("alert-body");
+const alertDialogBtnClose = fromId("alert-btn-close");
+const alertDialogBtn1 = fromId("alert-btn-1");
+const alertDialogBtn2 = fromId("alert-btn-2");
+
+const desktopNameLbl = fromId("desktop-name");
+
+const currentDesktopIdx = 0;
+const desktops = [
+	{
+		name:"Desktop"
+	}
+];
 
 const applets = {
 	date: {
@@ -72,13 +81,13 @@ function ldeInitApplets() {
 			second: '2-digit',
 			hour12: true
 		});
-		applets.time.elem.innerHTML = time;
+		applets.time.elem.innerText = time;
 	}, 1000);
 
 	applets.date.interval = setInterval(() => {
 		const now = new Date();
 		date = now.toDateString();
-		applets.date.elem.innerHTML = date;
+		applets.date.elem.innerText = date;
 	}, 1000);
 }
 
@@ -88,18 +97,40 @@ function ldeInit() {
 	assertExistsElseReload(dock);
 
 	ldeInitApplets();
+
+	const currentDesktopName = desktops[currentDesktopIdx].name;
+	desktopNameLbl.innerText = currentDesktopName;
 }
 function kaboom(sender) {
-	document.body.classList.add("kaboom");
+	const kaboomCandidates = [menubar,desktop,dock];
+	kaboomCandidates.forEach((elem) => {
+		elem.addEventListener("mouseup", () => {
+			elem.classList.add("kaboom");
+			kaboomCandidates.pop(elem);
+			if (kaboomCandidates.length < 2) {
+				document.body.classList.add("kaboom-ticking");					
+				setInterval(() => {
+					document.body.classList.remove("kaboom-ticking");					
+					document.body.classList.add("kaboom");					
+				}, 5000)
+			}
+		})
+	})
 }
 function aboutGlitterOS() {
 	const msg = `
-		<b>glitterOS</b> is an operating system that runs inside your browser.
+		<div class="d-flex flex-row">
+		<i class="bi bi-balloon-fill display-1"></i>
 		<br>
-		<br>
+			<div>
+			<h1><b>glitterOS</b></h1>
+			<p><b>glitterOS</b>&nbsp;is an operating system that runs inside your browser.</p>
+			</div>
+		</div>
+		<hr class="ps-3 pe-3">
 		<i class="d-inline-block text-center w-100">Have fun!!!!</i>
 		<small class="w-100 text-center d-inline-block text-secondary">(c) theonlyasdk 2025-26</small>
 	`;
-	showDialog("About glitterOS",msg);
+	showDialog("About",msg);
 }
 ldeInit();
