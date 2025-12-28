@@ -41,7 +41,7 @@
 .lde-dock-icon .bi {
 	--shadow-color: #00000033;
 	margin-top: -0.5em;  
-	text-shadow: -1px -1px 0 var(--shadow-color), 1px -1px 0 var(--shadow-color), -1px  1px 0 var(--shadow-color), 1px  1px 0 var(--shadow-color) !important;
+	text-shadow: -1px -1px 0 var(--shadow-color) !important;
 }
 .lde-dock-icon {
 	/*background-color: #333333;*/
