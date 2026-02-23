@@ -1,18 +1,313 @@
-.lde-win-header {
-	height: 1em;
-	background-color: #2F2F2F;
+.lde-window {
+	position: absolute;
+	min-width: 200px;
+	min-height: 100px;
+	background-color: #1e1e1e;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+	/* Inactive shadow */
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	color: white;
+	transition: transform 0.4s cubic-bezier(0, 0, 0.2, 1),
+		opacity 0.4s cubic-bezier(0, 0, 0.2, 1),
+		top 0.4s cubic-bezier(0, 0, 0.2, 1),
+		left 0.4s cubic-bezier(0, 0, 0.2, 1),
+		width 0.4s cubic-bezier(0, 0, 0.2, 1),
+		height 0.4s cubic-bezier(0, 0, 0.2, 1);
+	transform-origin: center center;
 }
 
-.lde-win-header:hover {
+.lde-window.active {
+	box-shadow: 0 10px 40px rgba(0, 0, 0, 0.65);
+	border: 1px solid rgba(255, 255, 255, 0.18);
+}
 
+.lde-window.minimized {
+	opacity: 0 !important;
+	pointer-events: none;
+	transform: scale(0.01) !important;
+}
+
+.lde-window.opening {
+	opacity: 0 !important;
+	transform: perspective(1000px) scale(0.9) rotateX(10deg) !important;
+	transform-origin: top center;
+}
+
+.lde-window.closing {
+	opacity: 0 !important;
+	transform: perspective(1000px) scale(0.9) rotateX(-10deg) !important;
+	pointer-events: none;
+	transition: opacity 0.2s cubic-bezier(0, 0, 0.2, 1), transform 0.2s cubic-bezier(0, 0, 0.2, 1) !important;
+}
+
+.lde-window.resizing,
+.lde-window.dragging,
+.no-transition {
+	transition: none !important;
+}
+
+
+/* Resize handles */
+.lde-win-resizer {
+	position: absolute;
+	z-index: 10;
+}
+
+.lde-win-resizer-r {
+	top: 0;
+	right: 0;
+	width: 6px;
+	height: 100%;
+	cursor: ew-resize;
+}
+
+.lde-win-resizer-b {
+	bottom: 0;
+	left: 0;
+	width: 100%;
+	height: 6px;
+	cursor: ns-resize;
+}
+
+.lde-win-resizer-rb {
+	bottom: 0;
+	right: 0;
+	width: 12px;
+	height: 12px;
+	cursor: nwse-resize;
+	z-index: 11;
+}
+
+.lde-win-header {
+	height: 32px;
+	background-color: #2b2b2b;
+	display: flex;
+	align-items: center;
+	position: relative;
+	cursor: default;
+	user-select: none;
+	flex-shrink: 0;
+}
+
+
+
+.lde-win-controls {
+	display: flex;
+	height: 100%;
+}
+
+.lde-win-btn {
+	width: 46px;
+	height: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	transition: background-color 0.1s;
+	font-size: 0.8rem;
+}
+
+.lde-win-btn:hover {
+	background-color: rgba(255, 255, 255, 0.1);
+}
+
+.lde-win-btn-close:hover {
+	background-color: #e81123 !important;
+}
+
+.lde-win-body {
+	flex-grow: 1;
+	padding: 0;
+	overflow: auto;
+	background-color: #1e1e1e;
 }
 
 .lde-win-footer {
-	height: 3em;
-	padding: 0 1em;
+	height: 24px;
+	padding: 0 10px;
 	color: var(--bs-secondary);
 	display: flex;
 	flex-direction: row;
-	align-content: center;
+	align-items: center;
 	justify-content: flex-end;
+	font-size: 0.75rem;
+	background-color: #1e1e1e;
+	border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Window icon in header */
+.lde-win-icon {
+	width: 32px;
+	height: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	cursor: pointer;
+	font-size: 0.85rem;
+	color: #ccc;
+}
+
+.lde-win-icon:hover {
+	background-color: rgba(255, 255, 255, 0.08);
+}
+
+.lde-win-title {
+	padding: 0 8px;
+	font-weight: normal;
+	font-size: 0.85rem;
+	pointer-events: none;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	flex-grow: 1;
+}
+
+/* Window system menu */
+.lde-win-sysmenu {
+	position: fixed;
+	z-index: 99999;
+	background-color: #2b2b2b;
+	border: 1px solid #444;
+	border-radius: 0;
+	box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.5);
+	min-width: 180px;
+	padding: 2px;
+	display: none;
+	font-family: var(--font-family, 'Noto Sans', sans-serif);
+	font-size: 0.85rem;
+}
+
+.lde-win-sysmenu.visible {
+	display: block;
+}
+
+.lde-win-sysmenu-item {
+	padding: 6px 20px;
+	color: #eee;
+	cursor: pointer;
+	user-select: none;
+	white-space: nowrap;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 32px;
+}
+
+.lde-sysmenu-shortcut {
+	color: #888;
+	font-size: 0.8em;
+	margin-left: auto;
+}
+
+.lde-win-sysmenu-item:hover {
+	background-color: #3f3f3f;
+	color: #fff;
+}
+
+.lde-win-sysmenu-item:hover .lde-sysmenu-shortcut {
+	color: #aaa;
+}
+
+.lde-win-sysmenu-close {
+	color: #eee;
+}
+
+.lde-win-sysmenu-close:hover {
+	background-color: #c42b1c;
+	color: #fff;
+}
+
+.lde-win-sysmenu-divider {
+	margin: 2px 0;
+	border-color: #444;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   MessageBox Styles (Win32 Dark)
+   ────────────────────────────────────────────────────────────────────────── */
+.lde-messagebox {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	background: #1e1e1e;
+	color: #fff;
+	font-family: var(--font-family);
+}
+
+.lde-messagebox-main {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	flex: 1;
+	padding: 20px;
+	gap: 20px;
+}
+
+.lde-messagebox-icon {
+	font-size: 2.2rem;
+	color: #0078d7;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.bi-exclamation-triangle-fill {
+	color: #ffcc00;
+}
+
+.bi-x-circle-fill {
+	color: #f44336;
+}
+
+.bi-info-circle-fill {
+	color: #2196f3;
+}
+
+.lde-messagebox-text {
+	flex: 1;
+	font-size: 0.9rem;
+	line-height: 1.4;
+	white-space: pre-wrap;
+}
+
+.lde-messagebox-buttons {
+	background: #2b2b2b;
+	padding: 8px 12px;
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.lde-msg-btn {
+	min-width: 80px;
+	background: #333;
+	border: 1px solid #555;
+	color: #eee;
+	padding: 4px 12px;
+	font-size: 0.85rem;
+	transition: all 0.1s;
+}
+
+.lde-msg-btn:hover {
+	background: #444;
+	border-color: #777;
+	color: #fff;
+}
+
+.lde-msg-btn.default {
+	border-color: #0078d7;
+	background: #1b2938;
+}
+
+.lde-msg-btn.default:hover {
+	background: #233446;
+}
+
+.lde-window-messagebox {
+	box-shadow: 0 15px 50px rgba(0, 0, 0, 0.7) !important;
 }

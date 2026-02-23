@@ -4,16 +4,27 @@
     position: absolute;
     width: 100%;
     box-sizing: border-box;
-    background-size:cover;
-    background-position:center;
-    background-image: url("../res/wall.png");
-    overflow: scroll;
-    display: grid;
-    grid-template-columns: repeat(14, 1fr); 
-    grid-template-row: repeat(14, 1fr);
-    row-gap: 2em;
+    overflow: hidden;
     top: 0;
+    z-index: 10;
+    background-color: #000;
+}
+
+.lde-wallpaper-layer {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    transition: opacity 1s ease-in-out;
     z-index: -1;
+}
+
+.lde-wallpaper-layer.old {
+    opacity: 0;
+}
+
+.lde-wallpaper-layer.new {
+    opacity: 1;
 }
 
 .lde-desktop-icon {

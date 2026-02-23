@@ -1,0 +1,185 @@
+/* ── glitterOS File Dialog Styles ── */
+
+.lde-fd-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: #1e1e1e;
+    color: #eee;
+    font-family: var(--font-family);
+}
+
+.lde-fd-toolbar {
+    display: flex;
+    background: #2b2b2b;
+    padding: 6px;
+    gap: 6px;
+    align-items: center;
+    border-bottom: 1px solid #333;
+}
+
+.lde-fd-address {
+    flex: 1;
+    background: #1a1a1a;
+    border: 1px solid #444;
+    color: #fff;
+    padding: 3px 8px;
+    font-size: 0.85rem;
+}
+
+.lde-fd-body {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+.lde-fd-sidebar {
+    width: 140px;
+    background: #252525;
+    border-right: 1px solid #333;
+    padding: 8px 0;
+}
+
+.lde-fd-sidebar-item {
+    padding: 4px 12px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #bbb;
+}
+
+.lde-fd-sidebar-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.lde-fd-sidebar-item.active {
+    background: rgba(0, 120, 215, 0.2);
+    color: #fff;
+}
+
+.lde-fd-content {
+    flex: 1;
+    background: #1a1a1a;
+    overflow-y: auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    padding: 10px;
+}
+
+.lde-fd-item {
+    width: 80px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    cursor: pointer;
+    border: 1px solid transparent;
+}
+
+.lde-fd-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.lde-fd-item.selected {
+    background: rgba(0, 120, 215, 0.35);
+    border-color: #0078d7;
+}
+
+.lde-fd-item-icon {
+    font-size: 2rem;
+    line-height: 1;
+    margin-bottom: 4px;
+}
+
+.lde-fd-item-icon.dir {
+    color: #fcc11f;
+}
+
+.lde-fd-item-icon.file {
+    color: #ccc;
+}
+
+.lde-fd-item-name {
+    font-size: 0.75rem;
+    word-break: break-all;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.lde-fd-footer {
+    padding: 12px;
+    background: #2b2b2b;
+    border-top: 1px solid #333;
+}
+
+.lde-fd-footer-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.lde-fd-footer-row:last-child {
+    margin-bottom: 0;
+    justify-content: flex-end;
+}
+
+.lde-fd-label {
+    width: 80px;
+    font-size: 0.85rem;
+    color: #888;
+}
+
+.lde-fd-input,
+.lde-fd-select {
+    flex: 1;
+    background: #1a1a1a;
+    border: 1px solid #444;
+    color: #fff;
+    padding: 4px 8px;
+    font-size: 0.85rem;
+}
+
+.lde-fd-btn {
+    min-width: 85px;
+    padding: 5px 15px;
+    font-size: 0.85rem;
+    border: 1px solid #555;
+    background: #333;
+    color: #eee;
+}
+
+.lde-fd-btn:hover {
+    background: #444;
+}
+
+.lde-fd-btn.primary {
+    background: #1b2938;
+    border-color: #0078d7;
+}
+
+.lde-fd-nav-btn {
+    background: transparent;
+    border: none;
+    color: #aaa;
+    font-size: 1.1rem;
+    padding: 0 4px;
+    cursor: pointer;
+}
+
+.lde-fd-nav-btn:hover {
+    color: #fff;
+}
+
+.lde-fd-nav-btn.disabled {
+    color: #444;
+    cursor: default;
+}

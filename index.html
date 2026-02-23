@@ -14,7 +14,16 @@
 	<link rel="stylesheet" href="styles/fonts.css">
 	<link rel="stylesheet" href="styles/menubar.css">
 	<link rel="stylesheet" href="styles/window.css">
-	<link rel="stylesheet" href="styles/dock.css">
+	<link rel="stylesheet" href="styles/taskbar.css">
+	<link rel="stylesheet" href="styles/action-centre.css">
+	<link rel="stylesheet" href="styles/search.css">
+	<link rel="stylesheet" href="styles/cmd.css">
+	<link rel="stylesheet" href="styles/filemanager.css">
+	<link rel="stylesheet" href="styles/switcher.css">
+	<link rel="stylesheet" href="styles/notepad.css">
+	<link rel="stylesheet" href="styles/widgets.css">
+	<link rel="stylesheet" href="styles/filedialog.css">
+	<link rel="stylesheet" href="styles/controlpanel.css">
 	<link rel="stylesheet" href="styles/styles.css">
 </head>
 
@@ -33,20 +42,19 @@
 							<hr class="dropdown-divider">
 						</li>
 						<li><a class="dropdown-item" href="#">System Preferences...</a></li>
-						<li>
-							<hr class="dropdown-divider">
-						</li>
-						<li><a class="dropdown-item" href="#">Recent Items</a></li>
-						<li>
-							<hr class="dropdown-divider">
-						</li>
 						<li><a class="dropdown-item" href="#">Force Quit Desktop</a></li>
 						<li>
 							<hr class="dropdown-divider">
 						</li>
 						<li><a class="dropdown-item" href="#">Sleep</a></li>
 						<li><a class="dropdown-item" href="#">Restart</a></li>
-						<li><a class="dropdown-item" href="#">Power off...</a></li>
+						<li><a class="dropdown-item" href="#"
+								onclick="wm.messageBox('Shut Down', 'Are you sure you want to shut down glitterOS?', { buttons: 'yesno', icon: 'bi-power', onYes: () => { document.body.style.transition = 'opacity 2s'; document.body.style.opacity = '0'; setTimeout(() => location.reload(), 2500); } })">Power
+								off...</a></li>
+						<li>
+							<hr class="dropdown-divider">
+						</li>
+						<li onclick="kaboom(this)"><a class="dropdown-item" href="#">Kaboom</a></li>
 						<li>
 							<hr class="dropdown-divider">
 						</li>
@@ -54,103 +62,93 @@
 						<li><a class="dropdown-item" href="#">Log Out</a></li>
 					</ul>
 				</div>
-				<div class="dropdown">
-					<button class="lde-mbar-item" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-						<b id="desktop-name">Desktop</b>
-					</button>
-					<ul class="dropdown-menu">
-						<li><a class="dropdown-item" href="#">New Desktop</a></li>
-						<li>
-							<hr class="dropdown-divider">
-						</li>
-						<li><a class="dropdown-item" href="#">Delete System32</a></li>
-					</ul>
-				</div>
-				<div class="dropdown">
-					<button class="lde-mbar-item" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-						File
-					</button>
-					<ul class="dropdown-menu">
-						<li><a class="dropdown-item" href="#">New Window</a></li>
-						<li>
-							<hr class="dropdown-divider">
-						</li>
-						<li><a class="dropdown-item" href="#">New Folder</a></li>
-						<li><a class="dropdown-item" href="#">New File</a></li>
-						<li><a class="dropdown-item" href="#">Old File</a></li>
-					</ul>
-				</div>
-				<div class="dropdown">
-					<button class="lde-mbar-item" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-						Edit
-					</button>
-					<ul class="dropdown-menu">
-						<li><a class="dropdown-item" href="#">Undo</a></li>
-						<li><a class="dropdown-item" href="#">Redo</a></li>
-						<li>
-							<hr class="dropdown-divider">
-						</li>
-						<li><a class="dropdown-item" href="#">Select All</a></li>
-					</ul>
-				</div>
-				<div class="dropdown">
-					<button class="lde-mbar-item" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-						Special
-					</button>
-					<ul class="dropdown-menu">
-						<li><a class="dropdown-item" href="#" onclick="showConfirm('Power off?','System will power off',()=>{alert('Powering off...')})">Power off...</a></li>
-						<li>
-							<hr class="dropdown-divider">
-						</li>
-						<li><a class="dropdown-item" href="#">Reboot</a></li>
-						<li>
-							<hr class="dropdown-divider">
-						</li>
-						<li onclick="kaboom(this)"><a class="dropdown-item" href="#">Kaboom</a></li>
-					</ul>
+				<div class="lde-mbar-item">
+					<b id="desktop-name">Desktop</b>
 				</div>
 			</div>
 			<div class="lde-mbar-right">
 				<div class="dropdown">
-					<button class="lde-mbar-item" type="button" title="Calendar" data-bs-toggle="dropdown" aria-expanded="false">
+					<button class="lde-mbar-item" type="button" title="Calendar" data-bs-toggle="dropdown"
+						aria-expanded="false">
 						<b id="lde-mbar-applet-date">Calendar</b>
 					</button>
-					<ul class="dropdown-menu p-2">
-						<h5><b>Calendar</b></h5>
-						<hr class="p-0 m-0 mb-2">
-						<i>The calendar is under construction...</i>
-					</ul>
+					<div class="dropdown-menu p-2" style="min-width: 250px;">
+						<div id="calendar-container"></div>
+					</div>
 				</div>
 
 				<div class="dropdown">
-					<button class="lde-mbar-item" type="button" title="Clock" data-bs-toggle="dropdown" aria-expanded="false">
+					<button class="lde-mbar-item" type="button" title="Clock" data-bs-toggle="dropdown"
+						aria-expanded="false">
 						<b id="lde-mbar-applet-time">Clock</b>
 					</button>
-					<ul class="dropdown-menu p-2">
-						<h5><b>Clock</b></h5>
-						<hr class="p-0 m-0 mb-2">
-						<i>The clock is also under construction...</i>
-					</ul>
+					<div class="dropdown-menu p-3" style="min-width: 200px;">
+						<div class="clock-container">
+							<svg class="analog-clock" viewBox="0 0 100 100">
+								<circle class="clock-face" cx="50" cy="50" r="45" />
+								<g id="clock-markers"></g>
+								<line id="hour-hand" class="hand hour" x1="50" y1="50" x2="50" y2="30" />
+								<line id="minute-hand" class="hand minute" x1="50" y1="50" x2="50" y2="20" />
+								<line id="second-hand" class="hand second" x1="50" y1="50" x2="50" y2="15" />
+								<circle class="clock-center" cx="50" cy="50" r="2" />
+							</svg>
+							<div id="clock-details" class="mt-3 text-center">
+								<div id="clock-digital" class="h5 mb-1 fw-bold"></div>
+								<div id="clock-timezone" class="small text-secondary"></div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<button class="lde-mbar-item" id="action-centre-btn" onclick="toggleActionCentre()"
+					title="Action Centre">
+					<i class="bi bi-layout-text-sidebar-reverse"></i>
+				</button>
+			</div>
+		</div>
+		<div id="action-centre-overlay" onclick="closeActionCentre()"
+			style="display:none;position:fixed;inset:0;z-index:2999;"></div>
+		<div id="action-centre" class="lde-action-centre">
+			<div class="lde-ac-header">
+				<span>Action Centre</span>
+				<span id="ac-date-label" class="lde-ac-date"></span>
+			</div>
+			<div class="lde-ac-tiles">
+				<div class="lde-ac-tile active"><i class="bi bi-wifi"></i><span>Wi-Fi</span></div>
+				<div class="lde-ac-tile active"><i class="bi bi-bluetooth"></i><span>Bluetooth</span></div>
+				<div class="lde-ac-tile"><i class="bi bi-airplane"></i><span>Airplane</span></div>
+				<div class="lde-ac-tile active"><i class="bi bi-moon-stars"></i><span>Night Mode</span></div>
+				<div class="lde-ac-tile"><i class="bi bi-battery-charging"></i><span>Battery Saver</span></div>
+				<div class="lde-ac-tile active"><i class="bi bi-brightness-high"></i><span>Brightness</span></div>
+			</div>
+			<div class="lde-ac-sliders">
+				<div class="lde-ac-slider-row">
+					<div class="lde-ac-icon-tile" id="ac-vol-btn" data-muted="false" title="Mute/Unmute">
+						<i class="bi bi-volume-up-fill"></i>
+					</div>
+					<input type="range" class="lde-ac-slider" id="ac-vol-slider" value="75">
+				</div>
+				<div class="lde-ac-slider-row">
+					<div class="lde-ac-icon-tile" id="ac-bright-btn" data-toggled="false" title="Toggle Brightness">
+						<i class="bi bi-brightness-high-fill"></i>
+					</div>
+					<input type="range" class="lde-ac-slider" id="ac-bright-slider" value="100">
 				</div>
 			</div>
 		</div>
+		<div id="search-panel" class="lde-search-panel" aria-hidden="true">
+			<div class="lde-search-box-wrap">
+				<i class="bi bi-search lde-search-icon"></i>
+				<input type="text" id="search-input" class="lde-search-input" placeholder="Type here to search"
+					autocomplete="off" spellcheck="false">
+			</div>
+			<div class="lde-app-list-header">Apps</div>
+			<div id="app-list" class="lde-app-list"></div>
+		</div>
+		<div id="search-overlay" class="lde-search-overlay"></div>
 		<div id="desktop" class="lde-desktop"></div>
-		<div id="dock" class="lde-dock">
-			<div class="lde-dock-icon">
-				<div class="lde-dock-icon-caption">File Manager</div>
-				<i class="bi bi-folder-fill"></i>
-			</div>
-			<div class="lde-dock-icon">
-				<div class="lde-dock-icon-caption">Browser</div>
-				<i class="bi bi-browser-safari"></i>
-			</div>
-			<div class="lde-dock-icon">
-				<div class="lde-dock-icon-caption">Music</div>
-				<i class="bi bi-apple-music"></i>
-			</div>
-			<div class="lde-dock-icon">
-				<div class="lde-dock-icon-caption">GitHub</div>
-				<i class="bi bi-github"></i>
+		<div id="taskbar" class="lde-taskbar">
+			<div id="search-btn" class="lde-taskbar-search-btn" title="Search" onclick="toggleSearch()">
+				<i class="bi bi-search"></i>
 			</div>
 		</div>
 	</div>
@@ -165,9 +163,10 @@
 				<div class="modal-body" id="alert-body">
 				</div>
 				<div class="modal-footer lde-win-footer" id="alert-footer">
-					<button id="alert-btn-close" type="button" class="btn wm-button btn-primary" data-bs-dismiss="modal">Close</button>
-					<button id="alert-btn-1"     type="button" class="btn wm-button btn-secondary"></button>
-					<button id="alert-btn-2"     type="button" class="btn wm-button btn-secondary"></button>
+					<button id="alert-btn-close" type="button" class="btn wm-button btn-primary"
+						data-bs-dismiss="modal">Close</button>
+					<button id="alert-btn-1" type="button" class="btn wm-button btn-secondary"></button>
+					<button id="alert-btn-2" type="button" class="btn wm-button btn-secondary"></button>
 				</div>
 			</div>
 		</div>
@@ -177,6 +176,21 @@
 	crossorigin="anonymous"></script>
 <script src="core/document.js"></script>
 <script src="core/lib.js"></script>
-<script src="core/lilac.js"></script>
+<script src="core/wm.js"></script>
+<!-- LDE modules (order matters: globals → applets → menubar → action-centre → search → boot) -->
+<script src="core/globals.js"></script>
+<script src="core/applets.js"></script>
+<script src="core/menubar.js"></script>
+<script src="core/action-centre.js"></script>
+<script src="core/fs.js"></script>
+<script src="core/search.js"></script>
+<script src="core/apps/cmd.js"></script>
+<script src="core/apps/filemanager.js"></script>
+<script src="core/apps/notepad.js"></script>
+<script src="core/filedialog.js"></script>
+<script src="core/apps/welcome.js"></script>
+<script src="core/apps/controlpanel.js"></script>
+<script src="core/switcher.js"></script>
+<script src="core/boot.js"></script>
 
 </html>

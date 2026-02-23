@@ -1,0 +1,99 @@
+/* ── Command Prompt window — Windows CMD style ── */
+.lde-cmd {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: #0c0c0c;
+    color: #cccccc;
+    font-family: 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+    font-size: 0.82rem;
+    overflow: hidden;
+    cursor: text;
+}
+
+/* Hidden real input — captures keystrokes, invisible */
+.lde-cmd-hidden-input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 1px;
+    height: 1px;
+    left: -999px;
+}
+
+/* Scrollable terminal area — holds all output + inline input */
+.lde-cmd-terminal {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 12px 6px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    outline: none;
+    scrollbar-width: thin;
+    scrollbar-color: #3a3a3a #0c0c0c;
+    cursor: text;
+}
+
+.lde-cmd-terminal::-webkit-scrollbar {
+    width: 6px;
+}
+
+.lde-cmd-terminal::-webkit-scrollbar-track {
+    background: #0c0c0c;
+}
+
+.lde-cmd-terminal::-webkit-scrollbar-thumb {
+    background: #3a3a3a;
+    border-radius: 2px;
+}
+
+/* Generic output line */
+.lde-cmd-line {
+    line-height: 1.55;
+    font-family: inherit;
+    white-space: pre-wrap;
+    min-height: 1.2em;
+}
+
+/* Prompt text — amber/gold Windows CMD colour */
+.lde-cmd-prompt {
+    color: #e8c84a;
+    user-select: none;
+}
+
+/* Typed text on the active line */
+.lde-cmd-typed {
+    color: #cccccc;
+}
+
+/* Blinking block cursor */
+.lde-cmd-cursor {
+    display: inline-block;
+    background-color: #e8c84a;
+    color: #0c0c0c;
+    min-width: 0.55em;
+    animation: cmd-blink 1.1s step-end infinite;
+}
+
+@keyframes cmd-blink {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0;
+    }
+}
+
+/* Error output — soft red */
+.lde-cmd-err {
+    color: #f07070;
+}
+
+/* Active input line loses blink when window blurred */
+.lde-cmd-hidden-input:not(:focus)~.lde-cmd-terminal .lde-cmd-cursor {
+    animation: none;
+    opacity: 1;
+}

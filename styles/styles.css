@@ -1,34 +1,64 @@
-:root {
-    --menubar-height: 2.3em;
-    --ease: cubic-bezier(.07,-0.07,0,1.03);
-    --blur: blur(5px);
-
-    /* Thanks https://www.joshwcomeau.com/shadow-palette/ */
-    --shadow-color: 0deg 0% 0%;
-    --shadow-elevation-low:
-        0px 1px 1px hsl(var(--shadow-color) / 0.12),
-        0px 1.5px 1.4px -1.8px hsl(var(--shadow-color) / 0.1),
-        0.1px 3.6px 3.5px -3.6px hsl(var(--shadow-color) / 0.07);
-    --shadow-elevation-medium:
-        0px 1px 1px hsl(var(--shadow-color) / 0.13),
-        0.1px 2.4px 2.3px -1.2px hsl(var(--shadow-color) / 0.11),
-        0.1px 6.9px 6.6px -2.4px hsl(var(--shadow-color) / 0.09),
-        0.4px 18.1px 17.4px -3.6px hsl(var(--shadow-color) / 0.07);
-    --shadow-elevation-high:
-        0px 1px 1px hsl(var(--shadow-color) / 0.12),
-        0.1px 3.3px 3.2px -0.5px hsl(var(--shadow-color) / 0.11),
-        0.1px 6.3px 6px -1px hsl(var(--shadow-color) / 0.1),
-        0.2px 11.4px 10.9px -1.5px hsl(var(--shadow-color) / 0.09),
-        0.4px 20px 19.2px -2.1px hsl(var(--shadow-color) / 0.08),
-        0.7px 33.6px 32.3px -2.6px hsl(var(--shadow-color) / 0.07),
-        1.1px 53.4px 51.3px -3.1px hsl(var(--shadow-color) / 0.06),
-        1.7px 81px 77.8px -3.6px hsl(var(--shadow-color) / 0.05);
+/* ── System Drag/Selection Inhibition ── */
+* {
+  -webkit-user-drag: none;
+  user-drag: none;
 }
 
-#app, html, body {
-    height: 100%;
-    overflow: hidden;
-    cursor: url("../res/default.svg"), auto;
+.lde-win-header,
+.lde-mbar,
+.lde-taskbar,
+.lde-w32-btn,
+.lde-msg-btn {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+
+
+input,
+textarea,
+[contenteditable] {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap');
+
+:root {
+  --menubar-height: 2.3em;
+  --ease: cubic-bezier(.07, -0.07, 0, 1.03);
+  --blur: blur(5px);
+  --font-family: 'Noto Sans', sans-serif;
+
+  /* Thanks https://www.joshwcomeau.com/shadow-palette/ */
+  --shadow-color: 0deg 0% 0%;
+  --shadow-elevation-low:
+    0px 1px 1px hsl(var(--shadow-color) / 0.12),
+    0px 1.5px 1.4px -1.8px hsl(var(--shadow-color) / 0.1),
+    0.1px 3.6px 3.5px -3.6px hsl(var(--shadow-color) / 0.07);
+  --shadow-elevation-medium:
+    0px 1px 1px hsl(var(--shadow-color) / 0.13),
+    0.1px 2.4px 2.3px -1.2px hsl(var(--shadow-color) / 0.11),
+    0.1px 6.9px 6.6px -2.4px hsl(var(--shadow-color) / 0.09),
+    0.4px 18.1px 17.4px -3.6px hsl(var(--shadow-color) / 0.07);
+  --shadow-elevation-high:
+    0px 1px 1px hsl(var(--shadow-color) / 0.12),
+    0.1px 3.3px 3.2px -0.5px hsl(var(--shadow-color) / 0.11),
+    0.1px 6.3px 6px -1px hsl(var(--shadow-color) / 0.1),
+    0.2px 11.4px 10.9px -1.5px hsl(var(--shadow-color) / 0.09),
+    0.4px 20px 19.2px -2.1px hsl(var(--shadow-color) / 0.08),
+    0.7px 33.6px 32.3px -2.6px hsl(var(--shadow-color) / 0.07),
+    1.1px 53.4px 51.3px -3.1px hsl(var(--shadow-color) / 0.06),
+    1.7px 81px 77.8px -3.6px hsl(var(--shadow-color) / 0.05);
+}
+
+#app,
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  cursor: url("../res/default.svg"), auto;
+  font-family: var(--font-family);
 }
 
 @keyframes kaboom {
@@ -36,14 +66,28 @@
     transform: scale(1) rotate(0deg);
     opacity: 1;
   }
-  10% { transform: scale(1.1) rotate(-1deg); }
-  20% { transform: scale(1.1) rotate(1deg); }
-  30% { transform: scale(1.1) rotate(-1deg); }
-  40% { transform: scale(1.1) rotate(1deg); }
+
+  10% {
+    transform: scale(1.1) rotate(-1deg);
+  }
+
+  20% {
+    transform: scale(1.1) rotate(1deg);
+  }
+
+  30% {
+    transform: scale(1.1) rotate(-1deg);
+  }
+
+  40% {
+    transform: scale(1.1) rotate(1deg);
+  }
+
   60% {
     opacity: 0.9;
     filter: brightness(2) blur(2px);
   }
+
   100% {
     transform: scale(100);
     opacity: 0;
@@ -69,12 +113,194 @@
     transform: scale(1);
     filter: brightness(100%);
   }
+
   50% {
     transform: scale(1.01);
     filter: brightness(120%);
   }
+
   100% {
     transform: scale(1);
     filter: brightness(100%);
   }
+}
+
+/* Calendar Styles */
+#calendar-container {
+  color: white;
+  font-family: inherit;
+  position: relative;
+  overflow: hidden;
+  height: 270px;
+}
+
+/* Windows 10 Style Scrollbars */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #444;
+  border: 2px solid #1e1e1e;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+::-webkit-scrollbar-button {
+  display: none;
+}
+
+/* Calendar Slide Animation */
+.calendar-page {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s;
+  width: 100%;
+}
+
+.calendar-page.sliding {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.slide-left-enter {
+  transform: translateX(100%);
+  opacity: 0.2;
+}
+
+.slide-left-exit {
+  transform: translateX(-100%);
+  opacity: 0.2;
+}
+
+.slide-right-enter {
+  transform: translateX(-100%);
+  opacity: 0.2;
+}
+
+.slide-right-exit {
+  transform: translateX(100%);
+  opacity: 0.2;
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 1rem;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  z-index: 2;
+}
+
+.cal-nav {
+  background: none;
+  border: 1px solid transparent;
+  color: white;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 0;
+}
+
+.cal-nav:hover {
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.cal-nav:active {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.calendar-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.calendar-table th {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: #888;
+  padding-bottom: 5px;
+  text-align: center;
+}
+
+.calendar-table td {
+  text-align: center;
+  padding: 5px;
+  font-size: 0.85rem;
+  cursor: default;
+  border-radius: 4px;
+}
+
+.calendar-table td:hover:not(:empty) {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.calendar-table td.today {
+  background-color: #0d6efd;
+  font-weight: bold;
+}
+
+/* Clock Styles */
+.clock-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.analog-clock {
+  width: 120px;
+  height: 120px;
+}
+
+.clock-face {
+  fill: none;
+  stroke: white;
+  stroke-width: 2;
+}
+
+.clock-center {
+  fill: white;
+}
+
+.hand {
+  stroke: white;
+  stroke-linecap: round;
+  transform-origin: 50px 50px;
+}
+
+.hour {
+  stroke-width: 3;
+}
+
+.minute {
+  stroke-width: 2;
+}
+
+.second {
+  stroke: #ff5e57;
+  /* Lighter red for second hand */
+  stroke-width: 1;
+}
+
+.clock-marker {
+  stroke: rgba(255, 255, 255, 0.5);
+  stroke-width: 1;
+}
+
+.lde-selection-rect {
+  position: absolute;
+  background-color: rgba(0, 120, 215, 0.3);
+  border: 1px solid rgba(0, 120, 215, 0.8);
+  pointer-events: none;
+  z-index: 50;
+  transition: opacity 0.2s ease-out;
 }

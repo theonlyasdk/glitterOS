@@ -1,0 +1,131 @@
+/* ── Aero Window Switcher (Shift+Tab) ─────────────────────────────────────── */
+
+/* Dark overlay that covers everything */
+.lde-switcher-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    z-index: 9990;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s cubic-bezier(0.1, 0.9, 0.2, 1);
+}
+
+.lde-switcher-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Dim menubar + taskbar */
+body.lde-switcher-active #menubar,
+body.lde-switcher-active #taskbar {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+/* The switcher container — horizontally centered row of thumbnails */
+.lde-switcher {
+    position: fixed;
+    inset: 0;
+    z-index: 9995;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-content: center;
+    align-items: center;
+    gap: 16px;
+    padding: 60px;
+    overflow-y: auto;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s cubic-bezier(0.1, 0.9, 0.2, 1);
+
+    /* Hide scrollbar */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.lde-switcher::-webkit-scrollbar {
+    display: none;
+}
+
+.lde-switcher.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Window thumbnail card */
+.lde-switcher-thumb {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 10px;
+    border: 2px solid transparent;
+    border-radius: 4px;
+    transition: border-color 0.15s, background 0.15s, transform 0.25s cubic-bezier(0.1, 0.9, 0.2, 1);
+    transform: scale(0.85) translateY(20px);
+    opacity: 0;
+    animation: switcher-card-in 0.4s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+}
+
+@keyframes switcher-card-in {
+    to {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+}
+
+.lde-switcher-thumb.selected {
+    border-color: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.lde-switcher-thumb:hover:not(.selected) {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+/* Preview image / snapshot */
+.lde-switcher-preview {
+    width: 180px;
+    height: 110px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 3px;
+    overflow: hidden;
+    background: #1e1e1e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* Scaled-down clone of the window */
+.lde-switcher-preview>div {
+    transform-origin: top left;
+    pointer-events: none;
+}
+
+/* Title label under thumbnail */
+.lde-switcher-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.85);
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lde-switcher-label i {
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+
+/* Utility class for padded app content */
+.lde-app-padded {
+    padding: 16px;
+}

@@ -1,29 +1,44 @@
 .lde-mbar {
     width: 100%;
-    padding: 0.2em 0.6em;
-    background-color: var(--bs-dark);
-    box-shadow: 0px 10px 40px 0px rgba(0,0,0,0.70);
+    padding: 0;
+    background-color: rgba(26, 26, 26, 0.85);
+    backdrop-filter: blur(20px) saturate(125%);
+    box-shadow: none !important;
     color: #eeeeee;
     box-sizing: border-box;
     display: flex;
     flex-direction: row;
-    gap: .2em;
+    gap: 0;
     height: var(--menubar-height) !important;
     align-items: center;
-    font-size: 1.2rem;
-    z-index: 999;
+    font-size: 0.95rem;
+    position: relative;
+    z-index: 1000;
+    border-bottom: 1px solid #333;
 }
+
+.lde-mbar b {
+    font-weight: normal;
+}
+
 .lde-mbar-left {
     display: flex;
-    gap: 0.2em;
     flex-direction: row;
     margin-right: auto;
+    height: 100%;
 }
+
+.lde-mbar-left>.dropdown,
+.lde-mbar-right>.dropdown {
+    height: 100%;
+}
+
 .lde-mbar-right {
     display: flex;
-    gap: 0.2em;
     flex-direction: row;
+    height: 100%;
 }
+
 .lde-mseperator {
     padding: 0;
     margin: 0.4em;
@@ -32,11 +47,14 @@
 .lde-mbar-item {
     background-color: transparent;
     color: #aaaaaa;
-    padding: 0 0.2em;
+    padding: 0 0.5em;
     cursor: pointer;
     user-select: none;
     outline: none;
-    border:none;
+    border: none;
+    height: 100%;
+    display: flex;
+    align-items: center;
 }
 
 .lde-mbar-item:active,
@@ -49,12 +67,12 @@
 
 .lde-mbar-item:hover {
     color: white;
-    background-color: #aaaaaa11;
-    border-radius: 6px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 0;
 }
 
 .lde-mbar-item:focus {
-    filter: brightness(150%);
+    background-color: rgba(255, 255, 255, 0.15);
 }
 
 .lde-mbar-item-highlight {

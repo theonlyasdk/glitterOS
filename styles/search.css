@@ -1,0 +1,225 @@
+/* ── Search button in taskbar ── */
+.lde-taskbar-search-btn {
+    width: 40px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 1rem;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background-color 0.1s, color 0.1s;
+}
+
+.lde-taskbar-search-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.lde-taskbar-search-btn.active {
+    background-color: rgba(255, 255, 255, 0.15);
+    color: #fff;
+}
+
+/* ── Overlay to dismiss panel ── */
+.lde-search-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 3499;
+}
+
+.lde-search-overlay.visible {
+    display: block;
+}
+
+/* ── Main search panel — Windows 10 Acrylic ── */
+.lde-search-panel {
+    position: fixed;
+    bottom: 40px;
+    left: 0;
+    width: 360px;
+    max-height: calc(100vh - 80px);
+    background-color: rgba(28, 28, 32, 0.72);
+    backdrop-filter: blur(48px) saturate(180%) brightness(0.9);
+    -webkit-backdrop-filter: blur(48px) saturate(180%) brightness(0.9);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-bottom: none;
+    box-shadow: 4px 0 32px rgba(0, 0, 0, 0.55), 0 -4px 32px rgba(0, 0, 0, 0.4);
+    z-index: 3500;
+    display: flex;
+    flex-direction: column;
+    transform: translateY(16px);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.22s cubic-bezier(0.1, 0.9, 0.2, 1),
+        opacity 0.22s cubic-bezier(0.1, 0.9, 0.2, 1);
+}
+
+.lde-search-panel.open {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* ── UWP Search box ── */
+.lde-search-box-wrap {
+    display: flex;
+    align-items: center;
+    margin: 16px 16px 8px;
+    background-color: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 0;
+    padding: 0 14px;
+    gap: 10px;
+    transition: border-color 0.15s, background-color 0.15s;
+}
+
+.lde-search-box-wrap:focus-within {
+    background-color: #fff;
+    border-color: #0078d7;
+}
+
+.lde-search-icon {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.9rem;
+    flex-shrink: 0;
+    transition: color 0.15s;
+}
+
+.lde-search-box-wrap:focus-within .lde-search-icon {
+    color: #0078d7;
+}
+
+.lde-search-input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: #fff;
+    font-size: 0.9rem;
+    padding: 10px 0;
+    font-family: inherit;
+    caret-color: #0078d7;
+    transition: color 0.15s;
+}
+
+.lde-search-box-wrap:focus-within .lde-search-input {
+    color: #111;
+}
+
+.lde-search-input::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+    transition: color 0.15s;
+}
+
+.lde-search-box-wrap:focus-within .lde-search-input::placeholder {
+    color: rgba(0, 0, 0, 0.35);
+}
+
+/* ── Apps section header ── */
+.lde-app-list-header {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.4);
+    padding: 6px 20px 4px;
+}
+
+.lde-app-list {
+    overflow-y: auto;
+    flex: 1;
+    padding-bottom: 8px;
+}
+
+/* ── App list item — tile-style spotlight hover ── */
+.lde-app-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 7px 16px;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.88rem;
+    user-select: none;
+    position: relative;
+    overflow: hidden;
+    transform-style: preserve-3d;
+    transition: transform 0.12s ease, border-color 0.1s;
+    border: 1px solid transparent;
+    margin: 1px 8px;
+}
+
+.lde-app-item:hover {
+    border-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+/* Spotlight glow */
+.lde-app-item::before {
+    content: '';
+    position: absolute;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+    filter: blur(10px);
+    transform: translate(-50%, -50%);
+    left: var(--glow-x, 50%);
+    top: var(--glow-y, 50%);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.lde-app-item:hover::before {
+    opacity: 1;
+}
+
+.lde-app-item-icon {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+}
+
+.lde-app-item-name {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    position: relative;
+    z-index: 1;
+}
+
+.lde-app-item.hidden {
+    display: none;
+}
+
+/* No results */
+.lde-search-no-results {
+    padding: 20px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 0.85rem;
+    display: none;
+}
+
+.lde-search-no-results.visible {
+    display: block;
+}
+
+/* Keyboard-focused app item */
+.lde-app-item-focused {
+    background-color: rgba(0, 120, 215, 0.25);
+    border-color: rgba(0, 120, 215, 0.5) !important;
+}

@@ -1,0 +1,85 @@
+/* ── Control Panel Styles ── */
+
+.lde-cp {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: #1e1e1e;
+    color: #eee;
+}
+
+.lde-cp-body {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+.lde-cp-sidebar {
+    width: 200px;
+    background: #252525;
+    border-right: 1px solid #333;
+    padding: 10px 0;
+}
+
+.lde-cp-nav-item {
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #bbb;
+    transition: all 0.2s;
+}
+
+.lde-cp-nav-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+}
+
+.lde-cp-nav-item.active {
+    background: rgba(0, 120, 215, 0.2);
+    color: #fff;
+    border-left: 3px solid #0078d7;
+}
+
+.lde-cp-content {
+    flex: 1;
+    padding: 25px;
+    overflow-y: auto;
+}
+
+.lde-cp-section-title {
+    font-size: 1.5rem;
+    font-weight: 300;
+    margin-bottom: 20px;
+    color: #fff;
+}
+
+/* Personalization / Wallpaper Grid */
+.lde-cp-wallpaper-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.lde-cp-wallpaper-thumb {
+    aspect-ratio: 16/9;
+    background-size: cover;
+    background-position: center;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.2s;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.lde-cp-wallpaper-thumb:hover {
+    transform: scale(1.05);
+    border-color: #555;
+}
+
+.lde-cp-wallpaper-thumb.active {
+    border-color: #0078d7;
+    box-shadow: 0 0 15px rgba(0, 120, 215, 0.5);
+}

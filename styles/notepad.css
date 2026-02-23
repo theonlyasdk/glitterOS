@@ -1,0 +1,120 @@
+/* ── Notepad App Styles (Dark Mode) ── */
+.lde-notepad {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: #1e1e1e;
+    color: #eeeeee;
+    font-family: 'Consolas', 'Courier New', monospace;
+}
+
+/* Notepad Menu Bar */
+.lde-notepad-menubar {
+    display: flex;
+    background: #2b2b2b;
+    border-bottom: 1px solid #3a3a3a;
+    font-family: var(--font-family, 'Segoe UI', system-ui, sans-serif);
+    font-size: 0.82rem;
+    padding: 1px 2px;
+}
+
+.lde-notepad-menu-item {
+    padding: 3px 10px;
+    cursor: pointer;
+    position: relative;
+    color: #ccc;
+    transition: background 0.1s;
+}
+
+.lde-notepad-menu-item:hover,
+.lde-notepad-menu-item.active {
+    background: #3f3f3f;
+    color: #fff;
+}
+
+/* Notepad Editor Wrapper */
+.lde-notepad-editor {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    background: #1e1e1e;
+}
+
+/* Notepad Gutter (Line Numbers) */
+.lde-notepad-gutter {
+    width: 45px;
+    background: #252525;
+    color: #858585;
+    padding: 8px 5px;
+    text-align: right;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    user-select: none;
+    border-right: 1px solid #333;
+    overflow: hidden;
+    white-space: pre;
+    font-family: 'Consolas', 'Courier New', monospace;
+}
+
+/* Notepad Content */
+.lde-notepad-content {
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 8px;
+    resize: none;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    white-space: pre;
+    overflow: auto;
+    background: #1e1e1e;
+    color: #eee;
+    font-family: 'Consolas', 'Courier New', monospace;
+}
+
+/* Notepad Dropdown (matching system menu) */
+.lde-notepad-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 0;
+    background: #2b2b2b;
+    border: 1px solid #444;
+    box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: none;
+    min-width: 180px;
+    padding: 2px;
+    font-family: var(--font-family);
+}
+
+.lde-notepad-menu-item.active .lde-notepad-dropdown {
+    display: block;
+}
+
+.lde-notepad-dropdown-item {
+    padding: 6px 20px;
+    white-space: nowrap;
+    color: #eee;
+    font-size: 0.85rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.lde-notepad-dropdown-item:hover {
+    background: #3f3f3f;
+    color: #fff;
+}
+
+.lde-notepad-dropdown-item .shortcut {
+    color: #888;
+    font-size: 0.75rem;
+    margin-left: 20px;
+}
+
+.lde-notepad-dropdown-sep {
+    height: 1px;
+    background: #444;
+    margin: 2px 4px;
+}
