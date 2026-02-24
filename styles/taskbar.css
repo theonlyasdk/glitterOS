@@ -1,4 +1,4 @@
-.lde-taskbar {
+.gos-taskbar {
     background-color: #1a1a1ae6;
     position: absolute;
     bottom: 0;
@@ -25,12 +25,12 @@
     /* IE and Edge */
 }
 
-.lde-taskbar::-webkit-scrollbar {
+.gos-taskbar::-webkit-scrollbar {
     display: none;
     /* Chrome, Safari, Opera */
 }
 
-.lde-taskbar-item {
+.gos-taskbar-item {
     color: white;
     min-width: 40px;
     max-width: 160px;
@@ -50,21 +50,21 @@
 }
 
 @container (max-width: 85px) {
-    .lde-taskbar-item {
+    .gos-taskbar-item {
         justify-content: center;
         padding: 0;
     }
 
-    .lde-taskbar-item i {
+    .gos-taskbar-item i {
         margin-right: 0 !important;
     }
 
-    .lde-taskbar-item span {
+    .gos-taskbar-item span {
         display: none;
     }
 }
 
-.lde-taskbar-item.mounting {
+.gos-taskbar-item.mounting {
     opacity: 0;
     max-width: 0;
     min-width: 0;
@@ -72,7 +72,7 @@
     overflow: hidden;
 }
 
-.lde-taskbar-item.removing {
+.gos-taskbar-item.removing {
     opacity: 0;
     max-width: 0;
     min-width: 0;
@@ -82,7 +82,7 @@
 }
 
 /* Background Highlight Slide */
-.lde-taskbar-item::before {
+.gos-taskbar-item::before {
     content: '';
     position: absolute;
     bottom: 0;
@@ -95,17 +95,17 @@
     z-index: 0;
 }
 
-.lde-taskbar-item:hover::before,
-.lde-taskbar-item.active::before {
+.gos-taskbar-item:hover::before,
+.gos-taskbar-item.active::before {
     transform: translateY(0);
 }
 
-.lde-taskbar-item.active::before {
+.gos-taskbar-item.active::before {
     background-color: rgba(255, 255, 255, 0.15);
 }
 
 /* Bottom Multi-state Indicator */
-.lde-taskbar-item::after {
+.gos-taskbar-item::after {
     content: '';
     position: absolute;
     bottom: 0;
@@ -118,24 +118,24 @@
     z-index: 1;
 }
 
-.lde-taskbar-item.active::after {
+.gos-taskbar-item.active::after {
     width: 100%;
     background-color: var(--accent-color);
 }
 
-.lde-taskbar-item i,
-.lde-taskbar-item span {
+.gos-taskbar-item i,
+.gos-taskbar-item span {
     position: relative;
     z-index: 2;
 }
 
-.lde-taskbar-item i {
+.gos-taskbar-item i {
     font-size: 1.2rem;
     margin-right: 8px;
     flex-shrink: 0;
 }
 
-.lde-taskbar-item span {
+.gos-taskbar-item span {
     font-size: 0.8rem;
     white-space: nowrap;
     overflow: hidden;

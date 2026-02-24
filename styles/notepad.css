@@ -1,5 +1,5 @@
 /* ── Notepad App Styles (Dark Mode) ── */
-.lde-notepad {
+.gos-notepad {
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -9,7 +9,7 @@
 }
 
 /* Notepad Menu Bar */
-.lde-notepad-menubar {
+.gos-notepad-menubar {
     display: flex;
     background: #2b2b2b;
     border-bottom: 1px solid #3a3a3a;
@@ -18,7 +18,7 @@
     padding: 1px 2px;
 }
 
-.lde-notepad-menu-item {
+.gos-notepad-menu-item {
     padding: 3px 10px;
     cursor: pointer;
     position: relative;
@@ -26,14 +26,14 @@
     transition: background 0.1s;
 }
 
-.lde-notepad-menu-item:hover,
-.lde-notepad-menu-item.active {
+.gos-notepad-menu-item:hover,
+.gos-notepad-menu-item.active {
     background: #3f3f3f;
     color: #fff;
 }
 
 /* Notepad Editor Wrapper */
-.lde-notepad-editor {
+.gos-notepad-editor {
     display: flex;
     flex: 1;
     overflow: hidden;
@@ -41,7 +41,7 @@
 }
 
 /* Notepad Gutter (Line Numbers) */
-.lde-notepad-gutter {
+.gos-notepad-gutter {
     width: 45px;
     background: #252525;
     color: #858585;
@@ -57,7 +57,7 @@
 }
 
 /* Notepad Content */
-.lde-notepad-content {
+.gos-notepad-content {
     flex: 1;
     border: none;
     outline: none;
@@ -73,7 +73,7 @@
 }
 
 /* Notepad Dropdown (matching system menu) */
-.lde-notepad-dropdown {
+.gos-notepad-dropdown {
     position: absolute;
     top: 100%;
     left: 0;
@@ -88,11 +88,11 @@
     font-family: var(--font-family);
 }
 
-.lde-notepad-menu-item.active .lde-notepad-dropdown {
+.gos-notepad-menu-item.active .gos-notepad-dropdown {
     display: block;
 }
 
-.lde-notepad-dropdown-item {
+.gos-notepad-dropdown-item {
     padding: 6px 20px;
     white-space: nowrap;
     color: #eee;
@@ -102,18 +102,18 @@
     align-items: center;
 }
 
-.lde-notepad-dropdown-item:hover {
+.gos-notepad-dropdown-item:hover {
     background: #3f3f3f;
     color: #fff;
 }
 
-.lde-notepad-dropdown-item .shortcut {
+.gos-notepad-dropdown-item .shortcut {
     color: #888;
     font-size: 0.75rem;
     margin-left: 20px;
 }
 
-.lde-notepad-dropdown-sep {
+.gos-notepad-dropdown-sep {
     height: 1px;
     background: #444;
     margin: 2px 4px;

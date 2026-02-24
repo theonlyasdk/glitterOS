@@ -1,6 +1,6 @@
 /* ── glitterOS File Dialog Styles ── */
 
-.lde-fd-container {
+.gos-fd-container {
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -9,7 +9,7 @@
     font-family: var(--font-family);
 }
 
-.lde-fd-toolbar {
+.gos-fd-toolbar {
     display: flex;
     background: #2b2b2b;
     padding: 6px;
@@ -18,7 +18,7 @@
     border-bottom: 1px solid #333;
 }
 
-.lde-fd-address {
+.gos-fd-address {
     flex: 1;
     background: #1a1a1a;
     border: 1px solid #444;
@@ -27,20 +27,20 @@
     font-size: 0.85rem;
 }
 
-.lde-fd-body {
+.gos-fd-body {
     flex: 1;
     display: flex;
     overflow: hidden;
 }
 
-.lde-fd-sidebar {
+.gos-fd-sidebar {
     width: 140px;
     background: #252525;
     border-right: 1px solid #333;
     padding: 8px 0;
 }
 
-.lde-fd-sidebar-item {
+.gos-fd-sidebar-item {
     padding: 4px 12px;
     font-size: 0.8rem;
     cursor: pointer;
@@ -50,16 +50,16 @@
     color: #bbb;
 }
 
-.lde-fd-sidebar-item:hover {
+.gos-fd-sidebar-item:hover {
     background: rgba(255, 255, 255, 0.05);
 }
 
-.lde-fd-sidebar-item.active {
+.gos-fd-sidebar-item.active {
     background: var(--accent-muted);
     color: #fff;
 }
 
-.lde-fd-content {
+.gos-fd-content {
     flex: 1;
     background: #1a1a1a;
     overflow-y: auto;
@@ -69,7 +69,7 @@
     padding: 10px;
 }
 
-.lde-fd-item {
+.gos-fd-item {
     width: 80px;
     padding: 8px;
     display: flex;
@@ -80,31 +80,31 @@
     border: 1px solid transparent;
 }
 
-.lde-fd-item:hover {
+.gos-fd-item:hover {
     background: rgba(255, 255, 255, 0.05);
     border-color: rgba(255, 255, 255, 0.1);
 }
 
-.lde-fd-item.selected {
+.gos-fd-item.selected {
     background: var(--accent-muted);
     border-color: var(--accent-color);
 }
 
-.lde-fd-item-icon {
+.gos-fd-item-icon {
     font-size: 2rem;
     line-height: 1;
     margin-bottom: 4px;
 }
 
-.lde-fd-item-icon.dir {
+.gos-fd-item-icon.dir {
     color: #fcc11f;
 }
 
-.lde-fd-item-icon.file {
+.gos-fd-item-icon.file {
     color: #ccc;
 }
 
-.lde-fd-item-name {
+.gos-fd-item-name {
     font-size: 0.75rem;
     word-break: break-all;
     display: -webkit-box;
@@ -114,32 +114,32 @@
     overflow: hidden;
 }
 
-.lde-fd-footer {
+.gos-fd-footer {
     padding: 12px;
     background: #2b2b2b;
     border-top: 1px solid #333;
 }
 
-.lde-fd-footer-row {
+.gos-fd-footer-row {
     display: flex;
     align-items: center;
     gap: 12px;
     margin-bottom: 10px;
 }
 
-.lde-fd-footer-row:last-child {
+.gos-fd-footer-row:last-child {
     margin-bottom: 0;
     justify-content: flex-end;
 }
 
-.lde-fd-label {
+.gos-fd-label {
     width: 80px;
     font-size: 0.85rem;
     color: #888;
 }
 
-.lde-fd-input,
-.lde-fd-select {
+.gos-fd-input,
+.gos-fd-select {
     flex: 1;
     background: #1a1a1a;
     border: 1px solid #444;
@@ -148,7 +148,7 @@
     font-size: 0.85rem;
 }
 
-.lde-fd-btn {
+.gos-fd-btn {
     min-width: 85px;
     padding: 5px 15px;
     font-size: 0.85rem;
@@ -157,16 +157,16 @@
     color: #eee;
 }
 
-.lde-fd-btn:hover {
+.gos-fd-btn:hover {
     background: #444;
 }
 
-.lde-fd-btn.primary {
+.gos-fd-btn.primary {
     background: var(--accent-hover);
     border-color: var(--accent-color);
 }
 
-.lde-fd-nav-btn {
+.gos-fd-nav-btn {
     background: transparent;
     border: none;
     color: #aaa;
@@ -175,11 +175,11 @@
     cursor: pointer;
 }
 
-.lde-fd-nav-btn:hover {
+.gos-fd-nav-btn:hover {
     color: #fff;
 }
 
-.lde-fd-nav-btn.disabled {
+.gos-fd-nav-btn.disabled {
     color: #444;
     cursor: default;
 }

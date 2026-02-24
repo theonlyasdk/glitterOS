@@ -1,12 +1,12 @@
 // ── Applets (clock, date, calendar) ─────────────────────────────────────────
 const applets = {
-    date: { elem: document.getElementById("lde-mbar-applet-date"), interval: null },
-    time: { elem: document.getElementById("lde-mbar-applet-time"), id: null },
+    date: { elem: document.getElementById("gos-mbar-applet-date"), interval: null },
+    time: { elem: document.getElementById("gos-mbar-applet-time"), id: null },
 };
 
 let currentCalendarDate = new Date();
 
-function ldeInitApplets() {
+function gosInitApplets() {
     const hourHand = document.getElementById("hour-hand");
     const minHand = document.getElementById("minute-hand");
     const secHand = document.getElementById("second-hand");
@@ -15,6 +15,9 @@ function ldeInitApplets() {
 
     function updateClock() {
         const now = new Date();
+        const batterySaver = document.getElementById('ac-battery-saver')?.classList.contains('active');
+
+        const ms = now.getMilliseconds();
         const seconds = now.getSeconds();
         const minutes = now.getMinutes();
         const hours = now.getHours();
@@ -33,24 +36,36 @@ function ldeInitApplets() {
             }
         }
 
-        if (secHand) secHand.style.transform = `rotate(${seconds * 6}deg)`;
+        // Smooth vs Step logic
+        let secRot = seconds * 6;
+        if (!batterySaver) {
+            secRot += (ms * 0.006); // 6 degrees / 1000ms
+        }
+
+        if (secHand) secHand.style.transform = `rotate(${secRot}deg)`;
         if (minHand) minHand.style.transform = `rotate(${minutes * 6 + seconds * 0.1}deg)`;
         if (hourHand) hourHand.style.transform = `rotate(${hours * 30 + minutes * 0.5}deg)`;
 
         const timeStr = now.toLocaleTimeString('en-US', {
             hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
         });
-        applets.time.elem.innerText = timeStr;
-        if (digitalClock) digitalClock.innerText = timeStr;
-        if (timezoneElem) {
-            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-            const offset = -now.getTimezoneOffset() / 60;
-            timezoneElem.innerText = `${timezone} (UTC${offset >= 0 ? '+' : ''}${offset})`;
+
+        // Only update text once per second to avoid layout thrashing
+        if (applets.time.lastSec !== seconds) {
+            applets.time.elem.innerText = timeStr;
+            if (digitalClock) digitalClock.innerText = timeStr;
+            if (timezoneElem) {
+                const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                const offset = -now.getTimezoneOffset() / 60;
+                timezoneElem.innerText = `${timezone} (UTC${offset >= 0 ? '+' : ''}${offset})`;
+            }
+            applets.date.elem.innerText = now.toDateString();
+            applets.time.lastSec = seconds;
         }
-        applets.date.elem.innerText = now.toDateString();
+
+        requestAnimationFrame(updateClock);
     }
 
-    applets.time.interval = setInterval(updateClock, 1000);
     updateClock();
 }
 
@@ -89,8 +104,8 @@ function renderCalendar(dateToRender, direction = null) {
     newPage.innerHTML = html;
 
     // Register tile effects for nav and dates
-    newPage.querySelectorAll('.cal-nav').forEach(btn => registerTileEffect(btn, { tilt: true, ripple: true, glow: true, liveTilt: true }));
-    newPage.querySelectorAll('.calendar-table td:not(:empty)').forEach(td => registerTileEffect(td, { tilt: true, ripple: true, glow: true, liveTilt: true }));
+    newPage.querySelectorAll('.cal-nav').forEach(btn => Widgets.registerTileEffect(btn, { tilt: true, ripple: true, glow: true, liveTilt: true }));
+    newPage.querySelectorAll('.calendar-table td:not(:empty)').forEach(td => Widgets.registerTileEffect(td, { tilt: true, ripple: true, glow: true, liveTilt: true }));
 
     const oldPage = calendarContainer.querySelector('.calendar-page');
     newPage.style.visibility = 'hidden';

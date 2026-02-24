@@ -1,4 +1,4 @@
-.lde-window {
+.gos-window {
 	position: absolute;
 	min-width: 200px;
 	min-height: 100px;
@@ -19,44 +19,44 @@
 	transform-origin: center center;
 }
 
-.lde-window.active {
+.gos-window.active {
 	box-shadow: 0 10px 40px rgba(0, 0, 0, 0.65);
 	border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
-.lde-window.minimized {
+.gos-window.minimized {
 	opacity: 0 !important;
 	pointer-events: none;
 	transform: scale(0.01) !important;
 }
 
-.lde-window.opening {
+.gos-window.opening {
 	opacity: 0 !important;
 	transform: perspective(1000px) scale(0.9) rotateX(10deg) !important;
 	transform-origin: top center;
 }
 
-.lde-window.closing {
+.gos-window.closing {
 	opacity: 0 !important;
 	transform: perspective(1000px) scale(0.9) rotateX(-10deg) !important;
 	pointer-events: none;
 	transition: opacity 0.2s cubic-bezier(0, 0, 0.2, 1), transform 0.2s cubic-bezier(0, 0, 0.2, 1) !important;
 }
 
-.lde-window.resizing,
-.lde-window.dragging,
+.gos-window.resizing,
+.gos-window.dragging,
 .no-transition {
 	transition: none !important;
 }
 
 
 /* Resize handles */
-.lde-win-resizer {
+.gos-win-resizer {
 	position: absolute;
 	z-index: 10;
 }
 
-.lde-win-resizer-r {
+.gos-win-resizer-r {
 	top: 0;
 	right: 0;
 	width: 6px;
@@ -64,7 +64,7 @@
 	cursor: ew-resize;
 }
 
-.lde-win-resizer-b {
+.gos-win-resizer-b {
 	bottom: 0;
 	left: 0;
 	width: 100%;
@@ -72,7 +72,7 @@
 	cursor: ns-resize;
 }
 
-.lde-win-resizer-rb {
+.gos-win-resizer-rb {
 	bottom: 0;
 	right: 0;
 	width: 12px;
@@ -81,7 +81,7 @@
 	z-index: 11;
 }
 
-.lde-win-header {
+.gos-win-header {
 	height: 32px;
 	background-color: #2b2b2b;
 	display: flex;
@@ -94,12 +94,12 @@
 
 
 
-.lde-win-controls {
+.gos-win-controls {
 	display: flex;
 	height: 100%;
 }
 
-.lde-win-btn {
+.gos-win-btn {
 	width: 46px;
 	height: 100%;
 	display: flex;
@@ -110,22 +110,22 @@
 	font-size: 0.8rem;
 }
 
-.lde-win-btn:hover {
+.gos-win-btn:hover {
 	background-color: rgba(255, 255, 255, 0.1);
 }
 
-.lde-win-btn-close:hover {
+.gos-win-btn-close:hover {
 	background-color: #e81123 !important;
 }
 
-.lde-win-body {
+.gos-win-body {
 	flex-grow: 1;
 	padding: 0;
 	overflow: auto;
 	background-color: #1e1e1e;
 }
 
-.lde-win-footer {
+.gos-win-footer {
 	height: 24px;
 	padding: 0 10px;
 	color: var(--bs-secondary);
@@ -139,7 +139,7 @@
 }
 
 /* Window icon in header */
-.lde-win-icon {
+.gos-win-icon {
 	width: 32px;
 	height: 100%;
 	display: flex;
@@ -151,11 +151,11 @@
 	color: #ccc;
 }
 
-.lde-win-icon:hover {
+.gos-win-icon:hover {
 	background-color: rgba(255, 255, 255, 0.08);
 }
 
-.lde-win-title {
+.gos-win-title {
 	padding: 0 8px;
 	font-weight: normal;
 	font-size: 0.85rem;
@@ -167,7 +167,7 @@
 }
 
 /* Window system menu */
-.lde-win-sysmenu {
+.gos-win-sysmenu {
 	position: fixed;
 	z-index: 99999;
 	background-color: #2b2b2b;
@@ -181,11 +181,11 @@
 	font-size: 0.85rem;
 }
 
-.lde-win-sysmenu.visible {
+.gos-win-sysmenu.visible {
 	display: block;
 }
 
-.lde-win-sysmenu-item {
+.gos-win-sysmenu-item {
 	padding: 6px 20px;
 	color: #eee;
 	cursor: pointer;
@@ -197,31 +197,31 @@
 	gap: 32px;
 }
 
-.lde-sysmenu-shortcut {
+.gos-sysmenu-shortcut {
 	color: #888;
 	font-size: 0.8em;
 	margin-left: auto;
 }
 
-.lde-win-sysmenu-item:hover {
+.gos-win-sysmenu-item:hover {
 	background-color: #3f3f3f;
 	color: #fff;
 }
 
-.lde-win-sysmenu-item:hover .lde-sysmenu-shortcut {
+.gos-win-sysmenu-item:hover .gos-sysmenu-shortcut {
 	color: #aaa;
 }
 
-.lde-win-sysmenu-close {
+.gos-win-sysmenu-close {
 	color: #eee;
 }
 
-.lde-win-sysmenu-close:hover {
+.gos-win-sysmenu-close:hover {
 	background-color: #c42b1c;
 	color: #fff;
 }
 
-.lde-win-sysmenu-divider {
+.gos-win-sysmenu-divider {
 	margin: 2px 0;
 	border-color: #444;
 }
@@ -229,7 +229,7 @@
 /* ──────────────────────────────────────────────────────────────────────────
    MessageBox Styles (Win32 Dark)
    ────────────────────────────────────────────────────────────────────────── */
-.lde-messagebox {
+.gos-messagebox {
 	display: flex;
 	flex-direction: column;
 	height: 100%;
@@ -238,7 +238,7 @@
 	font-family: var(--font-family);
 }
 
-.lde-messagebox-main {
+.gos-messagebox-main {
 	display: flex;
 	flex-direction: row;
 	align-items: center;
@@ -247,7 +247,7 @@
 	gap: 20px;
 }
 
-.lde-messagebox-icon {
+.gos-messagebox-icon {
 	font-size: 2.2rem;
 	color: var(--accent-color);
 	display: flex;
@@ -267,53 +267,29 @@
 	color: #2196f3;
 }
 
-.lde-messagebox-text {
+.gos-messagebox-text {
 	flex: 1;
 	font-size: 0.9rem;
 	line-height: 1.4;
 	white-space: pre-wrap;
 }
 
-.lde-messagebox-buttons {
+.gos-messagebox-buttons {
 	background: #2b2b2b;
-	padding: 8px 12px;
+	padding: 12px 16px;
 	display: flex;
 	justify-content: flex-end;
 	gap: 8px;
 	border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.lde-msg-btn {
-	min-width: 80px;
-	background: #333;
-	border: 1px solid #555;
-	color: #eee;
-	padding: 4px 12px;
-	font-size: 0.85rem;
-	transition: all 0.1s;
-}
 
-.lde-msg-btn:hover {
-	background: #444;
-	border-color: #777;
-	color: #fff;
-}
-
-.lde-msg-btn.default {
-	border-color: var(--accent-color);
-	background: var(--accent-hover);
-}
-
-.lde-msg-btn.default:hover {
-	background: var(--accent-active);
-}
-
-.lde-window-messagebox {
+.gos-window-messagebox {
 	box-shadow: 0 15px 50px rgba(0, 0, 0, 0.7) !important;
 }
 
 /* Splash Screen */
-.lde-splash {
+.gos-splash {
 	position: absolute;
 	inset: 0;
 	z-index: 1000;
@@ -326,28 +302,26 @@
 	transition: opacity 0.4s ease-out;
 }
 
-.lde-splash-icon {
+.gos-splash-icon {
 	font-size: 4rem;
 	color: #fff;
-	margin-bottom: 2rem;
 }
 
-.lde-splash.fade-out {
+.gos-splash.fade-out {
 	opacity: 0;
 	pointer-events: none;
 }
 
-.lde-snap-preview {
+.gos-snap-preview {
 	position: fixed;
 	z-index: 999999;
 	pointer-events: none;
 	background: rgba(255, 255, 255, 0.1);
 	border: 1px solid rgba(255, 255, 255, 0.2);
-	backdrop-filter: blur(8px);
 	transition: all 600ms cubic-bezier(0.1, 0.9, 0.2, 1);
 	opacity: 0;
 }
 
-.lde-snap-preview.visible {
+.gos-snap-preview.visible {
 	opacity: 1;
 }

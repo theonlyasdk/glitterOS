@@ -1,6 +1,6 @@
 /* ── Task Manager — Windows 10 Dark Edition ──────────────────────────────── */
 
-.lde-taskmgr {
+.gos-taskmgr {
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -11,13 +11,13 @@
 }
 
 /* ── Tabs ── */
-.lde-taskmgr-tabs {
+.gos-taskmgr-tabs {
     display: flex;
     border-bottom: 1px solid #333;
     background-color: #252525;
 }
 
-.lde-taskmgr-tab {
+.gos-taskmgr-tab {
     padding: 8px 16px;
     font-size: 0.85rem;
     cursor: pointer;
@@ -26,50 +26,50 @@
     transition: all 0.15s;
 }
 
-.lde-taskmgr-tab:hover {
+.gos-taskmgr-tab:hover {
     color: #fff;
     background-color: rgba(255, 255, 255, 0.05);
 }
 
-.lde-taskmgr-tab.active {
+.gos-taskmgr-tab.active {
     color: #fff;
     border-bottom-color: var(--accent-color);
     background-color: rgba(255, 255, 255, 0.1);
 }
 
 /* ── Content View ── */
-.lde-taskmgr-content {
+.gos-taskmgr-content {
     flex: 1;
     overflow-y: auto;
     position: relative;
 }
 
-.lde-taskmgr-view {
+.gos-taskmgr-view {
     display: none;
     height: 100%;
     box-sizing: border-box;
 }
 
-.lde-taskmgr-view.active {
+.gos-taskmgr-view.active {
     display: flex;
     flex-direction: column;
 }
 
 /* ── Table / Listbox ── */
-.lde-taskmgr-table-container {
+.gos-taskmgr-table-container {
     flex: 1;
     overflow: auto;
     border: 1px solid #333;
     background-color: #1a1a1a;
 }
 
-.lde-taskmgr-table {
+.gos-taskmgr-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.82rem;
 }
 
-.lde-taskmgr-table th {
+.gos-taskmgr-table th {
     position: sticky;
     top: 0;
     background-color: #2b2b2b;
@@ -82,7 +82,7 @@
     z-index: 10;
 }
 
-.lde-taskmgr-table td {
+.gos-taskmgr-table td {
     padding: 4px 10px;
     border-bottom: 1px solid #2a2a2a;
     border-right: 1px solid #2a2a2a;
@@ -90,35 +90,35 @@
     color: #ccc;
 }
 
-.lde-taskmgr-table tr:hover {
+.gos-taskmgr-table tr:hover {
     background-color: rgba(255, 255, 255, 0.05);
 }
 
-.lde-taskmgr-table tr.selected {
+.gos-taskmgr-table tr.selected {
     background-color: var(--accent-muted);
     outline: 1px solid var(--accent-color);
     outline-offset: -1px;
 }
 
-.lde-taskmgr-table tr td:first-child {
+.gos-taskmgr-table tr td:first-child {
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
-.lde-taskmgr-table tr td:first-child i {
+.gos-taskmgr-table tr td:first-child i {
     font-size: 1rem;
     color: #fff;
 }
 
 /* ── Performance View ── */
-.lde-taskmgr-perf-layout {
+.gos-taskmgr-perf-layout {
     display: flex;
     height: 100%;
     gap: 5px;
 }
 
-.lde-taskmgr-perf-sidebar {
+.gos-taskmgr-perf-sidebar {
     width: 180px;
     display: flex;
     flex-direction: column;
@@ -126,40 +126,40 @@
     border-right: 1px solid #333;
 }
 
-.lde-taskmgr-perf-item {
+.gos-taskmgr-perf-item {
     padding: 10px;
     cursor: pointer;
     border: 1px solid transparent;
     transition: all 0.1s;
 }
 
-.lde-taskmgr-perf-item:hover {
+.gos-taskmgr-perf-item:hover {
     background-color: rgba(255, 255, 255, 0.05);
 }
 
-.lde-taskmgr-perf-item.active {
+.gos-taskmgr-perf-item.active {
     background-color: rgba(0, 120, 215, 0.1);
     border-color: var(--accent-color);
 }
 
-.lde-taskmgr-perf-item-title {
+.gos-taskmgr-perf-item-title {
     font-size: 0.85rem;
     font-weight: 600;
 }
 
-.lde-taskmgr-perf-item-sub {
+.gos-taskmgr-perf-item-sub {
     font-size: 0.75rem;
     color: #888;
 }
 
-.lde-taskmgr-perf-main {
+.gos-taskmgr-perf-main {
     flex: 1;
     display: flex;
     flex-direction: column;
     padding: 10px;
 }
 
-.lde-taskmgr-graph-container {
+.gos-taskmgr-graph-container {
     flex: 1;
     background-color: #000;
     border: 1px solid #333;
@@ -168,29 +168,29 @@
     margin-top: 10px;
 }
 
-.lde-taskmgr-canvas {
+.gos-taskmgr-canvas {
     width: 100%;
     height: 100%;
 }
 
-.lde-taskmgr-graph-header {
+.gos-taskmgr-graph-header {
     display: flex;
     justify-content: space-between;
     margin-bottom: 5px;
 }
 
-.lde-taskmgr-graph-title {
+.gos-taskmgr-graph-title {
     font-size: 1.1rem;
     font-weight: 300;
 }
 
-.lde-taskmgr-graph-value {
+.gos-taskmgr-graph-value {
     font-size: 1.1rem;
     color: var(--accent-color);
 }
 
 /* ── Footer ── */
-.lde-taskmgr-footer {
+.gos-taskmgr-footer {
     padding: 8px 12px;
     background-color: #252525;
     border-top: 1px solid #333;
@@ -199,7 +199,7 @@
     gap: 10px;
 }
 
-.lde-taskmgr-btn {
+.gos-taskmgr-btn {
     padding: 4px 20px;
     background-color: #333;
     border: 1px solid #444;
@@ -208,16 +208,16 @@
     cursor: pointer;
 }
 
-.lde-taskmgr-btn:hover {
+.gos-taskmgr-btn:hover {
     background-color: #444;
     border-color: #555;
 }
 
-.lde-taskmgr-btn:active {
+.gos-taskmgr-btn:active {
     background-color: #222;
 }
 
-.lde-taskmgr-btn:disabled {
+.gos-taskmgr-btn:disabled {
     opacity: 0.5;
     cursor: default;
 }

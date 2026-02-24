@@ -4,7 +4,7 @@
 
 function launchEdit(filePath = null, parentContainer = null, onExit = null) {
     const container = document.createElement('div');
-    container.className = 'lde-edit';
+    container.className = 'gos-edit';
 
     let _currentPath = filePath;
     let _isDirty = false;
@@ -13,24 +13,24 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
 
     // ── Components ──────────────────────────────────────────────────────────
     const menubar = document.createElement('div');
-    menubar.className = 'lde-edit-menubar';
+    menubar.className = 'gos-edit-menubar';
 
     const editorArea = document.createElement('div');
-    editorArea.className = 'lde-edit-editor';
+    editorArea.className = 'gos-edit-editor';
 
     // Gutter for line numbers
     const gutter = document.createElement('div');
-    gutter.className = 'lde-edit-gutter';
+    gutter.className = 'gos-edit-gutter';
 
     // Wrapper for textarea and highlight
     const contentWrapper = document.createElement('div');
-    contentWrapper.className = 'lde-edit-content-wrapper';
+    contentWrapper.className = 'gos-edit-content-wrapper';
 
     const highlight = document.createElement('div');
-    highlight.className = 'lde-edit-line-highlight';
+    highlight.className = 'gos-edit-line-highlight';
 
     const textarea = document.createElement('textarea');
-    textarea.className = 'lde-edit-content';
+    textarea.className = 'gos-edit-content';
     textarea.spellcheck = false;
     textarea.wrap = 'off'; // Typical for console editors
 
@@ -38,47 +38,95 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
     editorArea.append(gutter, contentWrapper);
 
     const statusbar = document.createElement('div');
-    statusbar.className = 'lde-edit-statusbar';
+    statusbar.className = 'gos-edit-statusbar';
 
     const statusMsg = document.createElement('div');
-    statusMsg.className = 'lde-edit-status-msg';
+    statusMsg.className = 'gos-edit-status-msg';
     statusMsg.textContent = 'F1=Help  Enter=Execute  Esc=Cancel  Tab=Next Field';
 
     const cursorPos = document.createElement('div');
-    cursorPos.className = 'lde-edit-cursor-pos';
+    cursorPos.className = 'gos-edit-cursor-pos';
     cursorPos.innerHTML = 'Line:1  Col:1';
 
     statusbar.append(statusMsg, cursorPos);
 
     // ── Menu Bar Setup ──────────────────────────────────────────────────────
+    const menuElements = [];
+    const menuItemsData = [];
+    let _activeMenuIdx = -1;
+    let _activeItemIdx = -1;
+
+    function closeAllMenus() {
+        container.querySelectorAll('.gos-edit-menu-item').forEach(m => {
+            m.classList.remove('active');
+            m.classList.remove('kb-focus');
+        });
+        container.querySelectorAll('.gos-edit-dropdown-item').forEach(m => m.classList.remove('kb-focus'));
+        _activeMenuIdx = -1;
+        _activeItemIdx = -1;
+    }
+
+    function highlightMenu() {
+        menuElements.forEach((m, i) => {
+            m.classList.toggle('kb-focus', i === _activeMenuIdx);
+            const isOpen = m.classList.contains('active');
+            if (i === _activeMenuIdx && !isOpen && _activeItemIdx !== -1) {
+                m.classList.add('active');
+            }
+            if (i !== _activeMenuIdx) {
+                m.classList.remove('active');
+            }
+        });
+
+        if (_activeMenuIdx !== -1) {
+            const items = menuItemsData[_activeMenuIdx];
+            items.forEach((item, i) => {
+                if (item.el) item.el.classList.toggle('kb-focus', i === _activeItemIdx);
+            });
+        }
+    }
+
     function createMenu(label, items) {
         const menu = document.createElement('div');
-        menu.className = 'lde-edit-menu-item';
+        menu.className = 'gos-edit-menu-item';
         menu.innerHTML = `<span>${label[0]}</span>${label.slice(1)}`;
 
         const dropdown = document.createElement('div');
-        dropdown.className = 'lde-edit-dropdown';
+        dropdown.className = 'gos-edit-dropdown';
 
+        const myItems = [];
         items.forEach(item => {
             const el = document.createElement('div');
-            el.className = 'lde-edit-dropdown-item';
+            el.className = 'gos-edit-dropdown-item';
             el.innerHTML = `<span>${item.label}</span>`;
-            el.onclick = (e) => {
-                e.stopPropagation();
-                menu.classList.remove('active');
+
+            const action = () => {
+                closeAllMenus();
                 item.action();
             };
+
+            el.onclick = (e) => {
+                e.stopPropagation();
+                action();
+            };
             dropdown.appendChild(el);
+            myItems.push({ label: item.label, action: action, el: el });
         });
 
         menu.appendChild(dropdown);
         menu.onclick = (e) => {
             e.stopPropagation();
             const wasActive = menu.classList.contains('active');
-            container.querySelectorAll('.lde-edit-menu-item').forEach(m => m.classList.remove('active'));
-            if (!wasActive) menu.classList.add('active');
+            const idx = menuElements.indexOf(menu);
+            closeAllMenus();
+            if (!wasActive) {
+                menu.classList.add('active');
+                _activeMenuIdx = idx;
+            }
         };
 
+        menuElements.push(menu);
+        menuItemsData.push(myItems);
         return menu;
     }
 
@@ -92,7 +140,7 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
             parentContainer.innerHTML = '';
             _oldContent.forEach(node => parentContainer.appendChild(node));
             if (_targetWin) {
-                _targetWin.element.querySelector('.lde-win-title').textContent = _targetWin.title;
+                _targetWin.element.querySelector('.gos-win-title').textContent = _targetWin.title;
             }
             if (onExit) onExit();
         } else {
@@ -160,9 +208,9 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
         const name = _currentPath ? _currentPath.split('\\').pop().toUpperCase() : 'UNTITLED.TXT';
         const titleText = `${name} - edit.exe`;
         if (_targetWin) {
-            _targetWin.element.querySelector('.lde-win-title').textContent = titleText;
+            _targetWin.element.querySelector('.gos-win-title').textContent = titleText;
         } else if (typeof winObj !== 'undefined') {
-            winObj.element.querySelector('.lde-win-title').textContent = titleText;
+            winObj.element.querySelector('.gos-win-title').textContent = titleText;
         }
     }
 
@@ -202,6 +250,52 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
         updateCursorInfo();
     });
 
+    container.addEventListener('keydown', (e) => {
+        if (e.key === 'Alt') {
+            e.preventDefault();
+            if (_activeMenuIdx === -1) {
+                _activeMenuIdx = 0;
+                highlightMenu();
+            } else {
+                closeAllMenus();
+            }
+            return;
+        }
+
+        if (_activeMenuIdx !== -1) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (e.key === 'Escape') {
+                closeAllMenus();
+            } else if (e.key === 'ArrowRight') {
+                _activeMenuIdx = (_activeMenuIdx + 1) % menuElements.length;
+                _activeItemIdx = -1;
+                highlightMenu();
+            } else if (e.key === 'ArrowLeft') {
+                _activeMenuIdx = (_activeMenuIdx - 1 + menuElements.length) % menuElements.length;
+                _activeItemIdx = -1;
+                highlightMenu();
+            } else if (e.key === 'ArrowDown') {
+                const items = menuItemsData[_activeMenuIdx];
+                _activeItemIdx = (_activeItemIdx + 1) % items.length;
+                highlightMenu();
+            } else if (e.key === 'ArrowUp') {
+                const items = menuItemsData[_activeMenuIdx];
+                _activeItemIdx = (_activeItemIdx - 1 + items.length) % items.length;
+                highlightMenu();
+            } else if (e.key === 'Enter') {
+                const items = menuItemsData[_activeMenuIdx];
+                if (_activeItemIdx !== -1) {
+                    items[_activeItemIdx].action();
+                } else {
+                    _activeItemIdx = 0;
+                    highlightMenu();
+                }
+            }
+        }
+    }, true);
+
     if (_currentPath) {
         const res = fs.cat(_currentPath);
         if (!res.error) textarea.value = res.content;
@@ -214,7 +308,7 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
 
     if (parentContainer) {
         // Find existing window if parent is part of one
-        const winElem = parentContainer.closest('.lde-window');
+        const winElem = parentContainer.closest('.gos-window');
         if (winElem) {
             _targetWin = wm.windows.find(w => w.element === winElem);
         }
@@ -239,7 +333,7 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
     // Handle global click to close menus
     const onMouseDown = (e) => {
         if (!menubar.contains(e.target)) {
-            container.querySelectorAll('.lde-edit-menu-item').forEach(m => m.classList.remove('active'));
+            closeAllMenus();
         }
     };
     window.addEventListener('mousedown', onMouseDown);

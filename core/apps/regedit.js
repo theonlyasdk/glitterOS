@@ -2,21 +2,22 @@
 
 function launchRegistryEditor() {
     const container = document.createElement('div');
-    container.className = 'lde-regedit';
+    container.className = 'gos-regedit';
 
     // ── State ─────────────────────────────────────────────────────────────
     let _selectedPath = '';
-    let _selectedValueKey = null;
+    let _selectedPaths = new Set();
+    let _selectedValueKeys = [];
     let _expandedPaths = new Set();
     let _ctxMenu = null;
 
     // ── Input dialog helper (MessageBox with text field) ──────────────────
     function inputDialog(title, label, defaultVal, callback) {
         const dlgContainer = document.createElement('div');
-        dlgContainer.className = 'lde-messagebox';
+        dlgContainer.className = 'gos-messagebox';
 
         const main = document.createElement('div');
-        main.className = 'lde-messagebox-main';
+        main.className = 'gos-messagebox-main';
         main.style.flexDirection = 'column';
         main.style.alignItems = 'stretch';
         main.style.gap = '10px';
@@ -28,22 +29,22 @@ function launchRegistryEditor() {
         const input = document.createElement('input');
         input.type = 'text';
         input.value = defaultVal || '';
-        input.style.cssText = 'background:#1a1a1a;border:1px solid #555;color:#eee;padding:5px 8px;font-size:0.85rem;font-family:monospace;width:100%;box-sizing:border-box;outline:none;';
+        input.classList.add('gos-w32-input'); // Apply the new class
         input.addEventListener('focus', () => input.style.borderColor = 'var(--accent-color)');
         input.addEventListener('blur', () => input.style.borderColor = '#555');
 
         main.append(lblEl, input);
 
         const buttons = document.createElement('div');
-        buttons.className = 'lde-messagebox-buttons';
+        buttons.className = 'gos-messagebox-buttons';
 
         const okBtn = document.createElement('button');
-        okBtn.className = 'lde-msg-btn default';
+        okBtn.className = 'gos-msg-btn default';
         okBtn.textContent = 'OK';
         okBtn.onclick = () => { wm.closeWindow(dlgWin.id); callback(input.value); };
 
         const cancelBtn = document.createElement('button');
-        cancelBtn.className = 'lde-msg-btn';
+        cancelBtn.className = 'gos-msg-btn';
         cancelBtn.textContent = 'Cancel';
         cancelBtn.onclick = () => wm.closeWindow(dlgWin.id);
 
@@ -55,7 +56,7 @@ function launchRegistryEditor() {
             width: 360, height: 180,
             icon: 'bi-pencil-square'
         });
-        dlgWin.element.classList.add('lde-window-messagebox');
+        dlgWin.element.classList.add('gos-window-messagebox');
 
         setTimeout(() => { input.focus(); input.select(); }, 100);
 
@@ -66,71 +67,183 @@ function launchRegistryEditor() {
         });
     }
 
-    // ── Edit Value dialog (name + data) ──────────────────────────────────
+    // ── Edit Value dialog (adaptive) ────────────────────────────────────
     function editValueDialog(title, nameVal, dataVal, nameReadOnly, callback) {
         const dlgContainer = document.createElement('div');
-        dlgContainer.className = 'lde-messagebox';
+        dlgContainer.className = 'gos-messagebox';
+        dlgContainer.style.height = '100%';
 
         const main = document.createElement('div');
-        main.className = 'lde-messagebox-main';
-        main.style.flexDirection = 'column';
-        main.style.alignItems = 'stretch';
-        main.style.gap = '8px';
+        main.className = 'gos-messagebox-main';
+        main.style.cssText = 'display:grid;grid-template-columns:100px 1fr;gap:6px;padding:10px 14px;align-items:start;overflow-y:auto;';
 
         const nameLbl = document.createElement('div');
-        nameLbl.style.cssText = 'font-size:0.85rem;color:#aaa;';
+        nameLbl.style.cssText = 'font-size:0.85rem;color:#ccc;padding-top:6px;';
         nameLbl.textContent = 'Value name:';
 
         const nameInput = document.createElement('input');
         nameInput.type = 'text';
-        nameInput.value = nameVal || '';
+        nameInput.value = nameVal === '(Default)' ? '' : (nameVal || '');
+        nameInput.placeholder = '(Default)';
         nameInput.readOnly = !!nameReadOnly;
-        nameInput.style.cssText = 'background:#1a1a1a;border:1px solid #555;color:#eee;padding:5px 8px;font-size:0.85rem;font-family:monospace;width:100%;box-sizing:border-box;outline:none;' + (nameReadOnly ? 'opacity:0.5;' : '');
+        nameInput.style.cssText = 'background:#1a1a1a;border:1px solid #444;color:#eee;padding:6px 10px;font-size:0.85rem;font-family:monospace;width:100%;box-sizing:border-box;' + (nameReadOnly ? 'opacity:0.6;background:transparent;' : '');
 
         const dataLbl = document.createElement('div');
-        dataLbl.style.cssText = 'font-size:0.85rem;color:#aaa;margin-top:4px;';
+        dataLbl.style.cssText = 'font-size:0.85rem;color:#ccc;padding-top:6px;';
         dataLbl.textContent = 'Value data:';
 
-        const dataInput = document.createElement('input');
-        dataInput.type = 'text';
-        dataInput.value = dataVal !== undefined ? String(dataVal) : '';
-        dataInput.style.cssText = 'background:#1a1a1a;border:1px solid #555;color:#eee;padding:5px 8px;font-size:0.85rem;font-family:monospace;width:100%;box-sizing:border-box;outline:none;';
-        dataInput.addEventListener('focus', () => dataInput.style.borderColor = 'var(--accent-color)');
-        dataInput.addEventListener('blur', () => dataInput.style.borderColor = '#555');
+        let getData = () => dataInput.value;
+        const dataWrap = document.createElement('div');
+        dataWrap.style.cssText = 'display:flex;flex-direction:column;gap:6px;';
 
-        main.append(nameLbl, nameInput, dataLbl, dataInput);
+        if (typeof dataVal === 'boolean') {
+            const radioWrap = document.createElement('div');
+            radioWrap.style.cssText = 'display:flex;flex-direction:column;gap:6px;padding:4px 0;';
 
-        const buttons = document.createElement('div');
-        buttons.className = 'lde-messagebox-buttons';
+            const createRadio = (lbl, val) => {
+                const l = document.createElement('label');
+                l.style.cssText = 'display:flex;align-items:center;gap:10px;cursor:pointer;font-size:0.85rem;';
+                const r = document.createElement('input');
+                r.type = 'radio';
+                r.name = 'reg-bool';
+                r.style.cssText = 'width:16px;height:16px;accent-color:var(--accent-color);';
+                r.value = val;
+                r.checked = dataVal === val;
+                l.append(r, document.createTextNode(lbl));
+                return { label: l, radio: r };
+            };
+
+            const t = createRadio('True', true);
+            const f = createRadio('False', false);
+            radioWrap.append(t.label, f.label);
+            dataWrap.appendChild(radioWrap);
+            getData = () => t.radio.checked;
+        } else if (typeof dataVal === 'number') {
+            const numInput = document.createElement('input');
+            numInput.type = 'number';
+            numInput.value = dataVal;
+            numInput.style.cssText = 'background:#1a1a1a;border:1px solid #444;color:#eee;padding:6px 10px;font-size:0.85rem;font-family:monospace;width:100%;box-sizing:border-box;';
+            dataWrap.appendChild(numInput);
+            getData = () => {
+                const v = parseFloat(numInput.value);
+                return isNaN(v) ? 0 : v;
+            };
+        } else if (Array.isArray(dataVal)) {
+            const container = document.createElement('div');
+            container.style.cssText = 'display:flex;flex-direction:column;gap:8px;';
+
+            let selectedRowIds = [];
+            const delBtn = document.createElement('button');
+            delBtn.className = 'gos-msg-btn';
+            delBtn.textContent = 'Remove';
+            delBtn.style.display = dataVal.length ? 'inline-block' : 'none';
+            delBtn.disabled = true;
+
+            const rows = dataVal.map((v, i) => ({ id: i, value: v }));
+            const tbl = Widgets.createTable({
+                columns: [
+                    {
+                        id: 'value', label: 'Value', width: '100%', render: (val, row) => `
+                        <input type="text" class="gos-table-edit" value="${val}" 
+                        style="width:100%;background:transparent;border:none;color:inherit;font-size:inherit;padding:0;outline:none;"
+                        onchange="this.parentElement.dataset.val = this.value">`
+                    }
+                ],
+                data: rows,
+                keyField: 'id',
+                onSelectionChange: (ids) => {
+                    selectedRowIds = ids;
+                    delBtn.disabled = selectedRowIds.length === 0;
+                }
+            });
+            tbl.element.style.height = '180px';
+
+            const btnRow = document.createElement('div');
+            btnRow.style.cssText = 'display:flex;gap:8px;';
+
+            const addBtn = document.createElement('button');
+            addBtn.className = 'gos-msg-btn';
+            addBtn.textContent = 'Add';
+            addBtn.onclick = () => {
+                const newId = rows.length ? Math.max(...rows.map(r => r.id)) + 1 : 0;
+                rows.push({ id: newId, value: '' });
+                tbl.updateData(rows);
+                delBtn.style.display = 'inline-block';
+            };
+
+            delBtn.onclick = () => {
+                if (selectedRowIds.length > 0) {
+                    selectedRowIds.forEach(id => {
+                        const idx = rows.findIndex(r => r.id === id);
+                        if (idx !== -1) rows.splice(idx, 1);
+                    });
+                    tbl.updateData(rows);
+                    selectedRowIds = [];
+                    delBtn.disabled = true;
+                    if (rows.length === 0) delBtn.style.display = 'none';
+                }
+            };
+
+            btnRow.append(addBtn, delBtn);
+            container.append(tbl.element, btnRow);
+            dataWrap.appendChild(container);
+
+            getData = () => {
+                // Collect values from table inputs
+                const inputs = tbl.element.querySelectorAll('.gos-table-edit');
+                return Array.from(inputs).map(inp => inp.value);
+            };
+        } else {
+            const textInput = document.createElement('input');
+            textInput.type = 'text';
+            textInput.value = dataVal !== undefined ? String(dataVal) : '';
+            textInput.style.cssText = 'background:#1a1a1a;border:1px solid #444;color:#eee;padding:6px 10px;font-size:0.85rem;font-family:monospace;width:100%;box-sizing:border-box;';
+            dataWrap.appendChild(textInput);
+            getData = () => textInput.value;
+        }
+
+        main.append(nameLbl, nameInput, dataLbl, dataWrap);
+
+        const footer = document.createElement('div');
+        footer.className = 'gos-messagebox-buttons';
+        footer.style.cssText = 'justify-content:space-between;align-items:center;padding:6px 14px;min-height:38px;';
+
+        const type = getRegType(dataVal);
+        const typeDisplay = document.createElement('div');
+        typeDisplay.style.cssText = 'font-size:0.75rem;color:#888;padding-left:4px;';
+        typeDisplay.textContent = type;
+
+        const btnWrap = document.createElement('div');
+        btnWrap.style.display = 'flex';
+        btnWrap.style.gap = '8px';
 
         const okBtn = document.createElement('button');
-        okBtn.className = 'lde-msg-btn default';
+        okBtn.className = 'gos-msg-btn default';
         okBtn.textContent = 'OK';
-        okBtn.onclick = () => { wm.closeWindow(dlgWin.id); callback(nameInput.value, dataInput.value); };
+        okBtn.onclick = () => {
+            const finalData = getData();
+            wm.closeWindow(dlgWin.id);
+            callback(nameInput.value || '(Default)', finalData);
+        };
 
         const cancelBtn = document.createElement('button');
-        cancelBtn.className = 'lde-msg-btn';
+        cancelBtn.className = 'gos-msg-btn';
         cancelBtn.textContent = 'Cancel';
         cancelBtn.onclick = () => wm.closeWindow(dlgWin.id);
 
-        buttons.append(okBtn, cancelBtn);
-        dlgContainer.append(main, buttons);
+        btnWrap.append(okBtn, cancelBtn);
+        footer.append(typeDisplay, btnWrap);
+        dlgContainer.append(main, footer);
 
         const dlgWin = wm.createWindow(title, dlgContainer, {
-            noControls: true, noResize: true,
-            width: 380, height: 260,
+            noResize: false,
+            width: 480, height: Array.isArray(dataVal) ? 400 : 250,
             icon: 'bi-pencil-square'
         });
-        dlgWin.element.classList.add('lde-window-messagebox');
+        dlgWin.element.classList.add('gos-window-messagebox');
 
-        setTimeout(() => { (nameReadOnly ? dataInput : nameInput).focus(); }, 100);
-
-        const handleKey = (e) => {
-            if (e.key === 'Enter') { e.preventDefault(); okBtn.click(); }
-            if (e.key === 'Escape') { e.preventDefault(); cancelBtn.click(); }
-        };
-        nameInput.addEventListener('keydown', handleKey);
-        dataInput.addEventListener('keydown', handleKey);
+        const focusTarget = (nameReadOnly ? dataWrap.querySelector('input') : nameInput);
+        if (focusTarget) setTimeout(() => focusTarget.focus(), 100);
     }
 
     // ── Actions ───────────────────────────────────────────────────────────
@@ -162,21 +275,32 @@ function launchRegistryEditor() {
     }
 
     function doDeleteSelected() {
-        if (_selectedValueKey && _selectedPath) {
-            wm.messageBox('Confirm Value Delete', `Are you sure you want to delete the value "${_selectedValueKey}"?`, {
+        if (_selectedValueKeys.length > 0 && _selectedPath) {
+            const count = _selectedValueKeys.length;
+            const msg = count === 1 ? `Are you sure you want to delete the value "${_selectedValueKeys[0]}"?` : `Are you sure you want to delete these ${count} values?`;
+            wm.messageBox('Confirm Value Delete', msg, {
                 buttons: 'yesno', icon: 'bi-exclamation-triangle-fill',
                 onYes: () => {
-                    registry.delete(_selectedPath + '.' + _selectedValueKey);
-                    _selectedValueKey = null;
+                    _selectedValueKeys.forEach(key => {
+                        registry.delete(_selectedPath + '.' + (key === '(Default)' ? '' : key));
+                    });
+                    _selectedValueKeys = [];
                     renderValues();
                 }
             });
-        } else if (_selectedPath) {
-            wm.messageBox('Confirm Key Delete', `Are you sure you want to permanently delete the key "${_selectedPath}" and all of its subkeys and values?`, {
+        } else if (_selectedPaths.size > 0) {
+            const paths = Array.from(_selectedPaths);
+            const count = paths.length;
+            const msg = count === 1 ? `Are you sure you want to permanently delete the key "${paths[0]}"?` : `Are you sure you want to permanently delete these ${count} keys and all of their subkeys?`;
+
+            wm.messageBox('Confirm Key Delete', msg, {
                 buttons: 'yesno', icon: 'bi-exclamation-triangle-fill',
                 onYes: () => {
-                    registry.delete(_selectedPath);
-                    _expandedPaths.delete(_selectedPath);
+                    paths.forEach(p => {
+                        registry.delete(p);
+                        _expandedPaths.delete(p);
+                    });
+                    _selectedPaths.clear();
                     _selectedPath = '';
                     rebuildTree();
                 }
@@ -261,12 +385,12 @@ function launchRegistryEditor() {
         e.stopPropagation();
         // Select the node
         _selectedPath = path;
-        _selectedValueKey = null;
+        _selectedValueKeys = [];
         updatePathDisplay();
         renderValues();
-        treePanel.querySelectorAll('.lde-regedit-node-row').forEach(r => r.classList.remove('selected'));
+        treePanel.querySelectorAll('.gos-regedit-node-row').forEach(r => r.classList.remove('selected'));
         // Find the clicked row
-        const rows = treePanel.querySelectorAll('.lde-regedit-node-row');
+        const rows = treePanel.querySelectorAll('.gos-regedit-node-row');
         rows.forEach(r => { if (r._regPath === path) r.classList.add('selected'); });
 
         const isRoot = !path; // Computer root
@@ -284,13 +408,16 @@ function launchRegistryEditor() {
     function showValueContextMenu(e, key, value) {
         e.preventDefault();
         e.stopPropagation();
-        _selectedValueKey = key;
+        if (!_selectedValueKeys.includes(key)) {
+            _selectedValueKeys = [key];
+            if (_valuesTbl) _valuesTbl.setSelectedIds(_selectedValueKeys);
+        }
 
         showContextMenu(e.clientX, e.clientY, [
             {
                 label: 'Modify...', action: () => {
-                    editValueDialog('Edit Value', key, value, true, (name, data) => {
-                        registry.set(_selectedPath + '.' + key, parseValue(data));
+                    editValueDialog('Edit Value', key, value, true, (name, finalData) => {
+                        registry.set(_selectedPath + '.' + key, finalData);
                         renderValues();
                     });
                 }
@@ -302,7 +429,7 @@ function launchRegistryEditor() {
                         buttons: 'yesno', icon: 'bi-exclamation-triangle-fill',
                         onYes: () => {
                             registry.delete(_selectedPath + '.' + key);
-                            _selectedValueKey = null;
+                            _selectedValueKeys = [];
                             renderValues();
                         }
                     });
@@ -316,7 +443,7 @@ function launchRegistryEditor() {
                         const val = registry.get(_selectedPath + '.' + key);
                         registry.set(_selectedPath + '.' + newName, val);
                         registry.delete(_selectedPath + '.' + key);
-                        _selectedValueKey = newName;
+                        _selectedValueKeys = [newName];
                         renderValues();
                     });
                 }
@@ -343,11 +470,11 @@ function launchRegistryEditor() {
 
     // ── Path Bar (own row, full width, editable) ─────────────────────────
     const pathBar = document.createElement('div');
-    pathBar.className = 'lde-regedit-toolbar';
+    pathBar.className = 'gos-regedit-toolbar';
     pathBar.style.padding = '2px 8px';
 
     const pathInput = document.createElement('input');
-    pathInput.className = 'lde-regedit-path';
+    pathInput.className = 'gos-regedit-path';
     pathInput.value = 'Computer';
     pathInput.style.outline = 'none';
 
@@ -361,7 +488,7 @@ function launchRegistryEditor() {
             if (!dotPath) {
                 // Navigate to Computer root
                 _selectedPath = '';
-                _selectedValueKey = null;
+                _selectedValueKeys = [];
                 updatePathDisplay();
                 rebuildTree();
                 return;
@@ -376,7 +503,7 @@ function launchRegistryEditor() {
             }
 
             _selectedPath = dotPath;
-            _selectedValueKey = null;
+            _selectedValueKeys = [];
             // Expand all parents
             const parts = dotPath.split('.');
             _expandedPaths.add('__root');
@@ -392,19 +519,19 @@ function launchRegistryEditor() {
 
     // ── Body ──────────────────────────────────────────────────────────────
     const body = document.createElement('div');
-    body.className = 'lde-regedit-body';
+    body.className = 'gos-regedit-body';
 
     const treePanel = document.createElement('div');
-    treePanel.className = 'lde-regedit-tree';
+    treePanel.className = 'gos-regedit-tree';
 
     const valuesPanel = document.createElement('div');
-    valuesPanel.className = 'lde-regedit-values';
+    valuesPanel.className = 'gos-regedit-values';
 
     body.append(treePanel, valuesPanel);
 
     // ── Status ────────────────────────────────────────────────────────────
     const statusBar = document.createElement('div');
-    statusBar.className = 'lde-regedit-status';
+    statusBar.className = 'gos-regedit-status';
     statusBar.textContent = 'Computer';
 
     container.append(menuBar, pathBar, body, statusBar);
@@ -418,12 +545,12 @@ function launchRegistryEditor() {
     // ── Tree Building ─────────────────────────────────────────────────────
     function buildTreeNode(key, value, path, depth) {
         const node = document.createElement('div');
-        node.className = 'lde-regedit-node';
+        node.className = 'gos-regedit-node';
 
         const row = document.createElement('div');
-        row.className = 'lde-regedit-node-row';
+        row.className = 'gos-regedit-node-row';
         row._regPath = path;
-        if (path === _selectedPath) row.classList.add('selected');
+        if (_selectedPaths.has(path)) row.classList.add('selected');
 
         const isObject = value !== null && typeof value === 'object' && !Array.isArray(value);
         const isExpanded = _expandedPaths.has(path);
@@ -432,21 +559,21 @@ function launchRegistryEditor() {
         const hasChildKeys = isObject && Object.values(value).some(v => v !== null && typeof v === 'object' && !Array.isArray(v));
 
         const arrow = document.createElement('span');
-        arrow.className = 'lde-regedit-node-arrow' + (isExpanded ? ' expanded' : '');
+        arrow.className = 'gos-regedit-node-arrow' + (isExpanded ? ' expanded' : '');
         arrow.innerHTML = hasChildKeys ? '▶' : '';
 
         const icon = document.createElement('i');
-        icon.className = 'lde-regedit-node-icon ' + (isObject ? 'bi-folder-fill' : 'bi-file-earmark-text');
+        icon.className = 'gos-regedit-node-icon ' + (isObject ? 'bi-folder-fill' : 'bi-file-earmark-text');
 
         const label = document.createElement('span');
-        label.className = 'lde-regedit-node-label';
+        label.className = 'gos-regedit-node-label';
         label.textContent = key;
 
         row.append(arrow, icon, label);
         node.appendChild(row);
 
         const childrenWrap = document.createElement('div');
-        childrenWrap.className = 'lde-regedit-children';
+        childrenWrap.className = 'gos-regedit-children';
         childrenWrap.style.display = isExpanded ? 'block' : 'none';
 
         if (isObject) {
@@ -463,13 +590,23 @@ function launchRegistryEditor() {
 
         row.onclick = (e) => {
             e.stopPropagation();
-            treePanel.querySelectorAll('.lde-regedit-node-row').forEach(r => r.classList.remove('selected'));
-            row.classList.add('selected');
-            _selectedPath = path;
-            _selectedValueKey = null;
+            if (e.ctrlKey || e.metaKey) {
+                if (_selectedPaths.has(path)) _selectedPaths.delete(path);
+                else _selectedPaths.add(path);
+            } else {
+                _selectedPaths.clear();
+                _selectedPaths.add(path);
+                _selectedPath = path;
+            }
+
+            treePanel.querySelectorAll('.gos-regedit-node-row').forEach(r => {
+                r.classList.toggle('selected', _selectedPaths.has(r._regPath));
+            });
+
+            _selectedValueKeys = [];
             updatePathDisplay();
 
-            if (isObject) {
+            if (isObject && !e.ctrlKey && !e.metaKey) {
                 if (_expandedPaths.has(path)) _expandedPaths.delete(path);
                 else _expandedPaths.add(path);
                 childrenWrap.style.display = _expandedPaths.has(path) ? 'block' : 'none';
@@ -490,23 +627,23 @@ function launchRegistryEditor() {
 
         // Build Computer root node
         const rootNode = document.createElement('div');
-        rootNode.className = 'lde-regedit-node';
+        rootNode.className = 'gos-regedit-node';
 
         const rootRow = document.createElement('div');
-        rootRow.className = 'lde-regedit-node-row';
-        rootRow._regPath = '';
-        if (_selectedPath === '') rootRow.classList.add('selected');
+        rootRow.className = 'gos-regedit-node-row';
+        rootRow._regPath = '__root_node'; // unique identifier for internal use
+        if (_selectedPaths.has('')) rootRow.classList.add('selected');
 
         const rootExpanded = _expandedPaths.has('__root');
         const rootArrow = document.createElement('span');
-        rootArrow.className = 'lde-regedit-node-arrow' + (rootExpanded ? ' expanded' : '');
+        rootArrow.className = 'gos-regedit-node-arrow' + (rootExpanded ? ' expanded' : '');
         rootArrow.innerHTML = '▶';
 
         const rootIcon = document.createElement('i');
-        rootIcon.className = 'lde-regedit-node-icon bi-pc-display';
+        rootIcon.className = 'gos-regedit-node-icon bi-pc-display';
 
         const rootLabel = document.createElement('span');
-        rootLabel.className = 'lde-regedit-node-label';
+        rootLabel.className = 'gos-regedit-node-label';
         rootLabel.textContent = 'Computer';
         rootLabel.style.fontWeight = '600';
 
@@ -514,7 +651,7 @@ function launchRegistryEditor() {
         rootNode.appendChild(rootRow);
 
         const rootChildren = document.createElement('div');
-        rootChildren.className = 'lde-regedit-children';
+        rootChildren.className = 'gos-regedit-children';
         rootChildren.style.display = rootExpanded ? 'block' : 'none';
 
         Object.keys(data).forEach(key => {
@@ -525,16 +662,28 @@ function launchRegistryEditor() {
 
         rootRow.onclick = (e) => {
             e.stopPropagation();
-            treePanel.querySelectorAll('.lde-regedit-node-row').forEach(r => r.classList.remove('selected'));
-            rootRow.classList.add('selected');
-            _selectedPath = '';
-            _selectedValueKey = null;
+            if (e.ctrlKey || e.metaKey) {
+                if (_selectedPaths.has('')) _selectedPaths.delete('');
+                else _selectedPaths.add('');
+            } else {
+                _selectedPaths.clear();
+                _selectedPaths.add('');
+                _selectedPath = '';
+            }
+
+            treePanel.querySelectorAll('.gos-regedit-node-row').forEach(r => {
+                r.classList.toggle('selected', _selectedPaths.has(r._regPath === '__root_node' ? '' : r._regPath));
+            });
+
+            _selectedValueKeys = [];
             updatePathDisplay();
 
-            if (_expandedPaths.has('__root')) _expandedPaths.delete('__root');
-            else _expandedPaths.add('__root');
-            rootChildren.style.display = _expandedPaths.has('__root') ? 'block' : 'none';
-            rootArrow.classList.toggle('expanded', _expandedPaths.has('__root'));
+            if (!e.ctrlKey && !e.metaKey) {
+                if (_expandedPaths.has('__root')) _expandedPaths.delete('__root');
+                else _expandedPaths.add('__root');
+                rootChildren.style.display = _expandedPaths.has('__root') ? 'block' : 'none';
+                rootArrow.classList.toggle('expanded', _expandedPaths.has('__root'));
+            }
 
             renderValues();
         };
@@ -543,9 +692,9 @@ function launchRegistryEditor() {
             e.preventDefault();
             e.stopPropagation();
             _selectedPath = '';
-            _selectedValueKey = null;
+            _selectedValueKeys = [];
             updatePathDisplay();
-            treePanel.querySelectorAll('.lde-regedit-node-row').forEach(r => r.classList.remove('selected'));
+            treePanel.querySelectorAll('.gos-regedit-node-row').forEach(r => r.classList.remove('selected'));
             rootRow.classList.add('selected');
             showContextMenu(e.clientX, e.clientY, [
                 { label: 'New Key', action: doAddKey },
@@ -567,96 +716,88 @@ function launchRegistryEditor() {
     }
 
     // ── Values Panel ──────────────────────────────────────────────────────
+    let _valuesTbl = null;
     function renderValues() {
         valuesPanel.innerHTML = '';
-
-        const table = document.createElement('table');
-        table.className = 'lde-regedit-values-table';
-        table.innerHTML = `
-            <thead><tr>
-                <th style="width:35%">Name</th>
-                <th style="width:20%">Type</th>
-                <th>Data</th>
-            </tr></thead>
-            <tbody></tbody>
-        `;
-
-        const tbody = table.querySelector('tbody');
+        _selectedValueKeys = [];
 
         if (_selectedPath === '') {
-            tbody.innerHTML = '<tr><td colspan="3" style="color:#666;padding:10px;">Select a key to view its values.</td></tr>';
-            valuesPanel.appendChild(table);
+            valuesPanel.innerHTML = '<div style="color:#666;padding:10px;font-size:0.85rem;">Select a key to view its values.</div>';
             return;
         }
 
         const node = registry.get(_selectedPath);
         if (node === undefined) {
-            tbody.innerHTML = '<tr><td colspan="3" style="color:#666;padding:10px;">Key not found.</td></tr>';
-            valuesPanel.appendChild(table);
+            valuesPanel.innerHTML = '<div style="color:#666;padding:10px;font-size:0.85rem;">Key not found.</div>';
             return;
         }
 
+        const rows = [];
         if (typeof node === 'object' && node !== null) {
-            let hasValues = false;
             Object.entries(node).forEach(([key, value]) => {
-                if (typeof value === 'object' && value !== null) return; // Skip sub-keys
-
-                hasValues = true;
-                const tr = document.createElement('tr');
-                if (_selectedValueKey === key) tr.classList.add('selected');
-
-                const typeStr = getRegType(value);
-                const displayVal = truncateValue(value);
-
-                tr.innerHTML = `
-                    <td><i class="bi-file-earmark-text" style="color:#5bc0de;margin-right:6px;"></i>${escapeHtml(key)}</td>
-                    <td class="lde-regedit-type">${typeStr}</td>
-                    <td>${escapeHtml(displayVal)}</td>
-                `;
-
-                tr.onclick = () => {
-                    tbody.querySelectorAll('tr').forEach(r => r.classList.remove('selected'));
-                    tr.classList.add('selected');
-                    _selectedValueKey = key;
-                };
-
-                tr.addEventListener('dblclick', () => {
-                    editValueDialog('Edit Value', key, value, true, (name, data) => {
-                        registry.set(_selectedPath + '.' + key, parseValue(data));
-                        renderValues();
-                    });
+                if (typeof value === 'object' && value !== null && !Array.isArray(value)) return;
+                rows.push({
+                    name: key,
+                    type: getRegType(value),
+                    data: truncateValue(value),
+                    raw: value
                 });
-
-                tr.addEventListener('contextmenu', (e) => showValueContextMenu(e, key, value));
-
-                tbody.appendChild(tr);
             });
-
-            if (!hasValues) {
-                tbody.innerHTML = '<tr><td colspan="3" style="color:#666;padding:10px;">(No values)</td></tr>';
-            }
         } else {
-            const tr = document.createElement('tr');
-            const typeStr = getRegType(node);
-            tr.innerHTML = `
-                <td><i class="bi-file-earmark-text" style="color:#5bc0de;margin-right:6px;"></i>(Default)</td>
-                <td class="lde-regedit-type">${typeStr}</td>
-                <td>${escapeHtml(truncateValue(node))}</td>
-            `;
-            tr.addEventListener('dblclick', () => {
-                editValueDialog('Edit Value', '(Default)', node, true, (name, data) => {
-                    registry.set(_selectedPath, parseValue(data));
-                    renderValues();
-                });
+            rows.push({
+                name: '(Default)',
+                type: getRegType(node),
+                data: truncateValue(node),
+                raw: node
             });
-            tbody.appendChild(tr);
         }
 
-        valuesPanel.appendChild(table);
+        if (rows.length === 0) {
+            valuesPanel.innerHTML = '<div style="color:#666;padding:10px;font-size:0.85rem;">(No values)</div>';
+            return;
+        }
+
+        _valuesTbl = Widgets.createTable({
+            columns: [
+                { id: 'name', label: 'Name', width: '35%', render: (v) => `<i class="bi-file-earmark-text" style="color:#5bc0de;margin-right:6px;"></i>${escapeHtml(v)}` },
+                { id: 'type', label: 'Type', width: '20%' },
+                { id: 'data', label: 'Data', width: '45%' }
+            ],
+            data: rows,
+            keyField: 'name',
+            onSelectionChange: (ids) => {
+                _selectedValueKeys = ids;
+            },
+            onAction: (key, row) => {
+                editValueDialog('Edit Value', key, row.raw, true, (name, finalData) => {
+                    registry.set(_selectedPath + '.' + key, finalData);
+                    renderValues();
+                });
+            }
+        });
+
+        // Context menu support for the table rows
+        _valuesTbl.element.addEventListener('contextmenu', (e) => {
+            const tr = e.target.closest('tr');
+            if (!tr) return;
+            const rowIndex = Array.from(tr.parentElement.children).indexOf(tr);
+            const row = rows[rowIndex];
+            if (row) {
+                if (!_selectedValueKeys.includes(row.name)) {
+                    _valuesTbl.setSelectedIds([row.name]);
+                    _selectedValueKeys = [row.name];
+                }
+                showValueContextMenu(e, row.name, row.raw);
+            }
+        });
+
+        _valuesTbl.element.style.height = '100%';
+        valuesPanel.appendChild(_valuesTbl.element);
     }
 
     function getRegType(val) {
         if (val === null) return 'REG_NONE';
+        if (Array.isArray(val)) return 'REG_MULTI_SZ';
         if (typeof val === 'boolean') return 'REG_DWORD';
         if (typeof val === 'number') return 'REG_DWORD';
         if (typeof val === 'string') {
@@ -667,7 +808,12 @@ function launchRegistryEditor() {
     }
 
     function truncateValue(val) {
-        const s = String(val);
+        let s = '';
+        if (Array.isArray(val)) {
+            s = '[' + val.join(', ') + ']';
+        } else {
+            s = String(val);
+        }
         if (s.length > 80) return s.substring(0, 77) + '...';
         return s;
     }
@@ -678,12 +824,27 @@ function launchRegistryEditor() {
         return div.innerHTML;
     }
 
-    // ── Init ──────────────────────────────────────────────────────────────
+    // ── Keyboard Support ─────────────────────────────────────────────────
+    container.addEventListener('keydown', (e) => {
+        if (e.key === 'Delete') {
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+                doDeleteSelected();
+            }
+        }
+    });
+
     const win = wm.createWindow('Registry Editor', container, {
         icon: 'bi-database-fill-gear',
         width: 720,
-        height: 440
+        height: 440,
+        onClose: () => {
+            if (_ctxMenu) _ctxMenu.remove();
+        }
     });
+
+    container.tabIndex = 0;
+    container.style.outline = 'none';
 
     rebuildTree();
 }

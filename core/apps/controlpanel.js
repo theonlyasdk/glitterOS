@@ -13,23 +13,25 @@ const STOCK_WALLPAPERS = [
 
 function launchControlPanel() {
     const container = document.createElement('div');
-    container.className = 'lde-cp';
+    container.className = 'gos-cp';
 
     const body = document.createElement('div');
-    body.className = 'lde-cp-body';
+    body.className = 'gos-cp-body';
 
     const sidebar = document.createElement('div');
-    sidebar.className = 'lde-cp-sidebar';
+    sidebar.className = 'gos-cp-sidebar';
 
     const highlighter = document.createElement('div');
-    highlighter.className = 'lde-cp-sidebar-highlighter';
+    highlighter.className = 'gos-cp-sidebar-highlighter';
     sidebar.appendChild(highlighter);
 
     const mainContent = document.createElement('div');
-    mainContent.className = 'lde-cp-content';
+    mainContent.className = 'gos-cp-content';
 
     const navItems = [
-        { id: 'personalization', label: 'Personalization', icon: 'ri-palette-line' },
+        { id: 'personalization', label: 'Background', icon: 'ri-image-line' },
+        { id: 'appearance', label: 'Appearance', icon: 'ri-palette-line' },
+        { id: 'windowmgmt', label: 'Window Management', icon: 'ri-window-line' },
         { id: 'system', label: 'System', icon: 'ri-computer-line' },
         { id: 'apps', label: 'Applications', icon: 'ri-apps-line' },
         { id: 'privacy', label: 'Privacy & Security', icon: 'ri-shield-keyhole-line' }
@@ -41,8 +43,13 @@ function launchControlPanel() {
         mainContent.innerHTML = '';
         currentSection = id;
 
+        // Trigger entry animation
+        mainContent.classList.remove('animate-in');
+        void mainContent.offsetWidth; // Force reflow
+        mainContent.classList.add('animate-in');
+
         // Update sidebar UI and move highlighter
-        sidebar.querySelectorAll('.lde-cp-nav-item').forEach(item => {
+        sidebar.querySelectorAll('.gos-cp-nav-item').forEach(item => {
             const isActive = item.dataset.id === id;
             item.classList.toggle('active', isActive);
             if (isActive) {
@@ -52,7 +59,7 @@ function launchControlPanel() {
         });
 
         const title = document.createElement('h2');
-        title.className = 'lde-cp-section-title';
+        title.className = 'gos-cp-section-title';
         title.textContent = navItems.find(n => n.id === id).label;
         mainContent.appendChild(title);
 
@@ -86,18 +93,18 @@ function launchControlPanel() {
 
                 if (provider === 'unsplash') {
                     const grid = document.createElement('div');
-                    grid.className = 'lde-cp-wallpaper-grid';
+                    grid.className = 'gos-cp-wallpaper-grid';
 
                     STOCK_WALLPAPERS.forEach((wall, idx) => {
                         const thumb = document.createElement('div');
-                        thumb.className = 'lde-cp-wallpaper-thumb';
+                        thumb.className = 'gos-cp-wallpaper-thumb';
                         thumb.style.backgroundImage = `url("${wall.url}")`;
                         thumb.title = wall.name;
 
-                        registerTileEffect(thumb);
+                        Widgets.registerTileEffect(thumb);
 
                         thumb.onclick = () => {
-                            grid.querySelectorAll('.lde-cp-wallpaper-thumb').forEach(t => t.classList.remove('active'));
+                            grid.querySelectorAll('.gos-cp-wallpaper-thumb').forEach(t => t.classList.remove('active'));
                             thumb.classList.add('active');
                             setWallpaper(wall.url);
                         };
@@ -145,7 +152,7 @@ function launchControlPanel() {
                     cursor:pointer;font-size:0.9rem;color:#ccc;position:relative;overflow:hidden;
                 `;
                 uploadBtn.innerHTML = '<i class="ri-upload-cloud-2-line" style="font-size:1.4rem;color:var(--accent-color);"></i> Upload image...';
-                registerTileEffect(uploadBtn, { tilt: true, ripple: true, glow: true, liveTilt: true });
+                Widgets.registerTileEffect(uploadBtn, { tilt: true, ripple: true, glow: true, liveTilt: true });
 
                 const fileInput = document.createElement('input');
                 fileInput.type = 'file';
@@ -283,6 +290,32 @@ function launchControlPanel() {
             card.appendChild(table);
 
             mainContent.appendChild(card);
+        } else if (id === 'appearance') {
+            const wrap = document.createElement('div');
+            wrap.style.cssText = 'display:flex;flex-direction:column;gap:12px;';
+
+            const splashCheck = Widgets.createUWPCheckbox('Show application splash screens',
+                registry.get('personalization.showSplash', true),
+                (checked) => {
+                    registry.set('personalization.showSplash', checked);
+                }
+            );
+
+            wrap.append(splashCheck);
+            mainContent.appendChild(wrap);
+        } else if (id === 'windowmgmt') {
+            const wrap = document.createElement('div');
+            wrap.style.cssText = 'display:flex;flex-direction:column;gap:12px;';
+
+            const snappingCheck = Widgets.createUWPCheckbox('Enable window snapping',
+                registry.get('system.windowSnapping', true),
+                (checked) => {
+                    registry.set('system.windowSnapping', checked);
+                }
+            );
+
+            wrap.append(snappingCheck);
+            mainContent.appendChild(wrap);
         } else if (id === 'apps') {
             renderAppsList(mainContent);
         } else {
@@ -346,7 +379,7 @@ function launchControlPanel() {
     // ── App Context Menu ──────────────────────────────────────────────────────
     let _appCtxMenu = null;
     function showAppContextMenu(x, y, app, parent) {
-        ldeShowContextMenu(x, y, [
+        gosShowContextMenu(x, y, [
             { label: 'Open', action: () => app.launch() },
             { type: 'sep' },
             {
@@ -358,7 +391,7 @@ function launchControlPanel() {
                         icon: 'bi-exclamation-triangle-fill',
                         onYes: () => {
                             AppRegistry.unregister(app.id);
-                            ldeInitDesktopIcons();
+                            gosInitDesktopIcons();
                             if (typeof refreshSearchAppList === 'function') refreshSearchAppList();
                             renderSection('apps');
                         }
@@ -370,12 +403,12 @@ function launchControlPanel() {
 
     navItems.forEach(nav => {
         const item = document.createElement('div');
-        item.className = 'lde-cp-nav-item';
+        item.className = 'gos-cp-nav-item';
         item.dataset.id = nav.id;
         item.innerHTML = `<i class="${nav.icon}"></i><span>${nav.label}</span>`;
 
         // Add tilt/ripple to sidebar items too (tile styling)
-        registerTileEffect(item);
+        Widgets.registerTileEffect(item);
 
         item.onclick = () => renderSection(nav.id);
         sidebar.appendChild(item);

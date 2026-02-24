@@ -3,7 +3,7 @@
 const filedialog = {
     _createDialog(mode, options) {
         const container = document.createElement('div');
-        container.className = 'lde-fd-container';
+        container.className = 'gos-fd-container';
 
         let _cwd = options.startPath || 'C:\\Users\\User\\Documents';
         let _selectedFile = '';
@@ -13,7 +13,7 @@ const filedialog = {
         function startRename(name) {
             const el = content.querySelector(`[data-name="${CSS.escape(name)}"]`);
             if (!el) return;
-            const nameEl = el.querySelector('.lde-fd-item-name');
+            const nameEl = el.querySelector('.gos-fd-item-name');
             const input = document.createElement('input');
             input.value = name;
             nameEl.replaceWith(input);
@@ -74,7 +74,7 @@ const filedialog = {
                 items.push({ label: 'Refresh', icon: 'bi-arrow-clockwise', action: () => renderContent() });
             }
 
-            ldeShowContextMenu(x, y, items);
+            gosShowContextMenu(x, y, items);
         }
 
         function createFolder() {
@@ -96,10 +96,10 @@ const filedialog = {
 
         // ── Toolbar ───────────────────────────────────────────────────────────
         const toolbar = document.createElement('div');
-        toolbar.className = 'lde-fd-toolbar';
+        toolbar.className = 'gos-fd-toolbar';
 
         const upBtn = document.createElement('button');
-        upBtn.className = 'lde-fd-nav-btn';
+        upBtn.className = 'gos-fd-nav-btn';
         upBtn.innerHTML = '<i class="bi bi-arrow-up"></i>';
         upBtn.onclick = () => {
             const parts = _cwd.split('\\').filter(Boolean);
@@ -110,13 +110,13 @@ const filedialog = {
         };
 
         const addressBar = document.createElement('input');
-        addressBar.className = 'lde-fd-address';
+        addressBar.className = 'gos-fd-address';
         addressBar.type = 'text';
         addressBar.value = _cwd;
         addressBar.onkeydown = (e) => { if (e.key === 'Enter') navigate(addressBar.value); };
 
         const newFolderBtn = document.createElement('button');
-        newFolderBtn.className = 'lde-fd-nav-btn';
+        newFolderBtn.className = 'gos-fd-nav-btn';
         newFolderBtn.innerHTML = '<i class="bi bi-folder-plus"></i>';
         newFolderBtn.title = 'New Folder';
         newFolderBtn.onclick = createFolder;
@@ -125,13 +125,13 @@ const filedialog = {
 
         // ── Body ─────────────────────────────────────────────────────────────
         const body = document.createElement('div');
-        body.className = 'lde-fd-body';
+        body.className = 'gos-fd-body';
 
         const sidebar = document.createElement('div');
-        sidebar.className = 'lde-fd-sidebar';
+        sidebar.className = 'gos-fd-sidebar';
 
         const content = document.createElement('div');
-        content.className = 'lde-fd-content';
+        content.className = 'gos-fd-content';
         content.oncontextmenu = (e) => {
             e.preventDefault();
             showCtxMenu(e.clientX, e.clientY);
@@ -150,7 +150,7 @@ const filedialog = {
             ];
             QC.forEach(item => {
                 const el = document.createElement('div');
-                el.className = 'lde-fd-sidebar-item' + (_cwd === item.path ? ' active' : '');
+                el.className = 'gos-fd-sidebar-item' + (_cwd === item.path ? ' active' : '');
                 el.innerHTML = `<i class="bi ${item.icon}"></i><span>${item.name}</span>`;
                 el.onclick = () => navigate(item.path);
                 sidebar.appendChild(el);
@@ -167,17 +167,17 @@ const filedialog = {
             sorted.forEach(entry => {
                 const isDir = entry.type === 'dir';
                 const item = document.createElement('div');
-                item.className = 'lde-fd-item';
+                item.className = 'gos-fd-item';
                 item.dataset.name = entry.name;
                 item.innerHTML = `
-                    <div class="lde-fd-item-icon ${isDir ? 'dir' : 'file'}">
+                    <div class="gos-fd-item-icon ${isDir ? 'dir' : 'file'}">
                         <i class="bi ${isDir ? 'bi-folder-fill' : 'bi-file-earmark'}"></i>
                     </div>
-                    <div class="lde-fd-item-name">${entry.name}</div>
+                    <div class="gos-fd-item-name" title="${entry.name}">${truncateFilename(entry.name, 30)}</div>
                 `;
 
                 item.onclick = () => {
-                    content.querySelectorAll('.lde-fd-item').forEach(el => el.classList.remove('selected'));
+                    content.querySelectorAll('.gos-fd-item').forEach(el => el.classList.remove('selected'));
                     item.classList.add('selected');
                     if (!isDir) {
                         _selectedFile = entry.name;
@@ -207,33 +207,33 @@ const filedialog = {
 
         // ── Footer ───────────────────────────────────────────────────────────
         const footer = document.createElement('div');
-        footer.className = 'lde-fd-footer';
+        footer.className = 'gos-fd-footer';
 
         const row1 = document.createElement('div');
-        row1.className = 'lde-fd-footer-row';
-        row1.innerHTML = `<div class="lde-fd-label">File name:</div>`;
+        row1.className = 'gos-fd-footer-row';
+        row1.innerHTML = `<div class="gos-fd-label">File name:</div>`;
         const filenameInput = document.createElement('input');
-        filenameInput.className = 'lde-fd-input';
+        filenameInput.className = 'gos-fd-input';
         filenameInput.value = options.defaultName || '';
         row1.appendChild(filenameInput);
 
         const row2 = document.createElement('div');
-        row2.className = 'lde-fd-footer-row';
-        row2.innerHTML = `<div class="lde-fd-label">Save as:</div>`;
+        row2.className = 'gos-fd-footer-row';
+        row2.innerHTML = `<div class="gos-fd-label">Save as:</div>`;
         const typeSelect = document.createElement('select');
-        typeSelect.className = 'lde-fd-select';
+        typeSelect.className = 'gos-fd-select';
         typeSelect.innerHTML = `<option>Text Documents (*.txt)</option><option>All Files (*.*)</option>`;
         row2.appendChild(typeSelect);
 
         const row3 = document.createElement('div');
-        row3.className = 'lde-fd-footer-row';
+        row3.className = 'gos-fd-footer-row';
         const cancelBtn = document.createElement('button');
-        cancelBtn.className = 'lde-fd-btn me-2';
+        cancelBtn.className = 'gos-fd-btn me-2';
         cancelBtn.textContent = 'Cancel';
         cancelBtn.onclick = () => wm.closeWindow(win.id);
 
         const commitBtn = document.createElement('button');
-        commitBtn.className = 'lde-fd-btn primary';
+        commitBtn.className = 'gos-fd-btn primary';
         commitBtn.textContent = mode === 'save' ? 'Save' : 'Open';
 
         function commit() {

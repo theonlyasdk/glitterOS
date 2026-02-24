@@ -1,5 +1,5 @@
 /* ── File Manager — Windows 10 Dark Theme ── */
-.lde-fm {
+.gos-fm {
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -12,7 +12,7 @@
 }
 
 /* Toolbar (Ribbon-ish) */
-.lde-fm-toolbar {
+.gos-fm-toolbar {
     display: flex;
     align-items: center;
     gap: 2px;
@@ -24,7 +24,7 @@
 }
 
 /* Tile-style buttons */
-.lde-fm-btn {
+.gos-fm-btn {
     width: 32px;
     height: 32px;
     display: flex;
@@ -39,22 +39,22 @@
     transition: all 0.1s;
 }
 
-.lde-fm-btn:hover {
+.gos-fm-btn:hover {
     background: rgba(255, 255, 255, 0.1);
     border-color: rgba(255, 255, 255, 0.1);
 }
 
-.lde-fm-btn:active {
+.gos-fm-btn:active {
     background: rgba(255, 255, 255, 0.15);
     transform: scale(0.96);
 }
 
-.lde-fm-btn.disabled {
+.gos-fm-btn.disabled {
     opacity: 0.3;
     pointer-events: none;
 }
 
-.lde-fm-addressbar {
+.gos-fm-addressbar {
     flex: 1;
     background: #2b2b2b;
     border: 1px solid #3d3d3d;
@@ -67,18 +67,18 @@
     margin-left: 6px;
 }
 
-.lde-fm-addressbar:hover {
+.gos-fm-addressbar:hover {
     background: #333333;
     border-color: #505050;
 }
 
-.lde-fm-addressbar:focus {
+.gos-fm-addressbar:focus {
     background: #191919;
     border-color: var(--accent-color);
 }
 
 /* Body: sidebar + content */
-.lde-fm-body {
+.gos-fm-body {
     display: flex;
     flex: 1;
     overflow: hidden;
@@ -86,7 +86,7 @@
 }
 
 /* Sidebar */
-.lde-fm-sidebar {
+.gos-fm-sidebar {
     width: 180px;
     flex-shrink: 0;
     border-right: 1px solid #333;
@@ -95,7 +95,7 @@
     background: #252525;
 }
 
-.lde-fm-sidebar-item {
+.gos-fm-sidebar-item {
     padding: 4px 12px;
     font-size: 0.8rem;
     cursor: pointer;
@@ -106,34 +106,43 @@
     transition: none;
 }
 
-.lde-fm-sidebar-item:hover {
+.gos-fm-sidebar-item:hover {
     background: rgba(255, 255, 255, 0.05);
 }
 
-.lde-fm-sidebar-item.active {
+.gos-fm-sidebar-item.active {
     background: var(--accent-muted);
     color: #fff;
 }
 
-.lde-fm-sidebar-item i {
+.gos-fm-sidebar-item i {
     font-size: 0.9rem;
     color: var(--accent-color);
 }
 
 /* Content area */
-.lde-fm-content {
+.gos-fm-content {
     flex: 1;
     overflow-y: auto;
+    padding: 0;
+    position: relative;
+    background: #191919;
+    display: flex;
+    flex-direction: column;
+}
+
+.gos-fm-icons-view {
     padding: 12px;
     display: flex;
     flex-wrap: wrap;
     align-content: flex-start;
     gap: 2px;
-    background: #191919;
+    width: 100%;
+    height: 100%;
 }
 
 /* File/folder item */
-.lde-fm-item {
+.gos-fm-item {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -145,33 +154,33 @@
     overflow: hidden;
 }
 
-.lde-fm-item:hover {
+.gos-fm-item:hover {
     background: rgba(255, 255, 255, 0.05);
     border-color: rgba(255, 255, 255, 0.1);
 }
 
-.lde-fm-item.selected {
+.gos-fm-item.selected {
     background: var(--accent-muted);
     border-color: var(--accent-glow);
 }
 
-.lde-fm-item-icon {
+.gos-fm-item-icon {
     font-size: 2.4rem;
     margin-bottom: 6px;
     line-height: 1;
 }
 
-.lde-fm-item-icon.dir {
+.gos-fm-item-icon.dir {
     color: #f0c330;
 }
 
 /* Windows yellow folder color */
-.lde-fm-item-icon.file {
+.gos-fm-item-icon.file {
     color: #ffffff;
     opacity: 0.9;
 }
 
-.lde-fm-item-name {
+.gos-fm-item-name {
     font-size: 0.75rem;
     text-align: center;
     word-break: break-word;
@@ -188,8 +197,8 @@
 
 /* Rename input */
 /* Rename input (Windows 10 Style) */
-.lde-fm-item input,
-.lde-fd-item input {
+.gos-fm-item input,
+.gos-fd-item input {
     width: 90%;
     font-size: 0.72rem;
     text-align: center;
@@ -208,7 +217,7 @@
 }
 
 /* Status bar */
-.lde-fm-statusbar {
+.gos-fm-statusbar {
     height: 26px;
     padding: 0 12px;
     display: flex;
@@ -222,7 +231,7 @@
 }
 
 /* Context menu */
-.lde-fm-contextmenu {
+.gos-fm-contextmenu {
     position: fixed;
     z-index: 10000;
     background: #2b2b2b;
@@ -236,13 +245,13 @@
     transition: opacity 0.1s, transform 0.1s;
 }
 
-.lde-fm-contextmenu.visible {
+.gos-fm-contextmenu.visible {
     opacity: 1;
     transform: scale(1);
     pointer-events: auto;
 }
 
-.lde-fm-ctx-item {
+.gos-fm-ctx-item {
     padding: 8px 14px;
     color: #ffffff;
     cursor: pointer;
@@ -252,22 +261,22 @@
     font-size: 0.82rem;
 }
 
-.lde-fm-ctx-item:hover {
+.gos-fm-ctx-item:hover {
     background: rgba(255, 255, 255, 0.1);
 }
 
-.lde-fm-ctx-item.danger:hover {
+.gos-fm-ctx-item.danger:hover {
     background: #e81123;
 }
 
-.lde-fm-ctx-sep {
+.gos-fm-ctx-sep {
     height: 1px;
     background: #454545;
     margin: 4px 10px;
 }
 
 /* Selection rectangle */
-.lde-fm-selection-rect {
+.gos-fm-selection-rect {
     position: absolute;
     background: rgba(0, 120, 215, 0.3);
     border: 1px solid rgba(0, 120, 215, 0.6);

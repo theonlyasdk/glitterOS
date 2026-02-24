@@ -2,21 +2,21 @@
 
 function launchNotepad(filePath = null) {
     const container = document.createElement('div');
-    container.className = 'lde-notepad';
+    container.className = 'gos-notepad';
 
     let _currentPath = filePath;
     let _isDirty = false;
 
     // ── Content area ──────────────────────────────────────────────────────────
     const editor = document.createElement('div');
-    editor.className = 'lde-notepad-editor';
+    editor.className = 'gos-notepad-editor';
 
     const gutter = document.createElement('div');
-    gutter.className = 'lde-notepad-gutter';
+    gutter.className = 'gos-notepad-gutter';
     gutter.textContent = '1';
 
     const textarea = document.createElement('textarea');
-    textarea.className = 'lde-notepad-content';
+    textarea.className = 'gos-notepad-content';
     textarea.spellcheck = false;
 
     editor.append(gutter, textarea);
@@ -162,6 +162,13 @@ function launchNotepad(filePath = null) {
         { label: 'About Notepad', action: () => aboutGlitterOS('Notepad') }
     ]);
 
+    container.addEventListener('keydown', (e) => {
+        if (menubar.handleKey(e)) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    }, true);
+
     container.append(menubar, editor);
 
     // ── Window Creation ───────────────────────────────────────────────────────
@@ -176,7 +183,7 @@ function launchNotepad(filePath = null) {
     });
 
     // Override the close button behavior to check for save
-    const closeBtn = winObj.element.querySelector('.lde-win-btn-close');
+    const closeBtn = winObj.element.querySelector('.gos-win-btn-close');
     const oldClose = closeBtn.onclick;
     closeBtn.onclick = (e) => {
         e.stopPropagation();
@@ -186,7 +193,7 @@ function launchNotepad(filePath = null) {
     function updateTitle() {
         const name = _currentPath ? _currentPath.split('\\').pop() : 'Untitled';
         const prefix = _isDirty ? '*' : '';
-        winObj.element.querySelector('.lde-win-title').textContent = `${prefix}${name} - Notepad`;
+        winObj.element.querySelector('.gos-win-title').textContent = `${prefix}${name} - Notepad`;
     }
 
     updateTitle();

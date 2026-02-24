@@ -3,21 +3,21 @@
 function launchCommandPrompt(autoRun = null, isBoot = false) {
     // Container
     const container = document.createElement('div');
-    container.className = 'lde-cmd';
-
-    // The single scrollable terminal surface (output + inline input all here)
-    const terminal = document.createElement('div');
-    terminal.className = 'lde-cmd-terminal';
-    terminal.tabIndex = 0; // make focusable
-    container.appendChild(terminal);
+    container.className = 'gos-cmd';
 
     // Hidden real input that captures keystrokes
     const hiddenInput = document.createElement('input');
-    hiddenInput.className = 'lde-cmd-hidden-input';
+    hiddenInput.className = 'gos-cmd-hidden-input';
     hiddenInput.type = 'text';
     hiddenInput.autocomplete = 'off';
     hiddenInput.spellcheck = false;
     container.appendChild(hiddenInput);
+
+    // The single scrollable terminal surface (output + inline input all here)
+    const terminal = document.createElement('div');
+    terminal.className = 'gos-cmd-terminal';
+    terminal.tabIndex = 0; // make focusable
+    container.appendChild(terminal);
 
     // ── State ─────────────────────────────────────────────────────────────────
     const cmdHistory = registry.get('cmd.history', []);
@@ -37,7 +37,7 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
     function appendLine(text, cls = '') {
         // Inject before the active input line
         const div = document.createElement('div');
-        div.className = 'lde-cmd-line' + (cls ? ' ' + cls : '');
+        div.className = 'gos-cmd-line' + (cls ? ' ' + cls : '');
         div.textContent = text;
         if (_activeLine) terminal.insertBefore(div, _activeLine);
         else terminal.appendChild(div);
@@ -46,7 +46,7 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
 
     function appendHTML(html, cls = '') {
         const div = document.createElement('div');
-        div.className = 'lde-cmd-line' + (cls ? ' ' + cls : '');
+        div.className = 'gos-cmd-line' + (cls ? ' ' + cls : '');
         div.innerHTML = html;
         if (_activeLine) terminal.insertBefore(div, _activeLine);
         else terminal.appendChild(div);
@@ -56,7 +56,7 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
     // ── Active inline prompt line ─────────────────────────────────────────────
     function createActiveLine() {
         _activeLine = document.createElement('div');
-        _activeLine.className = 'lde-cmd-line lde-cmd-active-line';
+        _activeLine.className = 'gos-cmd-line gos-cmd-active-line';
         terminal.appendChild(_activeLine);
         refreshActiveLine();
     }
@@ -70,10 +70,10 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         const after = escHtml(val.slice(cur + 1));
         const curChar = escHtml(val[cur] || ' ');
         _activeLine.innerHTML =
-            `<span class="lde-cmd-prompt">${escHtml(getPrompt())}</span>` +
-            `<span class="lde-cmd-typed">${before}</span>` +
-            `<span class="lde-cmd-cursor">${curChar}</span>` +
-            `<span class="lde-cmd-typed">${after}</span>`;
+            `<span class="gos-cmd-prompt">${escHtml(getPrompt())}</span>` +
+            `<span class="gos-cmd-typed">${before}</span>` +
+            `<span class="gos-cmd-cursor">${curChar}</span>` +
+            `<span class="gos-cmd-typed">${after}</span>`;
         terminal.scrollTop = terminal.scrollHeight;
     }
 
@@ -81,9 +81,9 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         // Turn active line into a static "echo" line, then make new active line
         if (_activeLine) {
             _activeLine.innerHTML =
-                `<span class="lde-cmd-prompt">${escHtml(getPrompt())}</span>` +
-                `<span class="lde-cmd-typed">${escHtml(rawCmd)}</span>`;
-            _activeLine.classList.remove('lde-cmd-active-line');
+                `<span class="gos-cmd-prompt">${escHtml(getPrompt())}</span>` +
+                `<span class="gos-cmd-typed">${escHtml(rawCmd)}</span>`;
+            _activeLine.classList.remove('gos-cmd-active-line');
             _activeLine = null;
         }
     }
@@ -128,13 +128,13 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
             const target = args[args[0] === '/d' ? 1 : 0] || '~';
             const res = fs.cd(target);
             if (res.error) appendLine(
-                'The system cannot find the path specified.', 'lde-cmd-err'
+                'The system cannot find the path specified.', 'gos-cmd-err'
             );
         },
         dir(args) {
             const path = args[0] ? args[0] : '.';
             const res = fs.ls(path);
-            if (res.error) { appendLine('File Not Found', 'lde-cmd-err'); return; }
+            if (res.error) { appendLine('File Not Found', 'gos-cmd-err'); return; }
             const winPath = path === '.' ? fs.pwd() : path;
             const now = new Date();
             const dateStr = now.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
@@ -143,54 +143,65 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
             if (res.entries.length === 0) {
                 appendLine(' No items in this directory');
             } else {
-                let dirs = 0, files = 0;
+                let dirs = 0, files = 0, totalBytes = 0;
                 res.entries.forEach(e => {
-                    const tag = e.type === 'dir' ? escHtml('<DIR>') : '     ';
+                    const tag = e.type === 'dir' ? '<DIR>' : '';
+                    const sizeStr = e.type === 'dir' ? '' : e.size.toLocaleString();
+                    const tagPad = escHtml(tag.padEnd(5));
+                    const sizePad = escHtml(sizeStr.padStart(10));
                     const col = e.type === 'dir' ? '#7ec8ff' : '#cccccc';
-                    appendHTML(`${escHtml(dateStr)}  ${escHtml(timeStr)} <span style="color:${col}">${tag}</span>   ${escHtml(e.name)}`);
-                    e.type === 'dir' ? dirs++ : files++;
+
+                    // Non-breaking spaces help maintain column alignment in the HTML output
+                    const formattedLine = `${escHtml(dateStr)}  ${escHtml(timeStr)}  <span style="color:${col}">${tagPad.replace(/ /g, '&nbsp;')}</span> ${sizePad.replace(/ /g, '&nbsp;')} ${escHtml(e.name)}`;
+                    appendHTML(formattedLine);
+                    if (e.type === 'dir') {
+                        dirs++;
+                    } else {
+                        files++;
+                        totalBytes += (e.size || 0);
+                    }
                 });
-                appendLine(`\n       ${files} File(s)   ${dirs} Dir(s)`);
+                appendLine(`\n       ${files} File(s) ${totalBytes.toLocaleString().padStart(14)} bytes\n       ${dirs} Dir(s)`);
             }
         },
         type(args) {
-            if (!args[0]) { appendLine('The syntax of the command is incorrect.', 'lde-cmd-err'); return; }
+            if (!args[0]) { appendLine('The syntax of the command is incorrect.', 'gos-cmd-err'); return; }
             const res = fs.cat(args[0]);
-            if (res.error) { appendLine('The system cannot find the file specified.', 'lde-cmd-err'); return; }
+            if (res.error) { appendLine('The system cannot find the file specified.', 'gos-cmd-err'); return; }
             res.content.split('\n').forEach(l => appendLine(l));
         },
         echo(args) {
             appendLine(args.join(' '));
         },
         md(args) {
-            if (!args[0]) { appendLine('The syntax of the command is incorrect.', 'lde-cmd-err'); return; }
+            if (!args[0]) { appendLine('The syntax of the command is incorrect.', 'gos-cmd-err'); return; }
             const res = fs.mkdir(args[0]);
-            if (res.error) appendLine('A subdirectory or file already exists.', 'lde-cmd-err');
+            if (res.error) appendLine('A subdirectory or file already exists.', 'gos-cmd-err');
         },
         mkdir(args) { CMDS.md(args); },
         del(args) {
-            if (!args[0]) { appendLine('The syntax of the command is incorrect.', 'lde-cmd-err'); return; }
+            if (!args[0]) { appendLine('The syntax of the command is incorrect.', 'gos-cmd-err'); return; }
             const res = fs.rm(args[0]);
-            if (res.error) appendLine('Could Not Find ' + args[0], 'lde-cmd-err');
+            if (res.error) appendLine('Could Not Find ' + args[0], 'gos-cmd-err');
         },
         rd(args) {
-            if (!args[0]) { appendLine('The syntax of the command is incorrect.', 'lde-cmd-err'); return; }
+            if (!args[0]) { appendLine('The syntax of the command is incorrect.', 'gos-cmd-err'); return; }
             const res = fs.rmdir(args[0]);
             if (res.error) appendLine(res.error.includes('empty') ?
-                'The directory is not empty.' : 'The system cannot find the path specified.', 'lde-cmd-err');
+                'The directory is not empty.' : 'The system cannot find the path specified.', 'gos-cmd-err');
         },
         rmdir(args) { CMDS.rd(args); },
         ren(args) {
-            if (args.length < 2) { appendLine('The syntax of the command is incorrect.', 'lde-cmd-err'); return; }
+            if (args.length < 2) { appendLine('The syntax of the command is incorrect.', 'gos-cmd-err'); return; }
             const catRes = fs.cat(args[0]);
-            if (catRes.error) { appendLine('The system cannot find the file specified.', 'lde-cmd-err'); return; }
+            if (catRes.error) { appendLine('The system cannot find the file specified.', 'gos-cmd-err'); return; }
             fs.write(args[1], catRes.content);
             fs.rm(args[0]);
         },
         copy(args) {
-            if (args.length < 2) { appendLine('The syntax of the command is incorrect.', 'lde-cmd-err'); return; }
+            if (args.length < 2) { appendLine('The syntax of the command is incorrect.', 'gos-cmd-err'); return; }
             const catRes = fs.cat(args[0]);
-            if (catRes.error) { appendLine('The system cannot find the file specified.', 'lde-cmd-err'); return; }
+            if (catRes.error) { appendLine('The system cannot find the file specified.', 'gos-cmd-err'); return; }
             fs.write(args[1], catRes.content);
             appendLine('        1 file(s) copied.');
         },
@@ -201,7 +212,7 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
             });
         },
         exit() {
-            const winObj = wm.windows.find(w => w.element === container.closest('.lde-window'));
+            const winObj = wm.windows.find(w => w.element === container.closest('.gos-window'));
             if (winObj) wm.closeWindow(winObj.id);
         },
         history(args) {
@@ -241,8 +252,8 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         const possiblePaths = [
             line,
             line + '.exe',
-            'C:\\Windows\\System32\\' + line,
-            'C:\\Windows\\System32\\' + line + '.exe'
+            'C:\\glitterOS\\System\\' + line,
+            'C:\\glitterOS\\System\\' + line + '.exe'
         ];
 
         for (const p of possiblePaths) {
@@ -254,7 +265,7 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
             }
         }
 
-        appendLine(`'${cmd}' is not recognized as an internal or external command, \noperable program or batch file.`, 'lde-cmd-err');
+        appendLine(`'${cmd}' is not recognized as an internal or external command, \noperable program or batch file.`, 'gos-cmd-err');
     }
 
     // ── Keyboard handler ──────────────────────────────────────────────────────
@@ -371,6 +382,27 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
     }
 
     const winObj = wm.createWindow('Command Prompt', container, winOptions);
+
+    // Watch for window focus/blur via MutationObserver on the window element
+    const focusObserver = new MutationObserver((mutations) => {
+        mutations.forEach((m) => {
+            if (m.attributeName === 'class') {
+                const isActive = winObj.element.classList.contains('active');
+                if (!isActive) {
+                    hiddenInput.blur();
+                    refreshActiveLine();
+                }
+            }
+        });
+    });
+    focusObserver.observe(winObj.element, { attributes: true });
+
+    // Cleanup observer on window close
+    const originalOnClose = winObj.onClose;
+    winObj.onClose = () => {
+        focusObserver.disconnect();
+        if (originalOnClose) originalOnClose();
+    };
 
     // Handle autoRun
     if (autoRun) {

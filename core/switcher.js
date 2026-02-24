@@ -3,11 +3,11 @@
 (() => {
     // Create overlay + switcher container once
     const overlay = document.createElement('div');
-    overlay.className = 'lde-switcher-overlay';
+    overlay.className = 'gos-switcher-overlay';
     document.body.appendChild(overlay);
 
     const switcher = document.createElement('div');
-    switcher.className = 'lde-switcher';
+    switcher.className = 'gos-switcher';
     document.body.appendChild(switcher);
 
     let _active = false;
@@ -34,19 +34,19 @@
 
         visible.forEach((winObj, i) => {
             const card = document.createElement('div');
-            card.className = 'lde-switcher-thumb';
+            card.className = 'gos-switcher-thumb';
             card.style.animationDelay = (i * 0.04) + 's';
 
             // Preview box
             const preview = document.createElement('div');
-            preview.className = 'lde-switcher-preview';
+            preview.className = 'gos-switcher-preview';
 
             // Clone the window for preview
             const winEl = winObj.element;
             if (winEl) {
                 const clone = winEl.cloneNode(true);
                 // Remove some stuff from clone to make it look like a static preview
-                const controls = clone.querySelector('.lde-win-controls');
+                const controls = clone.querySelector('.gos-win-controls');
                 if (controls) controls.style.display = 'none';
 
                 const winW = winEl.offsetWidth || 400;
@@ -68,7 +68,7 @@
 
             // Label
             const label = document.createElement('div');
-            label.className = 'lde-switcher-label';
+            label.className = 'gos-switcher-label';
             const iconClass = winObj.icon.startsWith('ri-') ? winObj.icon : (winObj.icon.startsWith('bi-') ? 'bi ' + winObj.icon : 'ri-' + winObj.icon);
             label.innerHTML = `<i class="${iconClass}"></i><span>${winObj.title}</span>`;
 
@@ -154,7 +154,7 @@
         }
 
         _active = true;
-        document.body.classList.add('lde-switcher-active');
+        document.body.classList.add('gos-switcher-active');
 
         saveWindowPositions();
         hideWindowsForSwitcher();
@@ -171,7 +171,7 @@
 
         overlay.classList.remove('active');
         switcher.classList.remove('active');
-        document.body.classList.remove('lde-switcher-active');
+        document.body.classList.remove('gos-switcher-active');
 
         restoreWindowPositions();
         activateSelected();

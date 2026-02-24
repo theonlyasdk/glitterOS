@@ -1,4 +1,4 @@
-.lde-desktop {
+.gos-desktop {
     padding: 1em;
     height: 100%;
     position: absolute;
@@ -12,7 +12,7 @@
     user-select: none;
 }
 
-.lde-wallpaper-layer {
+.gos-wallpaper-layer {
     position: absolute;
     inset: 0;
     background-size: cover;
@@ -21,16 +21,16 @@
     z-index: -1;
 }
 
-.lde-wallpaper-layer.old {
+.gos-wallpaper-layer.old {
     opacity: 0;
 }
 
-.lde-wallpaper-layer.new {
+.gos-wallpaper-layer.new {
     opacity: 1;
 }
 
 /* ── Desktop Icons Container ─────────────────────────────────────────────── */
-.lde-desktop-icons {
+.gos-desktop-icons {
     display: flex;
     flex-direction: column;
     flex-wrap: wrap;
@@ -50,7 +50,7 @@
 }
 
 /* ── Individual Desktop Shortcut ─────────────────────────────────────────── */
-.lde-desktop-shortcut {
+.gos-desktop-shortcut {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -68,18 +68,18 @@
     -webkit-user-select: none;
 }
 
-.lde-desktop-shortcut:hover {
+.gos-desktop-shortcut:hover {
     background-color: rgba(255, 255, 255, 0.1);
     border-color: rgba(255, 255, 255, 0.2);
 }
 
-.lde-desktop-shortcut.selected {
+.gos-desktop-shortcut.selected {
     background-color: var(--accent-muted) !important;
     border-color: var(--accent-color) !important;
 }
 
 /* ── Icon ─────────────────────────────────────────────────────────────────── */
-.lde-desktop-shortcut-icon {
+.gos-desktop-shortcut-icon {
     width: 40px;
     height: 40px;
     display: flex;
@@ -92,7 +92,7 @@
 }
 
 /* ── Label ────────────────────────────────────────────────────────────────── */
-.lde-desktop-shortcut-label {
+.gos-desktop-shortcut-label {
     font-size: 0.68rem;
     color: #fff;
     text-align: center;
@@ -109,7 +109,7 @@
 }
 
 /* ── Selection Marquee ────────────────────────────────────────────────────── */
-.lde-selection-marquee {
+.gos-selection-marquee {
     position: fixed;
     border: 1px solid var(--accent-color);
     background: var(--accent-muted);

@@ -28,9 +28,9 @@ const AppRegistry = (() => {
             }
             _apps.push(app);
 
-            // If it has an exe name, ensure it exists in System32
+            // If it has an exe name, ensure it exists in System
             if (app.exe && typeof fs !== 'undefined') {
-                const path = `C:\\Windows\\System32\\${app.exe}`;
+                const path = `C:\\glitterOS\\System\\${app.exe}`;
                 if (!fs.exists(path)) {
                     fs.write(path, '[glitterOS System Executable]');
                 }
@@ -66,68 +66,6 @@ const SYSTEM_SHORTCUTS = new Map([
     }]
 ]);
 
-/**
- * System Registry - Persistent configuration storage
- */
-const registry = (() => {
-    const KEY = 'lde_registry';
-    let _data = {
-        personalization: {
-            wallpaper: 'res/wall.png'
-        }
-    };
-
-    function _load() {
-        const saved = localStorage.getItem(KEY);
-        if (saved) {
-            try {
-                _data = { ..._data, ...JSON.parse(saved) };
-            } catch (e) { console.error("Registry load failed", e); }
-        }
-    }
-
-    function _save() {
-        localStorage.setItem(KEY, JSON.stringify(_data));
-    }
-
-    _load();
-
-    return {
-        get(path, defaultVal) {
-            const parts = path.split('.');
-            let curr = _data;
-            for (const p of parts) {
-                if (curr[p] === undefined) return defaultVal;
-                curr = curr[p];
-            }
-            return curr;
-        },
-        set(path, val) {
-            const parts = path.split('.');
-            let curr = _data;
-            for (let i = 0; i < parts.length - 1; i++) {
-                if (curr[parts[i]] === undefined) curr[parts[i]] = {};
-                curr = curr[parts[i]];
-            }
-            curr[parts[parts.length - 1]] = val;
-            _save();
-        },
-        /** Get entire registry data (deep copy) */
-        getAll() { return JSON.parse(JSON.stringify(_data)); },
-        /** Delete a key by dot-path */
-        delete(path) {
-            const parts = path.split('.');
-            let curr = _data;
-            for (let i = 0; i < parts.length - 1; i++) {
-                if (curr[parts[i]] === undefined) return;
-                curr = curr[parts[i]];
-            }
-            delete curr[parts[parts.length - 1]];
-            _save();
-        }
-    };
-})();
-
 function assertExistsElseReload(elem) {
     if (!elem) {
         window.alert(elem + " does not exist! Reloading in 5s...");
@@ -142,72 +80,187 @@ function assertExistsElseReload(elem) {
  */
 function buildAppMenuBar() {
     const bar = document.createElement('div');
-    bar.className = 'lde-app-menubar';
+    bar.className = 'gos-app-menubar';
+
+    const menuElements = [];
+    const menuItemsData = [];
+    let _activeMenuIdx = -1;
+    let _activeItemIdx = -1;
+
+    function closeAll() {
+        bar.querySelectorAll('.gos-app-menu-item').forEach(m => {
+            m.classList.remove('active');
+            m.classList.remove('kb-focus');
+        });
+        bar.querySelectorAll('.gos-app-dropdown-item').forEach(m => m.classList.remove('kb-focus'));
+        _activeMenuIdx = -1;
+        _activeItemIdx = -1;
+    }
+
+    function highlight() {
+        menuElements.forEach((m, i) => {
+            m.classList.toggle('kb-focus', i === _activeMenuIdx);
+            const isOpen = m.classList.contains('active');
+            if (i === _activeMenuIdx && !isOpen && _activeItemIdx !== -1) {
+                m.classList.add('active');
+            }
+            if (i !== _activeMenuIdx) {
+                m.classList.remove('active');
+            }
+        });
+
+        if (_activeMenuIdx !== -1) {
+            const items = menuItemsData[_activeMenuIdx];
+            items.forEach((item, i) => {
+                if (item.el) item.el.classList.toggle('kb-focus', i === _activeItemIdx);
+            });
+        }
+    }
 
     function createMenu(label, items) {
         const menu = document.createElement('div');
-        menu.className = 'lde-app-menu-item';
+        menu.className = 'gos-app-menu-item';
         menu.textContent = label;
 
         const dropdown = document.createElement('div');
-        dropdown.className = 'lde-app-dropdown';
+        dropdown.className = 'gos-app-dropdown';
+
+        const myItems = [];
 
         items.forEach(item => {
             if (item.type === 'sep') {
                 const sep = document.createElement('div');
-                sep.className = 'lde-app-dropdown-sep';
+                sep.className = 'gos-app-dropdown-sep';
                 dropdown.appendChild(sep);
+                myItems.push({ type: 'sep' });
             } else {
                 const el = document.createElement('div');
-                el.className = 'lde-app-dropdown-item' + (item.color === '#f44336' ? ' danger' : '') + (item.disabled ? ' disabled' : '');
+                el.className = 'gos-app-dropdown-item' + (item.color === '#f44336' ? ' danger' : '') + (item.disabled ? ' disabled' : '');
                 el.innerHTML = `<span>${item.label}</span>${item.shortcut ? `<span class="shortcut">${item.shortcut}</span>` : ''}`;
-                el.onclick = (e) => {
-                    e.stopPropagation();
-                    // Perform action instantly
+
+                const itemAction = () => {
+                    if (item.disabled) return;
                     if (item.action) item.action();
-
-                    // Ghosting effect
-                    el.classList.add('lde-dropdown-item-ghost');
+                    el.classList.add('gos-dropdown-item-ghost');
                     menu.classList.add('item-clicked');
-
                     setTimeout(() => {
-                        menu.classList.remove('active');
+                        closeAll();
                         menu.classList.remove('item-clicked');
-                        el.classList.remove('lde-dropdown-item-ghost');
+                        el.classList.remove('gos-dropdown-item-ghost');
                     }, 300);
                 };
+
+                el.onclick = (e) => { e.stopPropagation(); itemAction(); };
                 dropdown.appendChild(el);
+                myItems.push({ label: item.label, action: itemAction, el: el, type: 'item', disabled: !!item.disabled });
             }
         });
 
         menu.appendChild(dropdown);
 
-        // Click to toggle
         menu.onclick = (e) => {
             e.stopPropagation();
             const wasActive = menu.classList.contains('active');
-            bar.querySelectorAll('.lde-app-menu-item').forEach(m => m.classList.remove('active'));
-            if (!wasActive) menu.classList.add('active');
+            const idx = menuElements.indexOf(menu);
+            closeAll();
+            if (!wasActive) {
+                menu.classList.add('active');
+                _activeMenuIdx = idx;
+            }
         };
 
-        // Hover to switch if one is already open
         menu.onmouseenter = () => {
-            const anyActive = bar.querySelector('.lde-app-menu-item.active');
+            const anyActive = bar.querySelector('.gos-app-menu-item.active');
             if (anyActive && anyActive !== menu) {
-                anyActive.classList.remove('active');
+                const idx = menuElements.indexOf(menu);
+                closeAll();
                 menu.classList.add('active');
+                _activeMenuIdx = idx;
             }
         };
 
         bar.appendChild(menu);
+        menuElements.push(menu);
+        menuItemsData.push(myItems);
         return menu;
     }
 
-    // Close menus on outside click
-    const onMouseDown = (e) => {
-        if (!bar.contains(e.target)) {
-            bar.querySelectorAll('.lde-app-menu-item').forEach(m => m.classList.remove('active'));
+    bar.handleKey = (e) => {
+        if (e.key === 'Alt') {
+            e.preventDefault();
+            if (_activeMenuIdx === -1) {
+                _activeMenuIdx = 0;
+                highlight();
+            } else {
+                closeAll();
+            }
+            return true;
         }
+
+        if (_activeMenuIdx === -1) return false;
+
+        if (e.key === 'Escape') {
+            closeAll();
+            return true;
+        }
+
+        if (e.key === 'ArrowRight') {
+            _activeMenuIdx = (_activeMenuIdx + 1) % menuElements.length;
+            _activeItemIdx = -1;
+            highlight();
+            return true;
+        }
+        if (e.key === 'ArrowLeft') {
+            _activeMenuIdx = (_activeMenuIdx - 1 + menuElements.length) % menuElements.length;
+            _activeItemIdx = -1;
+            highlight();
+            return true;
+        }
+
+        const items = menuItemsData[_activeMenuIdx];
+        if (e.key === 'ArrowDown') {
+            let nextIndex = _activeItemIdx;
+            for (let i = 0; i < items.length; i++) {
+                nextIndex = (nextIndex + 1) % items.length;
+                if (items[nextIndex].type === 'item' && !items[nextIndex].disabled) {
+                    _activeItemIdx = nextIndex;
+                    break;
+                }
+            }
+            highlight();
+            return true;
+        }
+        if (e.key === 'ArrowUp') {
+            let prevIndex = _activeItemIdx === -1 ? items.length : _activeItemIdx;
+            for (let i = 0; i < items.length; i++) {
+                prevIndex = (prevIndex - 1 + items.length) % items.length;
+                if (items[prevIndex].type === 'item' && !items[prevIndex].disabled) {
+                    _activeItemIdx = prevIndex;
+                    break;
+                }
+            }
+            highlight();
+            return true;
+        }
+        if (e.key === 'Enter') {
+            if (_activeItemIdx !== -1) {
+                items[_activeItemIdx].action();
+            } else {
+                _activeItemIdx = 0;
+                if (items[0] && items[0].type !== 'item') {
+                    for (let i = 0; i < items.length; i++) {
+                        if (items[i].type === 'item') { _activeItemIdx = i; break; }
+                    }
+                }
+                highlight();
+            }
+            return true;
+        }
+        return true;
+    };
+
+    const onMouseDown = (e) => {
+        if (!bar.contains(e.target)) closeAll();
     };
     window.addEventListener('mousedown', onMouseDown);
 
@@ -223,23 +276,23 @@ function buildAppMenuBar() {
  * @param {number} y Screen Y
  * @param {Array} items [{ label, icon?, action, color?, disabled?, type? }]
  */
-function ldeShowContextMenu(x, y, items) {
-    const existing = document.querySelector('.lde-context-menu');
+function gosShowContextMenu(x, y, items) {
+    const existing = document.querySelector('.gos-context-menu');
     if (existing) existing.remove();
 
     const menu = document.createElement('div');
-    menu.className = 'lde-context-menu';
+    menu.className = 'gos-context-menu';
     menu.style.left = x + 'px';
     menu.style.top = y + 'px';
 
     items.forEach(item => {
         if (item.type === 'sep') {
             const sep = document.createElement('div');
-            sep.className = 'lde-context-menu-sep';
+            sep.className = 'gos-context-menu-sep';
             menu.appendChild(sep);
         } else {
             const el = document.createElement('div');
-            el.className = 'lde-context-menu-item' + (item.color === 'danger' ? ' danger' : '') + (item.disabled ? ' disabled' : '');
+            el.className = 'gos-context-menu-item' + (item.color === 'danger' ? ' danger' : '') + (item.disabled ? ' disabled' : '');
             el.innerHTML = `${item.icon ? `<i class="${getFullIcon(item.icon)}"></i>` : ''} <span>${item.label}</span>`;
             el.onclick = (e) => {
                 e.stopPropagation();
@@ -247,7 +300,7 @@ function ldeShowContextMenu(x, y, items) {
                 if (item.action) item.action();
 
                 // Ghosting effect
-                el.classList.add('lde-dropdown-item-ghost');
+                el.classList.add('gos-dropdown-item-ghost');
                 menu.classList.add('item-clicked');
 
                 setTimeout(() => {
@@ -308,29 +361,25 @@ const SystemExec = {
 };
 
 // ── Misc utils ───────────────────────────────────────────────────────────────
-function ldeMbarItemClicked(item_index, sender) { alert(sender); }
+function gosMbarItemClicked(item_index, sender) { alert(sender); }
 
-function kaboom(sender) {
+function kaboom() {
     const kaboomCandidates = [menubar, desktop, taskbar];
     kaboomCandidates.forEach((elem) => {
-        elem.addEventListener("mouseup", () => {
-            elem.classList.add("kaboom");
-            kaboomCandidates.pop(elem);
-            if (kaboomCandidates.length < 2) {
-                document.body.classList.add("kaboom-ticking");
-                setInterval(() => {
-                    document.body.classList.remove("kaboom-ticking");
-                    document.body.classList.add("kaboom");
-                }, 5000);
-            }
-        });
+        elem.classList.add("kaboom");
     });
+    document.body.classList.add("kaboom-ticking");
+    setTimeout(() => {
+        document.body.classList.remove("kaboom-ticking");
+        document.body.classList.add("kaboom");
+        setTimeout(() => location.reload(), 3000);
+    }, 5000);
 }
 
 function aboutGlitterOS(app_name) {
     const sub_text = app_name ? `<div class="mb-3 text-secondary" style="font-size: 0.85rem;">This product is licensed under the glitterOS License to:<br><b>${app_name} User</b></div>` : '';
     const msg = `
-		<div class="lde-app-padded">
+		<div class="gos-app-padded">
 			<div class="d-flex flex-column align-items-center text-center">
 				<i class="ri-sparkling-2-fill display-1 mb-3"></i>
 				<h1 class="mb-0"><b>glitterOS</b></h1>
@@ -350,69 +399,88 @@ function aboutGlitterOS(app_name) {
 }
 
 /**
- * Tilt / Ripple Utilities (Shared across the OS)
+ * Truncate filename (macOS style: middle truncation)
  */
-function applyTiltPress(elem, e) {
-    const rect = elem.getBoundingClientRect();
-    const relX = (e.clientX - rect.left) / rect.width;
-    const relY = (e.clientY - rect.top) / rect.height;
-    const rotY = (relX - 0.5) * 30;
-    const rotX = -(relY - 0.5) * 30;
-    elem.style.transform = `perspective(500px) rotateX(${rotX}deg) rotateY(${rotY}deg) scale(0.93)`;
-}
+function truncateFilename(filename, maxLength = 24) {
+    if (!filename || filename.length <= maxLength) return filename;
 
-function resetTilt(elem) { elem.style.transform = ''; }
-
-function spawnRipple(elem, e) {
-    const rect = elem.getBoundingClientRect();
-    const ripple = document.createElement('div');
-    ripple.className = 'lde-ac-tile-ripple';
-    ripple.style.left = (e.clientX - rect.left) + 'px';
-    ripple.style.top = (e.clientY - rect.top) + 'px';
-    elem.appendChild(ripple);
-    ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
-}
-
-/**
- * registerTileEffect - Global registration helper for Win10-style tile interactions
- * @param {HTMLElement} elem 
- * @param {Object} options { tilt: bool, ripple: bool, glow: bool, liveTilt: bool }
- */
-function registerTileEffect(elem, options = { tilt: true, ripple: true, glow: true, liveTilt: true }) {
-    let _pressing = false;
-
-    elem.addEventListener('mousedown', (e) => {
-        _pressing = true;
-        if (options.tilt) applyTiltPress(elem, e);
-        if (options.ripple) spawnRipple(elem, e);
-    });
-
-    elem.addEventListener('mouseup', () => {
-        _pressing = false;
-        if (options.tilt) resetTilt(elem);
-    });
-
-    elem.addEventListener('mouseleave', () => {
-        _pressing = false;
-        if (options.tilt) resetTilt(elem);
-    });
-
-    elem.addEventListener('mousemove', (e) => {
-        if (options.glow) {
-            const r = elem.getBoundingClientRect();
-            elem.style.setProperty('--glow-x', (e.clientX - r.left) + 'px');
-            elem.style.setProperty('--glow-y', (e.clientY - r.top) + 'px');
-        }
-        if (_pressing && options.liveTilt) {
-            applyTiltPress(elem, e);
-        }
-    });
-
-    // Ensure element has necessary CSS for these effects
-    if (options.ripple || options.glow) {
-        if (getComputedStyle(elem).position === 'static') elem.style.position = 'relative';
-        elem.style.overflow = 'hidden';
+    const extIdx = filename.lastIndexOf('.');
+    // If no extension or extension is too long (> 8 chars), standard middle truncation
+    if (extIdx === -1 || (filename.length - extIdx) > 8 || extIdx === 0) {
+        const front = Math.ceil((maxLength - 3) / 2);
+        const back = Math.floor((maxLength - 3) / 2);
+        return filename.substring(0, front) + '...' + filename.substring(filename.length - back);
     }
+
+    const ext = filename.substring(extIdx);
+    const namePart = filename.substring(0, extIdx);
+    const remainingLength = maxLength - 3 - ext.length;
+
+    // If extension takes up too much space, fallback to standard truncation
+    if (remainingLength < 4) {
+        const front = Math.ceil((maxLength - 3) / 2);
+        const back = Math.floor((maxLength - 3) / 2);
+        return filename.substring(0, front) + '...' + filename.substring(filename.length - back);
+    }
+
+    const front = Math.ceil(remainingLength / 2);
+    const back = Math.floor(remainingLength / 2);
+    return namePart.substring(0, front) + '...' + namePart.substring(namePart.length - back) + ext;
+}
+
+function systemSleep() {
+    // Hang the desktop for 2-3s to make it feel "real"
+    const hangDuration = 2000 + Math.random() * 1000;
+    const start = Date.now();
+    while (Date.now() - start < hangDuration) {
+        // Intensive lame work to block the main thread
+        for (let i = 0; i < 1000; i++) Math.sqrt(Math.random());
+    }
+
+    const bsod = document.createElement('div');
+    bsod.style.cssText = `
+        position: fixed;
+        inset: 0;
+        background: #0078d7;
+        color: #fff;
+        z-index: 100000;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 10%;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        cursor: none;
+    `;
+    bsod.innerHTML = `
+        <div style="font-size: 15rem; line-height: 1; margin-bottom: 2rem;">: )</div>
+        <div style="font-size: 2.2rem; line-height: 1.3; font-weight: 300; max-width: 800px;">
+            Your desktop has gone to sleep. 
+            We're just collecting some nap time info, and then we'll restart for you.
+        </div>
+        <div style="margin-top: 3rem; font-size: 1.2rem; opacity: 0.8;">
+            0% complete
+        </div>
+        <div style="margin-top: 1rem; font-size: 0.9rem; opacity: 0.6;">
+            For more information about this issue and possible fixes, visit https://napping.glitteros.org/stopcode<br><br>
+            If you call a support person, give them this info:<br>
+            Stop code: DESKTOP_FELL_ASLEEP
+        </div>
+    `;
+    document.body.appendChild(bsod);
+
+    let progress = 0;
+    const progressEl = bsod.querySelector('div:nth-child(3)');
+    const interval = setInterval(() => {
+        progress += Math.floor(Math.random() * 5);
+        if (progress >= 100) {
+            progress = 100;
+            clearInterval(interval);
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        }
+        progressEl.textContent = `${progress}% complete`;
+    }, 200);
 }
 
 /**
@@ -427,11 +495,11 @@ function setWallpaper(url) {
     CURRENT_WALL_URL = url;
 
     // Get current layers
-    const layers = desktop.querySelectorAll('.lde-wallpaper-layer');
+    const layers = desktop.querySelectorAll('.gos-wallpaper-layer');
     const oldLayer = layers[layers.length - 1]; // Assume latest is current
 
     const newLayer = document.createElement('div');
-    newLayer.className = 'lde-wallpaper-layer';
+    newLayer.className = 'gos-wallpaper-layer';
     newLayer.style.backgroundImage = `url("${url}")`;
     newLayer.style.opacity = '0';
     desktop.appendChild(newLayer);
@@ -471,13 +539,13 @@ function launchPropertiesDialog(path) {
     if (stat.error) return wm.messageBox('Properties', stat.error, { icon: 'bi-x-circle-fill' });
 
     const container = document.createElement('div');
-    container.className = 'lde-taskmgr'; // Reuse layout
+    container.className = 'gos-taskmgr'; // Reuse layout
     container.style.height = '100%';
 
     let activeTab = 'general';
 
     const header = document.createElement('div');
-    header.className = 'lde-taskmgr-tabs';
+    header.className = 'gos-taskmgr-tabs';
 
     const tabs = [
         { id: 'general', label: 'General' },
@@ -485,7 +553,7 @@ function launchPropertiesDialog(path) {
     ];
 
     const contentArea = document.createElement('div');
-    contentArea.className = 'lde-taskmgr-content';
+    contentArea.className = 'gos-taskmgr-content';
     contentArea.style.padding = '20px';
 
     function renderGeneral() {
@@ -498,7 +566,7 @@ function launchPropertiesDialog(path) {
 
         const name = path.split('\\').pop() || path;
         const type = stat.type === 'dir' ? 'Folder' : (name.includes('.') ? name.split('.').pop().toUpperCase() + ' File' : 'File');
-        const size = stat.type === 'dir' ? '-' : (stat.size ? (stat.size / 1024).toFixed(1) + ' KB' : '0 KB');
+        const size = stat.type === 'dir' ? 'N/A' : (stat.size !== undefined ? stat.size.toLocaleString() + ' bytes (' + (stat.size / 1024).toFixed(2) + ' KB)' : '0 bytes');
 
         const rows = [
             ['Name:', name],
@@ -552,7 +620,7 @@ function launchPropertiesDialog(path) {
 
     function switchTab(id) {
         activeTab = id;
-        header.querySelectorAll('.lde-taskmgr-tab').forEach(t => {
+        header.querySelectorAll('.gos-taskmgr-tab').forEach(t => {
             t.classList.toggle('active', t.dataset.id === id);
         });
         if (id === 'general') renderGeneral();
@@ -561,7 +629,7 @@ function launchPropertiesDialog(path) {
 
     tabs.forEach(tab => {
         const el = document.createElement('div');
-        el.className = 'lde-taskmgr-tab' + (tab.id === activeTab ? ' active' : '');
+        el.className = 'gos-taskmgr-tab' + (tab.id === activeTab ? ' active' : '');
         el.dataset.id = tab.id;
         el.innerText = tab.label;
         el.onclick = () => switchTab(tab.id);

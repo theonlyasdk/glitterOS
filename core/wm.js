@@ -20,12 +20,12 @@ class WindowManager {
 
         // Create snap preview element
         this.snapPreview = document.createElement('div');
-        this.snapPreview.className = 'lde-snap-preview';
+        this.snapPreview.className = 'gos-snap-preview';
         document.body.appendChild(this.snapPreview);
 
         // Unfocus active window when clicking the desktop background or icon container
         this.desktop.addEventListener('mousedown', (e) => {
-            if (e.target === this.desktop || e.target.classList.contains('lde-desktop-icons')) {
+            if (e.target === this.desktop || e.target.classList.contains('gos-desktop-icons')) {
                 this.unfocusActive();
             }
         });
@@ -48,7 +48,7 @@ class WindowManager {
     createWindow(title, content, options = {}) {
         const id = 'win-' + Math.random().toString(36).substr(2, 9);
         const win = document.createElement('div');
-        win.className = 'lde-window';
+        win.className = 'gos-window';
         win.id = id;
         win.style.left = (options.x || 100 + (this.windows.length * 20)) + 'px';
         win.style.top = (options.y || 50 + (this.windows.length * 20)) + 'px';
@@ -57,17 +57,17 @@ class WindowManager {
         win.style.zIndex = ++this.zIndexCounter;
 
         const header = document.createElement('div');
-        header.className = 'lde-win-header';
+        header.className = 'gos-win-header';
 
         const titleElem = document.createElement('div');
-        titleElem.className = 'lde-win-title';
+        titleElem.className = 'gos-win-title';
         titleElem.innerHTML = `<span>${title}</span>`;
 
         const controls = document.createElement('div');
-        controls.className = 'lde-win-controls';
+        controls.className = 'gos-win-controls';
 
         const minBtn = document.createElement('div');
-        minBtn.className = 'lde-win-btn lde-win-btn-min';
+        minBtn.className = 'gos-win-btn gos-win-btn-min';
         minBtn.innerHTML = '<i class="ri-subtract-line"></i>';
         minBtn.onclick = (e) => {
             e.stopPropagation();
@@ -75,7 +75,7 @@ class WindowManager {
         };
 
         const maxBtn = document.createElement('div');
-        maxBtn.className = 'lde-win-btn lde-win-btn-max';
+        maxBtn.className = 'gos-win-btn gos-win-btn-max';
         maxBtn.innerHTML = '<i class="ri-checkbox-blank-line"></i>';
         maxBtn.onclick = (e) => {
             e.stopPropagation();
@@ -83,7 +83,7 @@ class WindowManager {
         };
 
         const closeBtn = document.createElement('div');
-        closeBtn.className = 'lde-win-btn lde-win-btn-close';
+        closeBtn.className = 'gos-win-btn gos-win-btn-close';
         closeBtn.innerHTML = '<i class="bi bi-x-lg"></i>';
         closeBtn.onclick = (e) => {
             e.stopPropagation();
@@ -97,24 +97,24 @@ class WindowManager {
         controls.appendChild(closeBtn);
 
         const iconElem = document.createElement('div');
-        iconElem.className = 'lde-win-icon';
+        iconElem.className = 'gos-win-icon';
         // getFullIcon is now global
 
         iconElem.innerHTML = `<i class="${getFullIcon(options.icon)}"></i>`;
 
         // System menu popup
         const sysMenu = document.createElement('div');
-        sysMenu.className = 'lde-win-sysmenu';
+        sysMenu.className = 'gos-win-sysmenu';
         sysMenu.innerHTML = `
             ${!options.noControls ? `
-                <div class="lde-win-sysmenu-item" data-action="restore"><span>Restore</span></div>
-                <div class="lde-win-sysmenu-item" data-action="minimize"><span>Minimize</span></div>
-                <div class="lde-win-sysmenu-item" data-action="maximize"><span>Maximize</span></div>
-                <hr class="lde-win-sysmenu-divider">
+                <div class="gos-win-sysmenu-item" data-action="restore"><span>Restore</span></div>
+                <div class="gos-win-sysmenu-item" data-action="minimize"><span>Minimize</span></div>
+                <div class="gos-win-sysmenu-item" data-action="maximize"><span>Maximize</span></div>
+                <hr class="gos-win-sysmenu-divider">
             ` : ''}
-            <div class="lde-win-sysmenu-item lde-win-sysmenu-close" data-action="close"><span>Close</span><span class="lde-sysmenu-shortcut">Alt+F4</span></div>
+            <div class="gos-win-sysmenu-item gos-win-sysmenu-close" data-action="close"><span>Close</span><span class="gos-sysmenu-shortcut">Alt+F4</span></div>
         `;
-        sysMenu.querySelectorAll('.lde-win-sysmenu-item').forEach(item => {
+        sysMenu.querySelectorAll('.gos-win-sysmenu-item').forEach(item => {
             item.addEventListener('click', (e) => {
                 e.stopPropagation();
                 sysMenu.classList.remove('visible');
@@ -147,14 +147,14 @@ class WindowManager {
 
         // Right-click on header (title area) also shows sysmenu
         header.addEventListener('contextmenu', (e) => {
-            if (e.target.closest('.lde-win-btn') || e.target.closest('.lde-win-icon')) return;
+            if (e.target.closest('.gos-win-btn') || e.target.closest('.gos-win-icon')) return;
             e.preventDefault();
             showSysMenu(e.clientX, e.clientY);
         });
 
         // Double-click to maximize/restore
         header.addEventListener('dblclick', (e) => {
-            if (e.target.closest('.lde-win-btn') || e.target.closest('.lde-win-icon')) return;
+            if (e.target.closest('.gos-win-btn') || e.target.closest('.gos-win-icon')) return;
             this.toggleMaximize(win);
         });
 
@@ -171,26 +171,35 @@ class WindowManager {
         document.body.appendChild(sysMenu);
 
         const body = document.createElement('div');
-        body.className = 'lde-win-body';
+        body.className = 'gos-win-body';
 
-        // Windows 10 UWP Style Splash Screen
-        const splash = document.createElement('div');
-        splash.className = 'lde-splash';
-        // Pick a background color based on app or default
-        const splashColors = {
-            'Command Prompt': '#000000',
-            'File Explorer': '#0078d7',
-            'Notepad': '#222222',
-            'Control Panel': '#1e1e1e',
-            'Editor': '#0000aa'
-        };
-        splash.style.backgroundColor = splashColors[title] || '#0078d7';
-        splash.innerHTML = `
-            <div class="lde-splash-icon">
-                <i class="${getFullIcon(options.icon)}"></i>
-            </div>
-        `;
-        body.appendChild(splash);
+        // Windows 10 UWP Style Splash Screen (if enabled in registry)
+        const showSplash = registry.get('personalization.showSplash', true);
+        if (showSplash) {
+            const splash = document.createElement('div');
+            splash.className = 'gos-splash';
+            // Pick a background color based on app or default
+            const splashColors = {
+                'Command Prompt': '#000000',
+                'File Explorer': '#0078d7',
+                'Notepad': '#222222',
+                'Control Panel': '#1e1e1e',
+                'Editor': '#0000aa'
+            };
+            splash.style.backgroundColor = splashColors[title] || '#0078d7';
+            splash.innerHTML = `
+                <div class="gos-splash-icon">
+                    <i class="${getFullIcon(options.icon)}"></i>
+                </div>
+            `;
+            body.appendChild(splash);
+
+            // Fade out splash after 700ms
+            setTimeout(() => {
+                splash.classList.add('fade-out');
+                setTimeout(() => splash.remove(), 400); // Cleanup after CSS transition
+            }, 700);
+        }
 
         if (typeof content === 'string') {
             const contentDiv = document.createElement('div');
@@ -203,17 +212,11 @@ class WindowManager {
         win.appendChild(header);
         win.appendChild(body);
 
-        // Fade out splash after 700ms
-        setTimeout(() => {
-            splash.classList.add('fade-out');
-            setTimeout(() => splash.remove(), 400); // Cleanup after CSS transition
-        }, 700);
-
         if (!options.noResize) {
             const resizers = ['r', 'b', 'rb'];
             resizers.forEach(r => {
                 const resizer = document.createElement('div');
-                resizer.className = `lde-win-resizer lde-win-resizer-${r}`;
+                resizer.className = `gos-win-resizer gos-win-resizer-${r}`;
                 win.appendChild(resizer);
                 this.makeResizable(win, resizer, r);
             });
@@ -243,7 +246,7 @@ class WindowManager {
         this.updateTaskbar();
 
         // Notify system of window change
-        window.dispatchEvent(new CustomEvent('lde-window-changed'));
+        window.dispatchEvent(new CustomEvent('gos-window-changed'));
 
         // Remove opening class after browser has painted the initial (scaled-down) state
         requestAnimationFrame(() => {
@@ -316,7 +319,7 @@ class WindowManager {
         if (!winObj) return;
 
         const win = winObj.element;
-        const taskItem = document.querySelector(`.lde-taskbar-item[data-win-id="${id}"]`);
+        const taskItem = document.querySelector(`.gos-taskbar-item[data-win-id="${id}"]`);
 
         if (taskItem) {
             const rect = taskItem.getBoundingClientRect();
@@ -386,7 +389,7 @@ class WindowManager {
         win.classList.add('closing');
 
         // Find task item and trigger removal
-        const taskItem = this.taskbar.querySelector(`.lde-taskbar-item[data-win-id="${id}"]`);
+        const taskItem = this.taskbar.querySelector(`.gos-taskbar-item[data-win-id="${id}"]`);
         if (taskItem) {
             taskItem.classList.add('removing');
         }
@@ -401,7 +404,7 @@ class WindowManager {
                 this.windows.splice(finalIndex, 1);
             }
             this.updateTaskbar();
-            window.dispatchEvent(new CustomEvent('lde-window-changed'));
+            window.dispatchEvent(new CustomEvent('gos-window-changed'));
         }, 300);
 
         if (this.activeWindow && this.activeWindow.id === id) {
@@ -422,32 +425,32 @@ class WindowManager {
      */
     messageBox(title, message, options = {}) {
         const container = document.createElement('div');
-        container.className = 'lde-messagebox';
+        container.className = 'gos-messagebox';
 
         const main = document.createElement('div');
-        main.className = 'lde-messagebox-main';
+        main.className = 'gos-messagebox-main';
 
         const icon = document.createElement('div');
-        icon.className = 'lde-messagebox-icon';
+        icon.className = 'gos-messagebox-icon';
         const iconName = options.icon || 'ri-information-line';
         icon.innerHTML = `<i class="${getFullIcon(iconName)}"></i>`;
 
         const text = document.createElement('div');
-        text.className = 'lde-messagebox-text';
+        text.className = 'gos-messagebox-text';
         text.innerHTML = message;
 
         main.append(icon, text);
 
         const buttons = document.createElement('div');
-        buttons.className = 'lde-messagebox-buttons';
+        buttons.className = 'gos-messagebox-buttons';
 
         const createBtn = (lbl, callback, isDefault) => {
             const b = document.createElement('button');
-            b.className = 'lde-msg-btn' + (isDefault ? ' default' : '');
+            b.className = 'gos-msg-btn' + (isDefault ? ' default' : '');
             b.textContent = lbl;
-            b.onclick = () => {
+            b.onclick = (e) => {
                 wm.closeWindow(win.id);
-                if (callback) callback();
+                if (callback) callback(e);
             };
             return b;
         };
@@ -472,12 +475,12 @@ class WindowManager {
             height: 190,
             icon: options.icon || 'ri-information-line'
         });
-        win.element.classList.add('lde-window-messagebox');
+        win.element.classList.add('gos-window-messagebox');
     }
 
     updateTaskbar() {
         // Collect existing task items
-        const currentTaskItems = Array.from(this.taskbar.querySelectorAll('.lde-taskbar-item'));
+        const currentTaskItems = Array.from(this.taskbar.querySelectorAll('.gos-taskbar-item'));
         const existingIds = new Set(this.windows.map(w => w.id));
 
         // Mark items for removal that are not in the current windows list
@@ -490,11 +493,11 @@ class WindowManager {
         });
 
         this.windows.forEach(win => {
-            let task = this.taskbar.querySelector(`.lde-taskbar-item[data-win-id="${win.id}"]`);
+            let task = this.taskbar.querySelector(`.gos-taskbar-item[data-win-id="${win.id}"]`);
 
             if (!task) {
                 task = document.createElement('div');
-                task.className = 'lde-taskbar-item mounting';
+                task.className = 'gos-taskbar-item mounting';
                 task.setAttribute('data-win-id', win.id);
                 task.innerHTML = `
                     <i class="${getFullIcon(win.icon)}"></i>
@@ -532,29 +535,50 @@ class WindowManager {
 
     makeDraggable(win, header) {
         let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        let startX = 0, startY = 0;
+        let isDragging = false;
+        let draggingMaximized = false;
 
         header.onmousedown = (e) => {
             if (e.button !== 0) return; // Left click only for dragging
-            if (e.target.closest('.lde-win-btn') || e.target.closest('.lde-win-icon')) return;
+            if (e.target.closest('.gos-win-btn') || e.target.closest('.gos-win-icon')) return;
 
             e.preventDefault();
+            startX = e.clientX;
+            startY = e.clientY;
+            isDragging = false;
+            draggingMaximized = win.dataset.maximized === 'true';
 
-            if (win.dataset.maximized === 'true') {
-                // Restore but keep under mouse
-                const oldW = parseFloat(win.dataset.oldWidth);
-                const mouseXRatio = e.clientX / window.innerWidth;
-                const newLeft = e.clientX - (oldW * mouseXRatio);
-
-                this.toggleMaximize(win);
-                win.style.left = newLeft + 'px';
-                win.style.top = e.clientY + 'px';
-            }
-
-            win.classList.add('dragging');
             pos3 = e.clientX;
             pos4 = e.clientY;
+
             document.onmousemove = (e) => {
                 e.preventDefault();
+
+                // Threshold check before starting actual drag logic
+                if (!isDragging) {
+                    const dx = e.clientX - startX;
+                    const dy = e.clientY - startY;
+                    if (dx * dx + dy * dy < 25) return; // 5px threshold squared
+
+                    isDragging = true;
+                    if (draggingMaximized) {
+                        // Restore but keep under mouse
+                        const oldW = parseFloat(win.dataset.oldWidth);
+                        const mouseXRatio = e.clientX / window.innerWidth;
+                        const newLeft = e.clientX - (oldW * mouseXRatio);
+
+                        this.toggleMaximize(win);
+                        win.style.left = newLeft + 'px';
+                        win.style.top = e.clientY + 'px';
+
+                        // Recalculate positions after restore
+                        pos3 = e.clientX;
+                        pos4 = e.clientY;
+                    }
+                    win.classList.add('dragging');
+                }
+
                 pos1 = pos3 - e.clientX;
                 pos2 = pos4 - e.clientY;
                 pos3 = e.clientX;
@@ -565,16 +589,20 @@ class WindowManager {
                 // Check for snapping
                 this.updateSnapPreview(e.clientX, e.clientY);
             };
+
             document.onmouseup = () => {
-                win.classList.remove('dragging');
-                this.handleSnap(win, pos3, pos4);
-                this.snapPreview.classList.remove('visible');
+                if (isDragging) {
+                    win.classList.remove('dragging');
+                    this.handleSnap(win, pos3, pos4);
+                    this.snapPreview.classList.remove('visible');
+                }
                 document.onmouseup = null;
                 document.onmousemove = null;
             };
             this.focusWindow(win.id);
         };
     }
+
 
     updateSnapPreview(x, y) {
         const threshold = 10;
@@ -583,6 +611,12 @@ class WindowManager {
         const w = window.innerWidth;
         const h = window.innerHeight;
         const availableH = h - mbarHeight - taskbarHeight;
+
+        const isSnappingEnabled = registry.get('system.windowSnapping', true);
+        if (!isSnappingEnabled) {
+            this.snapPreview.classList.remove('visible');
+            return;
+        }
 
         if (y < mbarHeight + threshold) {
             // Top - Maximize
@@ -613,6 +647,12 @@ class WindowManager {
         const w = window.innerWidth;
         const h = window.innerHeight;
         const availableH = h - mbarHeight - taskbarHeight;
+
+        const isSnappingEnabled = registry.get('system.windowSnapping', true);
+        if (!isSnappingEnabled) {
+            win.classList.remove('no-transition');
+            return;
+        }
 
         win.classList.add('no-transition');
 

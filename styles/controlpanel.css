@@ -1,6 +1,6 @@
 /* ── Control Panel Styles ── */
 
-.lde-cp {
+.gos-cp {
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -8,13 +8,13 @@
     color: #eee;
 }
 
-.lde-cp-body {
+.gos-cp-body {
     flex: 1;
     display: flex;
     overflow: hidden;
 }
 
-.lde-cp-sidebar {
+.gos-cp-sidebar {
     width: 200px;
     background: #252525;
     border-right: 1px solid #333;
@@ -22,7 +22,7 @@
     position: relative;
 }
 
-.lde-cp-sidebar-highlighter {
+.gos-cp-sidebar-highlighter {
     position: absolute;
     left: 0;
     width: 100%;
@@ -33,7 +33,7 @@
     z-index: 0;
 }
 
-.lde-cp-nav-item {
+.gos-cp-nav-item {
     padding: 12px 20px;
     cursor: pointer;
     font-size: 0.9rem;
@@ -48,29 +48,29 @@
     overflow: hidden;
 }
 
-.lde-cp-nav-item:hover {
+.gos-cp-nav-item:hover {
     color: #fff;
     background: rgba(255, 255, 255, 0.05);
     border-color: rgba(255, 255, 255, 0.1);
 }
 
-.lde-cp-nav-item.active {
+.gos-cp-nav-item.active {
     color: #fff;
     background: transparent;
     /* Highlighter handles background */
 }
 
-.lde-cp-nav-item:active {
+.gos-cp-nav-item:active {
     transform: scale(0.98);
 }
 
-.lde-cp-content {
+.gos-cp-content {
     flex: 1;
     padding: 25px;
     overflow-y: auto;
 }
 
-.lde-cp-section-title {
+.gos-cp-section-title {
     font-size: 1.5rem;
     font-weight: 300;
     margin-bottom: 20px;
@@ -78,14 +78,14 @@
 }
 
 /* Personalization / Wallpaper Grid */
-.lde-cp-wallpaper-grid {
+.gos-cp-wallpaper-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 12px;
     margin-top: 20px;
 }
 
-.lde-cp-wallpaper-thumb {
+.gos-cp-wallpaper-thumb {
     aspect-ratio: 16/9;
     background-size: cover;
     background-position: center;
@@ -98,21 +98,37 @@
     opacity: 0;
 }
 
-.lde-cp-wallpaper-thumb.loaded {
+.gos-cp-wallpaper-thumb.loaded {
     opacity: 1;
 }
 
-.lde-cp-wallpaper-thumb:hover {
+.gos-cp-wallpaper-thumb:hover {
     border-color: rgba(255, 255, 255, 0.3);
 }
 
-.lde-cp-wallpaper-thumb.active {
+.gos-cp-wallpaper-thumb.active {
     border: 2px solid var(--accent-color);
     box-shadow: none;
     /* Removed active glow as requested */
 }
 
-.lde-cp-wallpaper-thumb:active {
+.gos-cp-wallpaper-thumb:active {
     transform: scale(0.96) !important;
     /* Force shrink on click */
+}
+
+@keyframes cp-section-in {
+    from {
+        opacity: 0;
+        transform: scale(0.96);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.gos-cp-content.animate-in {
+    animation: cp-section-in 0.35s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
 }

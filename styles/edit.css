@@ -1,5 +1,5 @@
 /* ── MS-DOS Style Editor (EDIT.COM clone) ── */
-.lde-edit {
+.gos-edit {
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -13,7 +13,7 @@
     user-select: none;
 }
 
-.lde-edit-menubar {
+.gos-edit-menubar {
     background-color: #aaaaaa;
     color: #000000;
     display: flex;
@@ -23,19 +23,20 @@
     font-size: 0.9em;
 }
 
-.lde-edit-menu-item {
+.gos-edit-menu-item {
     padding: 0 10px;
     cursor: default;
     position: relative;
 }
 
-.lde-edit-menu-item:hover,
-.lde-edit-menu-item.active {
+.gos-edit-menu-item:hover,
+.gos-edit-menu-item.active,
+.gos-edit-menu-item.kb-focus {
     background-color: #000000;
     color: #aaaaaa;
 }
 
-.lde-edit-dropdown {
+.gos-edit-dropdown {
     position: absolute;
     top: 100%;
     left: 0;
@@ -48,29 +49,30 @@
     border: 1px solid #000;
 }
 
-.lde-edit-menu-item.active .lde-edit-dropdown {
+.gos-edit-menu-item.active .gos-edit-dropdown {
     display: block;
 }
 
-.lde-edit-dropdown-item {
+.gos-edit-dropdown-item {
     padding: 2px 10px;
     display: flex;
     justify-content: space-between;
 }
 
-.lde-edit-dropdown-item:hover {
+.gos-edit-dropdown-item:hover,
+.gos-edit-dropdown-item.kb-focus {
     background-color: #000000;
     color: #aaaaaa;
 }
 
-.lde-edit-editor {
+.gos-edit-editor {
     flex: 1;
     display: flex;
     position: relative;
     overflow: hidden;
 }
 
-.lde-edit-gutter {
+.gos-edit-gutter {
     width: 45px;
     background-color: #aaaaaa;
     color: #0000aa;
@@ -83,14 +85,14 @@
     flex-shrink: 0;
 }
 
-.lde-edit-content-wrapper {
+.gos-edit-content-wrapper {
     flex: 1;
     position: relative;
     overflow: hidden;
     background-color: #0000aa;
 }
 
-.lde-edit-line-highlight {
+.gos-edit-line-highlight {
     position: absolute;
     left: 0;
     right: 0;
@@ -101,7 +103,7 @@
     display: none;
 }
 
-.lde-edit-content {
+.gos-edit-content {
     width: 100%;
     height: 100%;
     background: transparent;
@@ -121,20 +123,20 @@
 }
 
 /* Custom scrollbars for DOS look */
-.lde-edit-content::-webkit-scrollbar {
+.gos-edit-content::-webkit-scrollbar {
     width: 16px;
     height: 16px;
 }
 
-.lde-edit-content::-webkit-scrollbar-track {
+.gos-edit-content::-webkit-scrollbar-track {
     background: #0000aa;
 }
 
-.lde-edit-content::-webkit-scrollbar-thumb {
+.gos-edit-content::-webkit-scrollbar-thumb {
     background: #aaaaaa;
 }
 
-.lde-edit-statusbar {
+.gos-edit-statusbar {
     background-color: #aaaaaa;
     color: #000000;
     height: 1.2em;
@@ -144,7 +146,7 @@
     font-size: 0.85em;
 }
 
-.lde-edit-cursor-pos {
+.gos-edit-cursor-pos {
     display: flex;
     gap: 15px;
 }

@@ -2,7 +2,7 @@
 
 function launchFileManager(startPath) {
     const container = document.createElement('div');
-    container.className = 'lde-fm';
+    container.className = 'gos-fm';
 
     // ── State ─────────────────────────────────────────────────────────────────
     let _cwd = startPath || 'C:\\Users\\User';
@@ -66,11 +66,11 @@ function launchFileManager(startPath) {
 
     // ── Toolbar ───────────────────────────────────────────────────────────────
     const toolbar = document.createElement('div');
-    toolbar.className = 'lde-fm-toolbar';
+    toolbar.className = 'gos-fm-toolbar';
 
     function makeBtn(icon, title, action) {
         const btn = document.createElement('div');
-        btn.className = 'lde-fm-btn';
+        btn.className = 'gos-fm-btn';
         btn.title = title;
         btn.innerHTML = `<i class="bi ${icon}"></i>`;
         btn.addEventListener('click', action);
@@ -89,7 +89,7 @@ function launchFileManager(startPath) {
     };
 
     const addressBar = document.createElement('input');
-    addressBar.className = 'lde-fm-addressbar';
+    addressBar.className = 'gos-fm-addressbar';
     addressBar.type = 'text';
     addressBar.placeholder = 'Search or enter path...';
     addressBar.value = _cwd;
@@ -103,14 +103,10 @@ function launchFileManager(startPath) {
     container.appendChild(toolbar);
 
     function showViewDropdown(x, y) {
-        ldeShowContextMenu(x, y, [
-            { label: 'Extra large icons', icon: 'bi-grid-3x3-gap-fill', action: () => { } },
-            { label: 'Large icons', icon: 'bi-grid-3x3-gap', action: () => { } },
-            { label: 'Medium icons', icon: 'bi-grid', action: () => { } },
-            { label: 'Small icons', icon: 'bi-view-list', action: () => { } },
+        gosShowContextMenu(x, y, [
+            { label: 'Large icons', icon: 'bi-grid-3x3-gap', action: () => { _viewMode = 'large'; renderContent(); } },
             { type: 'sep' },
-            { label: 'List', icon: 'bi-list-ul', action: () => { } },
-            { label: 'Details', icon: 'bi-table', action: () => { } }
+            { label: 'Details', icon: 'bi-table', action: () => { _viewMode = 'details'; renderContent(); } }
         ]);
     }
 
@@ -122,43 +118,133 @@ function launchFileManager(startPath) {
 
     // ── Body ──────────────────────────────────────────────────────────────────
     const body = document.createElement('div');
-    body.className = 'lde-fm-body';
+    body.className = 'gos-fm-body';
 
     const sidebar = document.createElement('div');
-    sidebar.className = 'lde-fm-sidebar';
+    sidebar.className = 'gos-fm-sidebar';
 
-    const QUICK_ACCESS = [
-        { name: 'Desktop', path: 'C:\\Users\\User\\Desktop', icon: 'bi-display' },
-        { name: 'Documents', path: 'C:\\Users\\User\\Documents', icon: 'bi-file-earmark-text' },
-        { name: 'Downloads', path: 'C:\\Users\\User\\Downloads', icon: 'bi-download' },
-        { name: 'Pictures', path: 'C:\\Users\\User\\Pictures', icon: 'bi-image' },
+    const DRIVES = [
         { name: 'Local Disk (C:)', path: 'C:\\', icon: 'bi-hdd' },
     ];
 
-    QUICK_ACCESS.forEach(qa => {
-        const item = document.createElement('div');
-        item.className = 'lde-fm-sidebar-item';
-        item.dataset.path = qa.path;
-        item.innerHTML = `<i class="bi ${qa.icon}"></i><span>${qa.name}</span>`;
-        item.onclick = () => navigate(qa.path);
-        sidebar.appendChild(item);
-    });
-
     function updateSidebar() {
-        sidebar.querySelectorAll('.lde-fm-sidebar-item').forEach(s => {
-            s.classList.toggle('active', s.dataset.path === _cwd);
+        sidebar.innerHTML = '';
+
+        // 1. Quick Access
+        let qaItems = [];
+        try {
+            qaItems = registry.get('Software.GlitterOS.Explorer.QuickAccess');
+            if (!qaItems) {
+                // Default Quick Access
+                qaItems = [
+                    { name: 'Desktop', path: 'C:\\Users\\User\\Desktop', icon: 'bi-display' },
+                    { name: 'Documents', path: 'C:\\Users\\User\\Documents', icon: 'bi-file-earmark-text' },
+                    { name: 'Downloads', path: 'C:\\Users\\User\\Downloads', icon: 'bi-download' },
+                    { name: 'Pictures', path: 'C:\\Users\\User\\Pictures', icon: 'bi-image' },
+                ];
+                registry.set('Software.GlitterOS.Explorer.QuickAccess', qaItems);
+            }
+        } catch (e) { }
+
+        const qaHeader = document.createElement('div');
+        qaHeader.className = 'gos-fm-sidebar-header';
+        qaHeader.innerHTML = 'Quick access';
+        qaHeader.style.cssText = 'padding:8px 12px;font-size:0.7rem;text-transform:uppercase;color:#888;font-weight:600;display:flex;align-items:center;gap:8px;';
+        qaHeader.style.display = qaItems.length === 0 ? 'none' : 'flex';
+
+        const qaContainer = document.createElement('div');
+        qaContainer.style.display = qaItems.length === 0 ? 'none' : 'block';
+
+        qaItems.forEach((qa, idx) => {
+            const item = document.createElement('div');
+            item.className = 'gos-fm-sidebar-item' + (qa.path === _cwd ? ' active' : '');
+            item.dataset.path = qa.path;
+            item.innerHTML = `<i class="bi ${qa.icon || 'bi-folder'}"></i><span>${qa.name}</span>`;
+            item.onclick = () => navigate(qa.path);
+
+            // Allow removing from Quick Access
+            item.oncontextmenu = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                gosShowContextMenu(e.clientX, e.clientY, [
+                    {
+                        label: 'Unpin from Quick access', icon: 'bi-pin-angle', action: () => {
+                            qaItems.splice(idx, 1);
+                            registry.set('Software.GlitterOS.Explorer.QuickAccess', qaItems);
+                            updateSidebar();
+                        }
+                    }
+                ]);
+            };
+            qaContainer.appendChild(item);
+        });
+
+        // Drop handling for Quick Access
+        if (!sidebar.dataset.hasListeners) {
+            sidebar.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                sidebar.querySelector('.gos-fm-sidebar-header').style.display = 'flex';
+                sidebar.querySelector('.gos-fm-sidebar-header').nextSibling.style.display = 'block';
+                sidebar.querySelector('.gos-fm-sidebar-header').style.color = 'var(--accent-color)';
+            });
+            sidebar.addEventListener('dragleave', (e) => {
+                const head = sidebar.querySelector('.gos-fm-sidebar-header');
+                const items = registry.get('Software.GlitterOS.Explorer.QuickAccess') || [];
+                if (items.length === 0) {
+                    head.style.display = 'none';
+                    head.nextSibling.style.display = 'none';
+                }
+                head.style.color = '#888';
+            });
+            sidebar.addEventListener('drop', (e) => {
+                e.preventDefault();
+                const head = sidebar.querySelector('.gos-fm-sidebar-header');
+                head.style.color = '#888';
+                const data = e.dataTransfer.getData('text/plain');
+                if (data) {
+                    const paths = JSON.parse(data);
+                    let currentQA = registry.get('Software.GlitterOS.Explorer.QuickAccess') || [];
+                    paths.forEach(p => {
+                        const stat = fs.stat(p);
+                        if (!currentQA.find(x => x.path === p)) {
+                            currentQA.push({ name: stat.name, path: p, icon: stat.type === 'dir' ? 'bi-folder' : 'bi-file-earmark' });
+                        }
+                    });
+                    registry.set('Software.GlitterOS.Explorer.QuickAccess', currentQA);
+                    updateSidebar();
+                }
+            });
+            sidebar.dataset.hasListeners = 'true';
+        }
+
+        sidebar.append(qaHeader, qaContainer);
+
+        // 2. Drives
+        const driveHeader = document.createElement('div');
+        driveHeader.textContent = 'Drives';
+        driveHeader.style.cssText = 'padding:12px 12px 4px;font-size:0.7rem;text-transform:uppercase;color:#888;font-weight:600;';
+        sidebar.appendChild(driveHeader);
+
+        DRIVES.forEach(drive => {
+            const item = document.createElement('div');
+            item.className = 'gos-fm-sidebar-item' + (drive.path === _cwd ? ' active' : '');
+            item.dataset.path = drive.path;
+            item.innerHTML = `<i class="bi ${drive.icon}"></i><span>${drive.name}</span>`;
+            item.onclick = () => navigate(drive.path);
+            sidebar.appendChild(item);
         });
     }
 
     const content = document.createElement('div');
-    content.className = 'lde-fm-content';
+    content.className = 'gos-fm-content';
     content.style.position = 'relative';
 
+    updateSidebar();
     body.append(sidebar, content);
     container.appendChild(body);
 
     const statusBar = document.createElement('div');
-    statusBar.className = 'lde-fm-statusbar';
+    statusBar.className = 'gos-fm-statusbar';
     container.appendChild(statusBar);
 
     function updateStatus() {
@@ -174,20 +260,16 @@ function launchFileManager(startPath) {
         const items = [];
 
         if (forItems && forItems.length > 0) {
+            items.push({
+                label: forItems.length > 1 ? `Open (${forItems.length})` : 'Open',
+                icon: forItems.length === 1 && fs.stat((_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + forItems[0]).type === 'dir' ? 'bi-folder2-open' : 'bi-eye',
+                action: () => openSelected()
+            });
+
             if (forItems.length === 1) {
-                const name = forItems[0];
-                const path = (_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + name;
-                const isDir = fs.stat(path).type === 'dir';
-                items.push({
-                    label: 'Open',
-                    icon: isDir ? 'bi-folder2-open' : 'bi-eye',
-                    action: () => {
-                        if (isDir) navigate(path);
-                        else SystemExec.run(path);
-                    }
-                });
-                items.push({ label: 'Rename', icon: 'bi-pencil', action: () => startRename(name) });
+                items.push({ label: 'Rename', icon: 'bi-pencil', action: () => startRename(forItems[0]) });
             }
+
             items.push({
                 label: 'Delete',
                 icon: 'bi-trash',
@@ -220,7 +302,7 @@ function launchFileManager(startPath) {
             items.push({ label: 'Refresh', icon: 'bi-arrow-clockwise', action: () => navigate(_cwd, false) });
         }
 
-        ldeShowContextMenu(x, y, items);
+        gosShowContextMenu(x, y, items);
     }
 
     // ── File Operations ──────────────────────────────────────────────────────
@@ -243,7 +325,7 @@ function launchFileManager(startPath) {
     function startRename(name) {
         const el = content.querySelector(`[data-name="${CSS.escape(name)}"]`);
         if (!el) return;
-        const nameEl = el.querySelector('.lde-fm-item-name');
+        const nameEl = el.querySelector('.gos-fm-item-name');
         const input = document.createElement('input');
         input.value = name;
         nameEl.replaceWith(input);
@@ -271,13 +353,89 @@ function launchFileManager(startPath) {
         input.onkeydown = (e) => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') renderContent(); };
     }
 
+    function getIconForFile(name, type) {
+        if (type === 'dir') return 'bi-folder-fill';
+        const ext = name.split('.').pop().toLowerCase();
+        if (['mp3', 'wav', 'ogg', 'm4a', 'flac'].includes(ext)) return 'bi-file-earmark-music';
+        if (['mp4', 'mkv', 'avi', 'mov', 'webm'].includes(ext)) return 'bi-file-earmark-play';
+        if (['txt', 'md', 'log', 'ini', 'inf'].includes(ext)) return 'bi-file-earmark-text';
+        if (['js', 'py', 'c', 'cpp', 'css', 'html', 'json', 'exe'].includes(ext)) return 'bi-file-earmark-code text-info';
+        if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'bmp'].includes(ext)) return 'bi-file-earmark-image';
+        return 'bi-file-earmark';
+    }
+
+    function openSelected() {
+        if (_selected.length === 0) return;
+        const res = fs.ls(_cwd);
+        const entries = res.entries.filter(e => _selected.includes(e.name));
+
+        if (entries.length === 1 && entries[0].type === 'dir') {
+            const p = (_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + entries[0].name;
+            navigate(p);
+            return;
+        }
+
+        entries.forEach(entry => {
+            const p = (_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + entry.name;
+            if (entry.type === 'dir') {
+                launchFileManager(p);
+            } else {
+                SystemExec.run(p);
+            }
+        });
+    }
+
+    // Capture keyboard navigation
+    container.tabIndex = 0;
+    container.style.outline = 'none';
+    container.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT') return;
+
+        const res = fs.ls(_cwd);
+        const sorted = [...res.entries].sort((a, b) => (a.type === b.type) ? a.name.localeCompare(b.name) : (a.type === 'dir' ? -1 : 1));
+
+        if (e.ctrlKey && e.key === 'a') {
+            e.preventDefault();
+            _selected = sorted.map(s => s.name);
+            updateSelectionUI();
+        } else if (e.key === 'Enter') {
+            openSelected();
+        } else if (e.key === 'Backspace') {
+            navigateUp();
+        } else if (e.key.startsWith('Arrow')) {
+            e.preventDefault();
+            let nextIdx = 0;
+            if (_selected.length > 0) {
+                const lastIdx = sorted.findIndex(s => s.name === _selected[_selected.length - 1]);
+                if (e.key === 'ArrowDown' || e.key === 'ArrowRight') nextIdx = Math.min(sorted.length - 1, lastIdx + 1);
+                else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') nextIdx = Math.max(0, lastIdx - 1);
+            }
+
+            if (e.shiftKey) {
+                const lastIdx = _lastClicked !== null ? _lastClicked : 0;
+                const start = Math.min(lastIdx, nextIdx);
+                const end = Math.max(lastIdx, nextIdx);
+                _selected = sorted.slice(start, end + 1).map(s => s.name);
+            } else {
+                _selected = [sorted[nextIdx].name];
+                _lastClicked = nextIdx;
+            }
+            updateSelectionUI();
+
+            // Scroll into view if possible
+            const targetEl = content.querySelector(`[data-name="${CSS.escape(sorted[nextIdx].name)}"]`) ||
+                _tableWidget?.element.querySelector(`tr:nth-child(${nextIdx + 1})`);
+            targetEl?.scrollIntoView({ block: 'nearest' });
+        }
+    });
+
     // ── Selection Rectangle Logic ─────────────────────────────────────────────
     let isSelecting = false;
     let startX, startY;
     let selectionRect = null;
 
     content.addEventListener('mousedown', (e) => {
-        if (e.target !== content) return;
+        if (e.target !== content && !e.target.classList.contains('gos-fm-icons-view')) return;
         if (e.button !== 0) return; // Left click only
 
         isSelecting = true;
@@ -303,15 +461,21 @@ function launchFileManager(startPath) {
             // Only create rect after some movement
             if (!selectionRect && (Math.abs(currentX - startX) > 2 || Math.abs(currentY - startY) > 2)) {
                 selectionRect = document.createElement('div');
-                selectionRect.className = 'lde-fm-selection-rect';
+                selectionRect.className = 'gos-fm-selection-rect';
                 content.appendChild(selectionRect);
             }
 
             if (selectionRect) {
-                const left = Math.min(startX, currentX);
-                const top = Math.min(startY, currentY);
-                const width = Math.abs(startX - currentX);
-                const height = Math.abs(startY - currentY);
+                let left = Math.min(startX, currentX);
+                let top = Math.min(startY, currentY);
+                let width = Math.abs(startX - currentX);
+                let height = Math.abs(startY - currentY);
+
+                // Vertical only for details view
+                if (_viewMode === 'details') {
+                    left = 0;
+                    width = content.clientWidth;
+                }
 
                 selectionRect.style.left = left + 'px';
                 selectionRect.style.top = top + 'px';
@@ -321,7 +485,7 @@ function launchFileManager(startPath) {
                 // Check intersection with items
                 const selBounds = { left, top, right: left + width, bottom: top + height };
                 const newSelection = [];
-                content.querySelectorAll('.lde-fm-item').forEach(item => {
+                content.querySelectorAll('.gos-fm-item').forEach(item => {
                     const itemRect = {
                         left: item.offsetLeft,
                         top: item.offsetTop,
@@ -354,15 +518,22 @@ function launchFileManager(startPath) {
     });
 
     function updateSelectionUI() {
-        content.querySelectorAll('.lde-fm-item').forEach(el => {
+        content.querySelectorAll('.gos-fm-item').forEach(el => {
             el.classList.toggle('selected', _selected.includes(el.dataset.name));
         });
+        if (_tableWidget) {
+            _tableWidget.setSelectedIds(_selected);
+        }
         updateStatus();
     }
 
     // ── Rendering ────────────────────────────────────────────────────────────
+    let _viewMode = 'large';
+    let _tableWidget = null;
+
     function renderContent() {
         content.innerHTML = '';
+        _tableWidget = null;
         updateSidebar();
         const res = fs.ls(_cwd);
         if (res.error) {
@@ -372,59 +543,143 @@ function launchFileManager(startPath) {
 
         const sorted = [...res.entries].sort((a, b) => (a.type === b.type) ? a.name.localeCompare(b.name) : (a.type === 'dir' ? -1 : 1));
 
-        sorted.forEach((entry, idx) => {
-            const item = document.createElement('div');
-            item.className = 'lde-fm-item';
-            item.dataset.name = entry.name;
-            item.dataset.idx = idx;
-            const isDir = entry.type === 'dir';
-            item.innerHTML = `
-				<div class="lde-fm-item-icon ${isDir ? 'dir' : 'file'}">
-					<i class="bi ${isDir ? 'bi-folder-fill' : 'bi-file-earmark'}"></i>
-				</div>
-				<div class="lde-fm-item-name">${entry.name}</div>
-			`;
-
-            item.onclick = (e) => {
-                e.stopPropagation();
-                if (e.ctrlKey || e.metaKey) {
-                    if (_selected.includes(entry.name)) _selected = _selected.filter(n => n !== entry.name);
-                    else _selected.push(entry.name);
-                } else if (e.shiftKey && _lastClicked !== null) {
-                    const start = Math.min(_lastClicked, idx);
-                    const end = Math.max(_lastClicked, idx);
-                    _selected = sorted.slice(start, end + 1).map(s => s.name);
-                } else {
-                    _selected = [entry.name];
+        if (_viewMode === 'details') {
+            const cols = [
+                {
+                    id: 'name', label: 'Name', width: '50%',
+                    render: (val, row) => `<i class="bi ${getIconForFile(val, row.origType)} mr-2" style="${row.origType === 'dir' ? 'color:#f0c330;' : ''}"></i> ${truncateFilename(val, 40)}`
+                },
+                { id: 'type', label: 'Type', width: '20%' },
+                {
+                    id: 'size', label: 'Size', width: '30%',
+                    sortValue: row => row._sizeBytes || 0,
+                    render: (val, row) => row.type === 'dir' ? '' : `${val} bytes`
                 }
-                _lastClicked = idx;
-                updateSelectionUI();
-            };
+            ];
 
-            item.ondblclick = () => {
-                const path = (_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + entry.name;
-                if (isDir) navigate(path);
-                else {
-                    SystemExec.run(path);
+            const data = sorted.map(e => ({
+                id: e.name,
+                name: e.name,
+                type: e.type === 'dir' ? 'File folder' : 'File',
+                size: e.size !== 'N/A' ? (e.size || 0).toLocaleString() : '',
+                _sizeBytes: e.size !== 'N/A' ? (e.size || 0) : 0,
+                origType: e.type
+            }));
+
+            _tableWidget = Widgets.createTable({
+                columns: cols,
+                data: data,
+                keyField: 'id',
+                onSelectionChange: (selectedIds) => {
+                    _selected = selectedIds;
+                    updateSelectionUI();
+                },
+                onAction: (id, row) => {
+                    openSelected();
                 }
-            };
+            });
 
-            item.oncontextmenu = (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (!_selected.includes(entry.name)) {
-                    _selected = [entry.name];
+            // Context menu hook for table view
+            _tableWidget.element.querySelectorAll('table tbody tr').forEach((tr, idx) => {
+                tr.draggable = true;
+                tr.ondragstart = (e) => {
+                    const entryName = data[idx].name;
+                    const paths = _selected.includes(entryName) ? _selected : [entryName];
+                    const fullPaths = paths.map(n => (_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + n);
+                    e.dataTransfer.setData('text/plain', JSON.stringify(fullPaths));
+                    e.dataTransfer.effectAllowed = 'copyMove';
+                };
+                tr.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const entryName = data[idx].name;
+                    if (!_selected.includes(entryName)) {
+                        _selected = [entryName];
+                        _tableWidget.updateData(data); // hack to re-render selection visually
+                    }
+                    showCtxMenu(e.clientX, e.clientY, _selected);
+                });
+            });
+
+            content.appendChild(_tableWidget.element);
+
+            // Set initial selection
+            if (_selected.length > 0) {
+                _tableWidget.updateData(data);
+            }
+        }
+        else {
+            // Icon View
+            const iconContainer = document.createElement('div');
+            iconContainer.className = 'gos-fm-icons-view';
+            content.appendChild(iconContainer);
+
+            sorted.forEach((entry, idx) => {
+                const item = document.createElement('div');
+                item.className = 'gos-fm-item';
+                item.dataset.name = entry.name;
+                item.dataset.idx = idx;
+                item.draggable = true;
+                item.ondragstart = (e) => {
+                    const paths = _selected.length > 0 ? _selected : [entry.name];
+                    const fullPaths = paths.map(n => (_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + n);
+                    e.dataTransfer.setData('text/plain', JSON.stringify(fullPaths));
+                    e.dataTransfer.effectAllowed = 'copyMove';
+                };
+                const isDir = entry.type === 'dir';
+                item.innerHTML = `
+                    <div class="gos-fm-item-icon ${isDir ? 'dir' : 'file'}" style="${isDir ? 'color:#f0c330;' : ''}">
+                        <i class="bi ${getIconForFile(entry.name, entry.type)}"></i>
+                    </div>
+                    <div class="gos-fm-item-name" title="${entry.name}">${truncateFilename(entry.name, 24)}</div>
+                    ${!isDir ? `<div class="gos-fm-item-size text-secondary" style="font-size: 0.7rem; text-align: center;">${(entry.size || 0).toLocaleString()} bytes</div>` : ''}
+                `;
+
+                item.onclick = (e) => {
+                    e.stopPropagation();
+                    if (e.ctrlKey || e.metaKey) {
+                        if (_selected.includes(entry.name)) _selected = _selected.filter(n => n !== entry.name);
+                        else _selected.push(entry.name);
+                    } else if (e.shiftKey && _lastClicked !== null) {
+                        const start = Math.min(_lastClicked, idx);
+                        const end = Math.max(_lastClicked, idx);
+                        _selected = sorted.slice(start, end + 1).map(s => s.name);
+                    } else {
+                        _selected = [entry.name];
+                    }
                     _lastClicked = idx;
                     updateSelectionUI();
-                }
-                showCtxMenu(e.clientX, e.clientY, _selected);
-            };
+                };
 
-            content.appendChild(item);
-        });
+                item.ondblclick = () => {
+                    openSelected();
+                };
+
+                item.oncontextmenu = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!_selected.includes(entry.name)) {
+                        _selected = [entry.name];
+                        _lastClicked = idx;
+                        updateSelectionUI();
+                    }
+                    showCtxMenu(e.clientX, e.clientY, _selected);
+                };
+
+                iconContainer.appendChild(item);
+            });
+
+            iconContainer.onmousedown = (e) => {
+                if (e.target === iconContainer) {
+                    _selected = [];
+                    _lastClicked = null;
+                    updateSelectionUI();
+                }
+            };
+        }
 
         if (sorted.length === 0) {
-            content.innerHTML = `<div class="w-100 h-100 d-flex align-items-center justify-content-center text-secondary">No items.</div>`;
+            content.innerHTML = `<div class="w-100 h-100 d-flex align-items-center justify-content-center text-secondary">This folder is empty.</div>`;
         }
 
         updateSelectionUI();

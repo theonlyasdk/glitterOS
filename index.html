@@ -50,15 +50,17 @@
 	<link rel="stylesheet" href="styles/edit.css">
 	<link rel="stylesheet" href="styles/taskmanager.css">
 	<link rel="stylesheet" href="styles/regedit.css">
+	<link rel="stylesheet" href="styles/assistant.css">
+	<link rel="stylesheet" href="styles/lockscreen.css">
 	<link rel="stylesheet" href="styles/styles.css">
 </head>
 
 <body data-bs-theme="dark">
 	<div id="app" class="font-roboto">
-		<div id="menubar" class="lde-mbar">
-			<div class="lde-mbar-left">
+		<div id="menubar" class="gos-mbar">
+			<div class="gos-mbar-left">
 				<div class="dropdown">
-					<button class="lde-mbar-item" type="button" data-bs-toggle="dropdown" aria-expanded="false"
+					<button class="gos-mbar-item" type="button" data-bs-toggle="dropdown" aria-expanded="false"
 						title="System Menu">
 						<b><i class="bi-balloon-fill"></i></b>
 					</button>
@@ -68,36 +70,28 @@
 							<hr class="dropdown-divider">
 						</li>
 						<li><a class="dropdown-item" href="#" onclick="launchControlPanel()">Control Panel</a></li>
-						<li><a class="dropdown-item" href="#">Force Quit Desktop</a></li>
 						<li>
 							<hr class="dropdown-divider">
 						</li>
+						<li><a class="dropdown-item" href="#" onclick="systemSleep()">Sleep</a></li>
+						<li><a class="dropdown-item" href="#" onclick="lockScreen()">Lock</a></li>
 						<li><a class="dropdown-item" href="#"
 								onclick="wm.messageBox('Restart', 'Are you sure you want to restart glitterOS?', { buttons: 'yesno', icon: 'bi-arrow-clockwise', onYes: () => location.reload() })">Restart</a>
 						</li>
 						<li><a class="dropdown-item" href="#"
-								onclick="wm.messageBox('Shut Down', 'Are you sure you want to shut down glitterOS?', { buttons: 'yesno', icon: 'bi-power', onYes: () => { document.body.style.transition = 'opacity 2s'; document.body.style.opacity = '0'; setTimeout(() => location.reload(), 2500); } })">Power
+								onclick="wm.messageBox('Shut Down', 'Are you sure you want to shut down glitterOS?', { buttons: 'yesno', icon: 'bi-power', onYes: (e) => { if (e && e.ctrlKey) { kaboom(); } else { document.body.style.transition = 'opacity 2s'; document.body.style.opacity = '0'; setTimeout(() => location.reload(), 2500); } } })">Power
 								off...</a></li>
-						<li>
-							<hr class="dropdown-divider">
-						</li>
-						<li onclick="kaboom(this)"><a class="dropdown-item" href="#">Kaboom</a></li>
-						<li>
-							<hr class="dropdown-divider">
-						</li>
-						<li><a class="dropdown-item" href="#">Lock Screen</a></li>
-						<li><a class="dropdown-item" href="#">Log Out</a></li>
 					</ul>
 				</div>
-				<div class="lde-mbar-item">
+				<div class="gos-mbar-item">
 					<b id="desktop-name">Desktop</b>
 				</div>
 			</div>
-			<div class="lde-mbar-right">
+			<div class="gos-mbar-right">
 				<div class="dropdown">
-					<button class="lde-mbar-item" type="button" title="Calendar" data-bs-toggle="dropdown"
+					<button class="gos-mbar-item" type="button" title="Calendar" data-bs-toggle="dropdown"
 						aria-expanded="false">
-						<b id="lde-mbar-applet-date">Calendar</b>
+						<b id="gos-mbar-applet-date">Calendar</b>
 					</button>
 					<div class="dropdown-menu p-2" style="min-width: 250px;">
 						<div id="calendar-container"></div>
@@ -105,9 +99,9 @@
 				</div>
 
 				<div class="dropdown">
-					<button class="lde-mbar-item" type="button" title="Clock" data-bs-toggle="dropdown"
+					<button class="gos-mbar-item" type="button" title="Clock" data-bs-toggle="dropdown"
 						aria-expanded="false">
-						<b id="lde-mbar-applet-time">Clock</b>
+						<b id="gos-mbar-applet-time">Clock</b>
 					</button>
 					<div class="dropdown-menu p-3" style="min-width: 200px;">
 						<div class="clock-container">
@@ -126,7 +120,7 @@
 						</div>
 					</div>
 				</div>
-				<button class="lde-mbar-item" id="action-centre-btn" onclick="toggleActionCentre()"
+				<button class="gos-mbar-item" id="action-centre-btn" onclick="toggleActionCentre()"
 					title="Action Centre">
 					<i class="ri-side-bar-line"></i>
 				</button>
@@ -134,47 +128,61 @@
 		</div>
 		<div id="action-centre-overlay" onclick="closeActionCentre()"
 			style="display:none;position:fixed;inset:0;z-index:2999;"></div>
-		<div id="action-centre" class="lde-action-centre">
-			<div class="lde-ac-header">
+		<div id="action-centre" class="gos-action-centre">
+			<div class="gos-ac-header">
 				<span>Action Centre</span>
-				<span id="ac-date-label" class="lde-ac-date"></span>
+				<span id="ac-date-label" class="gos-ac-date"></span>
 			</div>
-			<div class="lde-ac-tiles">
-				<div class="lde-ac-tile active"><i class="ri-wifi-line"></i><span>Wi-Fi</span></div>
-				<div class="lde-ac-tile active"><i class="ri-bluetooth-line"></i><span>Bluetooth</span></div>
-				<div class="lde-ac-tile"><i class="ri-plane-line"></i><span>Airplane</span></div>
-				<div class="lde-ac-tile active"><i class="ri-moon-clear-line"></i><span>Night Mode</span></div>
-				<div class="lde-ac-tile"><i class="ri-battery-2-charge-line"></i><span>Battery Saver</span></div>
-				<div class="lde-ac-tile active"><i class="ri-sun-line"></i><span>Brightness</span></div>
+			<div class="gos-ac-tiles">
+				<div class="gos-ac-tile active"><i class="ri-wifi-line"></i><span>Wi-Fi</span></div>
+				<div class="gos-ac-tile active"><i class="ri-bluetooth-line"></i><span>Bluetooth</span></div>
+				<div class="gos-ac-tile"><i class="ri-plane-line"></i><span>Airplane</span></div>
+				<div class="gos-ac-tile active"><i class="ri-moon-clear-line"></i><span>Night Mode</span></div>
+				<div class="gos-ac-tile" id="ac-battery-saver"><i class="ri-battery-2-charge-line"></i><span>Battery
+						Saver</span></div>
+				<div class="gos-ac-tile active"><i class="ri-sun-line"></i><span>Brightness</span></div>
 			</div>
-			<div class="lde-ac-sliders">
-				<div class="lde-ac-slider-row">
-					<div class="lde-ac-icon-tile" id="ac-vol-btn" data-muted="false" title="Mute/Unmute">
+			<div class="gos-ac-sliders">
+				<div class="gos-ac-slider-row">
+					<div class="gos-ac-icon-tile" id="ac-vol-btn" data-muted="false" title="Mute/Unmute">
 						<i class="ri-volume-up-line"></i>
 					</div>
-					<input type="range" class="lde-ac-slider" id="ac-vol-slider" value="75">
+					<input type="range" class="gos-ac-slider" id="ac-vol-slider" value="75">
 				</div>
-				<div class="lde-ac-slider-row">
-					<div class="lde-ac-icon-tile" id="ac-bright-btn" data-toggled="false" title="Toggle Brightness">
+				<div class="gos-ac-slider-row">
+					<div class="gos-ac-icon-tile" id="ac-bright-btn" data-toggled="false" title="Toggle Brightness">
 						<i class="ri-sun-line"></i>
 					</div>
-					<input type="range" class="lde-ac-slider" id="ac-bright-slider" value="100">
+					<input type="range" class="gos-ac-slider" id="ac-bright-slider" value="100">
 				</div>
 			</div>
 		</div>
-		<div id="search-panel" class="lde-search-panel" aria-hidden="true">
-			<div class="lde-app-list-header">Apps</div>
-			<div id="app-list" class="lde-app-list"></div>
-			<div class="lde-search-box-wrap">
-				<i class="ri-search-line lde-search-icon"></i>
-				<input type="text" id="search-input" class="lde-search-input" placeholder="Type here to search"
+
+		<div id="lock-screen" class="gos-lock-screen">
+			<div class="gos-lock-content">
+				<div class="gos-lock-clock">
+					<div id="lock-time" class="time">12:00</div>
+					<div id="lock-date" class="date">Wednesday, February 24</div>
+				</div>
+				<div class="gos-lock-hint">
+					<i class="bi bi-chevron-up"></i>
+					<span>Press any key or swipe up to unlock</span>
+				</div>
+			</div>
+		</div>
+		<div id="search-panel" class="gos-search-panel" aria-hidden="true">
+			<div class="gos-app-list-header">Apps</div>
+			<div id="app-list" class="gos-app-list"></div>
+			<div class="gos-search-box-wrap">
+				<i class="ri-search-line gos-search-icon"></i>
+				<input type="text" id="search-input" class="gos-search-input" placeholder="Type here to search"
 					autocomplete="off" spellcheck="false">
 			</div>
 		</div>
-		<div id="search-overlay" class="lde-search-overlay"></div>
-		<div id="desktop" class="lde-desktop"></div>
-		<div id="taskbar" class="lde-taskbar">
-			<div id="search-btn" class="lde-taskbar-search-btn" title="Search" onclick="toggleSearch()">
+		<div id="search-overlay" class="gos-search-overlay"></div>
+		<div id="desktop" class="gos-desktop"></div>
+		<div id="taskbar" class="gos-taskbar">
+			<div id="search-btn" class="gos-taskbar-search-btn" title="Search" onclick="toggleSearch()">
 				<i class="ri-search-line"></i>
 			</div>
 		</div>
@@ -188,6 +196,8 @@
 <script src="core/lib.js"></script>
 <script src="core/wm.js"></script>
 <!-- LDE modules (order: globals → applets → menubar → action-centre → fs → apps → search → boot) -->
+<script src="core/registry.js"></script>
+<script src="core/widgets.js"></script>
 <script src="core/globals.js"></script>
 <script src="core/applets.js"></script>
 <script src="core/menubar.js"></script>
@@ -202,8 +212,10 @@
 <script src="core/apps/controlpanel.js"></script>
 <script src="core/apps/taskmanager.js"></script>
 <script src="core/apps/regedit.js"></script>
+<script src="core/apps/assistant.js"></script>
 <script src="core/search.js"></script>
 <script src="core/switcher.js"></script>
+<script src="core/lockscreen.js"></script>
 <script src="core/boot.js"></script>
 <script>
 	if ('serviceWorker' in navigator && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {

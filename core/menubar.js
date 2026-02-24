@@ -1,8 +1,8 @@
 // ── Menubar hover navigation & desktop selection ─────────────────────────────
 
-function ldeInitMenubar() {
+function gosInitMenubar() {
     let menuActive = false;
-    const mbarItems = Array.from(document.querySelectorAll('.lde-mbar-item'))
+    const mbarItems = Array.from(document.querySelectorAll('.gos-mbar-item'))
         .filter(el => el.dataset.bsToggle === 'dropdown');
 
     mbarItems.forEach(item => {
@@ -24,7 +24,7 @@ function ldeInitMenubar() {
             if (menuActive) {
                 const activeDropdown = document.querySelector('.dropdown-menu.show');
                 if (activeDropdown && activeDropdown.parentElement !== item.parentElement) {
-                    const activeBtn = activeDropdown.parentElement.querySelector('.lde-mbar-item');
+                    const activeBtn = activeDropdown.parentElement.querySelector('.gos-mbar-item');
                     if (activeBtn) bootstrap.Dropdown.getInstance(activeBtn).hide();
                     dropdown.show();
                 }
@@ -36,14 +36,14 @@ function ldeInitMenubar() {
         item.addEventListener('click', () => {
             const activeDropdown = document.querySelector('.dropdown-menu.show');
             if (activeDropdown) {
-                const activeBtn = activeDropdown.parentElement.querySelector('.lde-mbar-item');
+                const activeBtn = activeDropdown.parentElement.querySelector('.gos-mbar-item');
                 if (activeBtn) bootstrap.Dropdown.getInstance(activeBtn).hide();
             }
         });
     });
 }
 
-function ldeInitDesktopSelection() {
+function gosInitDesktopSelection() {
     let selectionRect = null;
     let startX, startY;
     let isDragging = false;
@@ -64,7 +64,7 @@ function ldeInitDesktopSelection() {
 
             if (!selectionRect && (Math.abs(currentX - startX) > 2 || Math.abs(currentY - startY) > 2)) {
                 selectionRect = document.createElement('div');
-                selectionRect.className = 'lde-selection-rect';
+                selectionRect.className = 'gos-selection-rect';
                 selectionRect.style.cssText = `left:${startX}px;top:${startY}px;width:0;height:0`;
                 desktop.appendChild(selectionRect);
             }

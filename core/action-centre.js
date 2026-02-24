@@ -14,25 +14,25 @@ function openActionCentre() {
     });
     _acOverlay.style.display = 'block';
     _ac.classList.add('open');
-    document.getElementById('action-centre-btn').classList.add('lde-mbar-item-highlight');
+    document.getElementById('action-centre-btn').classList.add('gos-mbar-item-highlight');
 }
 
 function closeActionCentre() {
     _ac.classList.remove('open');
     _acOverlay.style.display = 'none';
-    document.getElementById('action-centre-btn').classList.remove('lde-mbar-item-highlight');
+    document.getElementById('action-centre-btn').classList.remove('gos-mbar-item-highlight');
 }
 
 // ── Tiles: live-tracking tilt + spotlight glow ────────────────────────────────
-_ac.querySelectorAll('.lde-ac-tile').forEach(tile => {
-    registerTileEffect(tile);
+_ac.querySelectorAll('.gos-ac-tile').forEach(tile => {
+    Widgets.registerTileEffect(tile);
     tile.addEventListener('click', () => tile.classList.toggle('active'));
 });
 
 // ── Icon tile buttons: live tilt + glow ──────────────────────────────────
-_ac.querySelectorAll('.lde-ac-icon-tile').forEach(btn => {
+_ac.querySelectorAll('.gos-ac-icon-tile').forEach(btn => {
     // Only tilt and glow for sliders, no ripple usually (but registerTileEffect handles it)
-    registerTileEffect(btn, { tilt: true, ripple: false, glow: true, liveTilt: true });
+    Widgets.registerTileEffect(btn, { tilt: true, ripple: false, glow: true, liveTilt: true });
 });
 
 // ── Slider fill sync ──────────────────────────────────────────────────────────
@@ -43,7 +43,7 @@ function updateSliderFill(slider) {
     slider.style.setProperty('--slider-fill', pct + '%');
 }
 
-document.querySelectorAll('.lde-ac-slider').forEach(slider => {
+document.querySelectorAll('.gos-ac-slider').forEach(slider => {
     updateSliderFill(slider);
     slider.addEventListener('input', () => updateSliderFill(slider));
 });
@@ -53,18 +53,30 @@ const _volBtn = document.getElementById('ac-vol-btn');
 const _volSlider = document.getElementById('ac-vol-slider');
 let _volLastValue = _volSlider.value;
 
+function syncVolUI() {
+    const val = parseInt(_volSlider.value);
+    if (val === 0) {
+        _volBtn.querySelector('i').className = 'ri-volume-mute-line';
+        _volBtn.classList.add('active');
+    } else {
+        _volBtn.querySelector('i').className = 'ri-volume-up-line';
+        _volBtn.classList.remove('active');
+    }
+}
+
 _volBtn.addEventListener('click', () => {
     if (_volSlider.value > 0) {
         _volLastValue = _volSlider.value;
         _volSlider.value = 0;
-        _volBtn.querySelector('i').className = 'bi bi-volume-mute-fill';
-        _volBtn.classList.add('active');
     } else {
-        _volSlider.value = _volLastValue;
-        _volBtn.querySelector('i').className = 'bi bi-volume-up-fill';
-        _volBtn.classList.remove('active');
+        _volSlider.value = _volLastValue || 75;
     }
+    syncVolUI();
     updateSliderFill(_volSlider);
+});
+
+_volSlider.addEventListener('input', () => {
+    syncVolUI();
 });
 
 // ── Brightness toggle ─────────────────────────────────────────────────────────
@@ -72,14 +84,26 @@ const _brightBtn = document.getElementById('ac-bright-btn');
 const _brightSlider = document.getElementById('ac-bright-slider');
 let _brightLastValue = _brightSlider.value;
 
+function syncBrightUI() {
+    const val = parseInt(_brightSlider.value);
+    if (val === 0) {
+        _brightBtn.classList.add('active');
+    } else {
+        _brightBtn.classList.remove('active');
+    }
+}
+
 _brightBtn.addEventListener('click', () => {
     if (_brightSlider.value > 0) {
         _brightLastValue = _brightSlider.value;
         _brightSlider.value = 0;
-        _brightBtn.classList.add('active');
     } else {
-        _brightSlider.value = _brightLastValue;
-        _brightBtn.classList.remove('active');
+        _brightSlider.value = _brightLastValue || 100;
     }
+    syncBrightUI();
     updateSliderFill(_brightSlider);
+});
+
+_brightSlider.addEventListener('input', () => {
+    syncBrightUI();
 });

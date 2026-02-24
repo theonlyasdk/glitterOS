@@ -1,4 +1,4 @@
-.lde-dock {
+.gos-dock {
 	background-color: #1a1a1ae6;
 	position: absolute;
 	bottom: 0;
@@ -19,7 +19,7 @@
 	z-index: 2000;
 }
 
-.lde-dock-icon {
+.gos-dock-icon {
 	color: white;
 	min-width: 40px;
 	max-width: 160px;
@@ -35,7 +35,7 @@
 	opacity: 1;
 }
 
-.lde-dock-icon.mounting {
+.gos-dock-icon.mounting {
 	opacity: 0;
 	max-width: 0;
 	min-width: 0;
@@ -43,7 +43,7 @@
 	overflow: hidden;
 }
 
-.lde-dock-icon.removing {
+.gos-dock-icon.removing {
 	opacity: 0;
 	max-width: 0;
 	min-width: 0;
@@ -53,7 +53,7 @@
 }
 
 /* Background Highlight Slide */
-.lde-dock-icon::before {
+.gos-dock-icon::before {
 	content: '';
 	position: absolute;
 	bottom: 0;
@@ -66,17 +66,17 @@
 	z-index: 0;
 }
 
-.lde-dock-icon:hover::before,
-.lde-dock-icon.active::before {
+.gos-dock-icon:hover::before,
+.gos-dock-icon.active::before {
 	transform: translateY(0);
 }
 
-.lde-dock-icon.active::before {
+.gos-dock-icon.active::before {
 	background-color: rgba(255, 255, 255, 0.15);
 }
 
 /* Bottom Multi-state Indicator */
-.lde-dock-icon::after {
+.gos-dock-icon::after {
 	content: '';
 	position: absolute;
 	bottom: 0;
@@ -89,24 +89,24 @@
 	z-index: 1;
 }
 
-.lde-dock-icon.active::after {
+.gos-dock-icon.active::after {
 	width: 100%;
 	background-color: var(--accent-color);
 }
 
-.lde-dock-icon .bi,
-.lde-dock-icon span {
+.gos-dock-icon .bi,
+.gos-dock-icon span {
 	position: relative;
 	z-index: 2;
 }
 
-.lde-dock-icon .bi {
+.gos-dock-icon .bi {
 	font-size: 1.2rem;
 	margin-right: 8px;
 	flex-shrink: 0;
 }
 
-.lde-dock-icon span {
+.gos-dock-icon span {
 	font-size: 0.8rem;
 	white-space: nowrap;
 	overflow: hidden;
@@ -114,6 +114,6 @@
 	user-select: none;
 }
 
-.lde-dock-icon-caption {
+.gos-dock-icon-caption {
 	display: none;
 }

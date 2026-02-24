@@ -39,25 +39,17 @@ function refreshSearchAppList() {
 
     apps.forEach(app => {
         const item = document.createElement('div');
-        item.className = 'lde-app-item';
+        item.className = 'gos-app-item';
         item.dataset.name = app.name.toLowerCase();
         item.innerHTML = `
-		<div class="lde-app-item-icon">
+		<div class="gos-app-item-icon">
 			<i class="${app.icon}"></i>
 		</div>
-		<span class="lde-app-item-name">${app.name}</span>
+		<span class="gos-app-item-name">${app.name}</span>
 	`;
 
-        // Spotlight glow
-        item.addEventListener('mousemove', (e) => {
-            const r = item.getBoundingClientRect();
-            item.style.setProperty('--glow-x', (e.clientX - r.left) + 'px');
-            item.style.setProperty('--glow-y', (e.clientY - r.top) + 'px');
-        });
-        // Tilt press
-        item.addEventListener('mousedown', (e) => applyTiltPress(item, e));
-        item.addEventListener('mouseup', () => resetTilt(item));
-        item.addEventListener('mouseleave', () => resetTilt(item));
+        // Interaction effects
+        Widgets.registerTileEffect(item);
 
         item.addEventListener('click', () => {
             closeSearch();
@@ -72,7 +64,7 @@ function refreshSearchAppList() {
     });
 
     const noResults = document.createElement('div');
-    noResults.className = 'lde-search-no-results';
+    noResults.className = 'gos-search-no-results';
     noResults.textContent = 'No results found';
     _appList.appendChild(noResults);
 }
@@ -83,18 +75,18 @@ refreshSearchAppList();
 let _focusedItem = null;
 
 function setFocusedItem(item) {
-    if (_focusedItem) _focusedItem.classList.remove('lde-app-item-focused');
+    if (_focusedItem) _focusedItem.classList.remove('gos-app-item-focused');
     _focusedItem = item;
     if (_focusedItem) {
-        _focusedItem.classList.add('lde-app-item-focused');
+        _focusedItem.classList.add('gos-app-item-focused');
         _focusedItem.scrollIntoView({ block: 'nearest' });
     }
 }
 
 _searchInput.addEventListener('input', () => {
     const q = _searchInput.value.trim();
-    const items = Array.from(_appList.querySelectorAll('.lde-app-item'));
-    const noResultsEl = _appList.querySelector('.lde-search-no-results');
+    const items = Array.from(_appList.querySelectorAll('.gos-app-item'));
+    const noResultsEl = _appList.querySelector('.gos-search-no-results');
 
     if (!q) {
         items.forEach(i => i.classList.remove('hidden'));
@@ -119,7 +111,7 @@ _searchInput.addEventListener('input', () => {
 });
 
 _searchInput.addEventListener('keydown', (e) => {
-    const visibleItems = Array.from(_appList.querySelectorAll('.lde-app-item:not(.hidden)'));
+    const visibleItems = Array.from(_appList.querySelectorAll('.gos-app-item:not(.hidden)'));
     if (!visibleItems.length) return;
 
     if (e.key === 'Enter') {

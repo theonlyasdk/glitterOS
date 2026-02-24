@@ -1,7 +1,7 @@
 /* ── Aero Window Switcher (Shift+Tab) ─────────────────────────────────────── */
 
 /* Dark overlay that covers everything */
-.lde-switcher-overlay {
+.gos-switcher-overlay {
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.65);
@@ -11,21 +11,21 @@
     transition: opacity 0.35s cubic-bezier(0.1, 0.9, 0.2, 1);
 }
 
-.lde-switcher-overlay.active {
+.gos-switcher-overlay.active {
     opacity: 1;
     pointer-events: auto;
 }
 
 /* Dim menubar + taskbar */
-body.lde-switcher-active #menubar,
-body.lde-switcher-active #taskbar {
+body.gos-switcher-active #menubar,
+body.gos-switcher-active #taskbar {
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.3s ease;
 }
 
 /* The switcher container — horizontally centered row of thumbnails */
-.lde-switcher {
+.gos-switcher {
     position: fixed;
     inset: 0;
     z-index: 9995;
@@ -46,17 +46,17 @@ body.lde-switcher-active #taskbar {
     scrollbar-width: none;
 }
 
-.lde-switcher::-webkit-scrollbar {
+.gos-switcher::-webkit-scrollbar {
     display: none;
 }
 
-.lde-switcher.active {
+.gos-switcher.active {
     opacity: 1;
     pointer-events: auto;
 }
 
 /* Window thumbnail card */
-.lde-switcher-thumb {
+.gos-switcher-thumb {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -78,17 +78,17 @@ body.lde-switcher-active #taskbar {
     }
 }
 
-.lde-switcher-thumb.selected {
+.gos-switcher-thumb.selected {
     border-color: rgba(255, 255, 255, 0.7);
     background: rgba(255, 255, 255, 0.1);
 }
 
-.lde-switcher-thumb:hover:not(.selected) {
+.gos-switcher-thumb:hover:not(.selected) {
     background: rgba(255, 255, 255, 0.06);
 }
 
 /* Preview image / snapshot */
-.lde-switcher-preview {
+.gos-switcher-preview {
     width: 180px;
     height: 110px;
     border: 1px solid rgba(255, 255, 255, 0.12);
@@ -102,13 +102,13 @@ body.lde-switcher-active #taskbar {
 }
 
 /* Scaled-down clone of the window */
-.lde-switcher-preview>div {
+.gos-switcher-preview>div {
     transform-origin: top left;
     pointer-events: none;
 }
 
 /* Title label under thumbnail */
-.lde-switcher-label {
+.gos-switcher-label {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -120,12 +120,12 @@ body.lde-switcher-active #taskbar {
     white-space: nowrap;
 }
 
-.lde-switcher-label i {
+.gos-switcher-label i {
     font-size: 0.85rem;
     flex-shrink: 0;
 }
 
 /* Utility class for padded app content */
-.lde-app-padded {
+.gos-app-padded {
     padding: 16px;
 }

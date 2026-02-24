@@ -1,19 +1,19 @@
-// ── LDE Boot — calls ldeInit after all modules are loaded ────────────────────
-function ldeInit() {
+// ── LDE Boot — calls gosInit after all modules are loaded ────────────────────
+function gosInit() {
     assertExistsElseReload(menubar);
     assertExistsElseReload(desktop);
     assertExistsElseReload(taskbar);
 
-    ldeInitApplets();
-    ldeInitMenubar();
+    gosInitApplets();
+    gosInitMenubar();
     renderCalendar(currentCalendarDate);
 
     const currentDesktopName = desktops[currentDesktopIdx].name;
     desktopNameLbl.innerText = currentDesktopName;
 
-    ldeInitGlobalShortcuts();
-    ldeInitDesktopIcons();
-    ldeInitDesktopSelection();
+    gosInitGlobalShortcuts();
+    gosInitDesktopIcons();
+    gosInitDesktopSelection();
 
     // Fade in the desktop
     document.body.classList.add('loaded');
@@ -21,15 +21,15 @@ function ldeInit() {
     // Disable browser right-click menu globally and show custom desktop menu
     document.addEventListener('contextmenu', (e) => {
         e.preventDefault();
-        if (e.target === desktop || e.target.classList.contains('lde-desktop-icons')) {
-            ldeShowContextMenu(e.clientX, e.clientY, [
+        if (e.target === desktop || e.target.classList.contains('gos-desktop-icons')) {
+            gosShowContextMenu(e.clientX, e.clientY, [
                 { label: 'View', icon: 'bi-grid-3x3-gap', action: () => { } },
                 { label: 'Sort by', icon: 'bi-sort-alpha-down', action: () => { } },
-                { label: 'Refresh', icon: 'bi-arrow-clockwise', action: () => ldeInitDesktopIcons() },
+                { label: 'Refresh', icon: 'bi-arrow-clockwise', action: () => gosInitDesktopIcons() },
                 { type: 'sep' },
                 {
                     label: 'New', icon: 'bi-plus-circle', action: () => {
-                        ldeShowContextMenu(e.clientX + 160, e.clientY, [
+                        gosShowContextMenu(e.clientX + 160, e.clientY, [
                             { label: 'Folder', icon: 'bi-folder-plus', action: () => { } },
                             { label: 'Text Document', icon: 'bi-file-earmark-plus', action: () => { } }
                         ]);
@@ -46,7 +46,7 @@ function ldeInit() {
     launchCommandPrompt(null, true);
 }
 
-function ldeInitGlobalShortcuts() {
+function gosInitGlobalShortcuts() {
     window.addEventListener('keydown', (e) => {
         let key = e.key.toLowerCase();
         if (e.altKey && key !== 'alt') key = 'alt+' + key;
@@ -63,13 +63,15 @@ function ldeInitGlobalShortcuts() {
 
         // Enter key to launch selected desktop apps
         if (key === 'enter') {
-            const selectedIcons = document.querySelectorAll('.lde-desktop-shortcut.selected');
+            const selectedIcons = document.querySelectorAll('.gos-desktop-shortcut.selected');
             if (selectedIcons.length > 0 && (!wm || !wm.activeWindow)) {
                 e.preventDefault();
-                selectedIcons.forEach(el => {
-                    const appId = el.dataset.appId;
-                    const appObj = AppRegistry.get(appId);
-                    if (appObj) appObj.launch();
+                selectedIcons.forEach((el, index) => {
+                    setTimeout(() => {
+                        const appId = el.dataset.appId;
+                        const appObj = AppRegistry.get(appId);
+                        if (appObj) appObj.launch();
+                    }, index * 100);
                 });
             }
         }
@@ -79,46 +81,134 @@ function ldeInitGlobalShortcuts() {
 /**
  * Desktop Icons — auto-generated from AppRegistry
  */
-function ldeInitDesktopIcons() {
+function gosInitDesktopIcons() {
     // Remove existing icon container if present (for refresh)
-    const existing = desktop.querySelector('.lde-desktop-icons');
+    const existing = desktop.querySelector('.gos-desktop-icons');
     if (existing) existing.remove();
 
     const apps = AppRegistry.getDesktopApps();
     const iconContainer = document.createElement('div');
-    iconContainer.className = 'lde-desktop-icons';
+    iconContainer.className = 'gos-desktop-icons';
 
     apps.forEach(app => {
         const icon = document.createElement('div');
-        icon.className = 'lde-desktop-shortcut';
+        icon.className = 'gos-desktop-shortcut';
         icon.dataset.appId = app.id;
         icon.title = app.name;
         icon.innerHTML = `
-            <div class="lde-desktop-shortcut-icon">
+            <div class="gos-desktop-shortcut-icon">
                 <i class="${getFullIcon(app.icon)}"></i>
             </div>
-            <span class="lde-desktop-shortcut-label">${app.name}</span>
+            <span class="gos-desktop-shortcut-label">${truncateFilename(app.name, 18)}</span>
         `;
 
         // Single click to select
+        let clickTimer = null;
+        let preventSingle = false;
+
         icon.addEventListener('mousedown', (e) => {
-            e.preventDefault(); // Prevent browser text selection/dragging
+            e.preventDefault();
             e.stopPropagation();
-            if (!e.ctrlKey && !e.shiftKey) {
-                document.querySelectorAll('.lde-desktop-shortcut').forEach(el => el.classList.remove('selected'));
+
+            if (e.button === 0) {
+                const isSelected = icon.classList.contains('selected');
+                if (e.ctrlKey || e.metaKey) {
+                    icon.classList.toggle('selected');
+                } else if (e.shiftKey) {
+                    icon.classList.add('selected');
+                } else if (!isSelected) {
+                    // Not selected, clear others and select this
+                    document.querySelectorAll('.gos-desktop-shortcut').forEach(el => el.classList.remove('selected'));
+                    icon.classList.add('selected');
+                }
+            } else if (e.button === 2) {
+                if (!icon.classList.contains('selected')) {
+                    document.querySelectorAll('.gos-desktop-shortcut').forEach(el => el.classList.remove('selected'));
+                    icon.classList.add('selected');
+                }
             }
-            icon.classList.add('selected');
         });
 
-        // Double click to launch all selected
+        icon.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey) return;
+
+            clearTimeout(clickTimer);
+            if (preventSingle) {
+                preventSingle = false;
+                return;
+            }
+
+            clickTimer = setTimeout(() => {
+                // Determine if this was just a single click on a selected item 
+                // in an existing selection. If so, clear others!
+                const selected = document.querySelectorAll('.gos-desktop-shortcut.selected');
+                if (selected.length > 1 && icon.classList.contains('selected')) {
+                    document.querySelectorAll('.gos-desktop-shortcut').forEach(el => el.classList.remove('selected'));
+                    icon.classList.add('selected');
+                }
+            }, 200); // Wait for double click
+        });
+
+        // Context menu
+        icon.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const selectedIcons = document.querySelectorAll('.gos-desktop-shortcut.selected');
+
+            if (selectedIcons.length > 1) {
+                gosShowContextMenu(e.clientX, e.clientY, [
+                    {
+                        label: `Open (${selectedIcons.length} items)`,
+                        icon: 'bi-box-arrow-up-right',
+                        action: () => {
+                            selectedIcons.forEach((el, index) => {
+                                setTimeout(() => {
+                                    const appObj = AppRegistry.get(el.dataset.appId);
+                                    if (appObj) appObj.launch();
+                                }, index * 100);
+                            });
+                        }
+                    }
+                ]);
+            } else {
+                gosShowContextMenu(e.clientX, e.clientY, [
+                    { label: 'Open', icon: 'bi-box-arrow-up-right', action: () => app.launch() },
+                    { type: 'sep' },
+                    {
+                        label: 'Uninstall',
+                        icon: 'bi-trash',
+                        color: 'danger',
+                        action: () => {
+                            wm.messageBox('Uninstall', `Are you sure you want to uninstall ${app.name}?`, {
+                                buttons: 'yesno',
+                                icon: 'bi-exclamation-triangle-fill',
+                                onYes: () => {
+                                    AppRegistry.unregister(app.id);
+                                    gosInitDesktopIcons(); // reload icons
+                                }
+                            });
+                        }
+                    }
+                ]);
+            }
+        });
+
+        // Double click to launch all selected (staggered)
         icon.addEventListener('dblclick', (e) => {
             e.stopPropagation();
-            const selectedIcons = document.querySelectorAll('.lde-desktop-shortcut.selected');
+            e.preventDefault();
+            clearTimeout(clickTimer);
+            preventSingle = true;
+
+            const selectedIcons = document.querySelectorAll('.gos-desktop-shortcut.selected');
             if (selectedIcons.length > 0) {
-                selectedIcons.forEach(el => {
-                    const appId = el.dataset.appId;
-                    const appObj = AppRegistry.get(appId);
-                    if (appObj) appObj.launch();
+                selectedIcons.forEach((el, index) => {
+                    setTimeout(() => {
+                        const appObj = AppRegistry.get(el.dataset.appId);
+                        if (appObj) appObj.launch();
+                    }, index * 100);
                 });
             } else {
                 app.launch();
@@ -134,21 +224,21 @@ function ldeInitDesktopIcons() {
 /**
  * Desktop Selection — marquee rect and background clicks
  */
-function ldeInitDesktopSelection() {
+function gosInitDesktopSelection() {
     let startX, startY;
     const marquee = document.createElement('div');
-    marquee.className = 'lde-selection-marquee';
+    marquee.className = 'gos-selection-marquee';
     document.body.appendChild(marquee);
 
     desktop.addEventListener('mousedown', (e) => {
         if (e.button !== 0) return; // Left click only
-        if (e.target !== desktop && !e.target.classList.contains('lde-desktop-icons')) return;
+        if (e.target !== desktop && !e.target.classList.contains('gos-desktop-icons')) return;
 
         e.preventDefault(); // Prevent browser text selection
 
         // Clear selection if not modified
         if (!e.ctrlKey && !e.shiftKey) {
-            document.querySelectorAll('.lde-desktop-shortcut').forEach(el => el.classList.remove('selected'));
+            document.querySelectorAll('.gos-desktop-shortcut').forEach(el => el.classList.remove('selected'));
         }
 
         const dRect = desktop.getBoundingClientRect();
@@ -180,7 +270,7 @@ function ldeInitDesktopSelection() {
             marquee.style.height = h + 'px';
 
             const mRect = marquee.getBoundingClientRect();
-            document.querySelectorAll('.lde-desktop-shortcut').forEach(icon => {
+            document.querySelectorAll('.gos-desktop-shortcut').forEach(icon => {
                 const iRect = icon.getBoundingClientRect();
                 const intersect = !(mRect.left > iRect.right ||
                     mRect.right < iRect.left ||
@@ -206,4 +296,4 @@ function ldeInitDesktopSelection() {
     });
 }
 
-ldeInit();
+gosInit();

@@ -10,7 +10,7 @@
 }
 
 /* Group Box */
-.lde-w32-group {
+.gos-w32-group {
     border: 1px solid #444;
     padding: 18px 12px 12px 12px;
     margin: 12px 0;
@@ -18,7 +18,7 @@
     border-radius: 0;
 }
 
-.lde-w32-group-label {
+.gos-w32-group-label {
     position: absolute;
     top: -10px;
     left: 10px;
@@ -28,90 +28,137 @@
     color: #888;
 }
 
-/* Classic Button */
-.lde-w32-btn {
+/* Classic Button (Windows 10 Style) */
+.gos-w32-btn,
+.gos-msg-btn,
+button:not(.gos-win-btn):not(.gos-mbar-item):not(.gos-app-menu-item):not(.gos-edit-menu-item) {
     background: #333;
     border: 1px solid #555;
     color: #eee;
-    padding: 4px 16px;
+    padding: 6px 16px;
     font-size: 0.85rem;
     cursor: pointer;
-    box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.05);
+    transition: background 0.1s, border-color 0.1s;
+    user-select: none;
 }
 
-.lde-w32-btn:hover {
+.gos-w32-btn:hover,
+.gos-msg-btn:hover,
+button:not(.gos-win-btn):hover {
     background: #3f3f3f;
-    border-color: #666;
+    border-color: #777;
+    color: #fff;
 }
 
-.lde-w32-btn:active {
+.gos-w32-btn:active,
+.gos-msg-btn:active,
+button:not(.gos-win-btn):active {
     background: #222;
-    border-color: #444;
-    box-shadow: inset 2px 2px 3px rgba(0, 0, 0, 0.3);
+    border-color: #555;
 }
 
-/* Checkbox / Radio */
-.lde-w32-check-row {
+/* Default / Primary Action */
+.gos-w32-btn.default,
+.gos-msg-btn.default {
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+    color: #fff;
+}
+
+.gos-w32-btn.default:hover,
+.gos-msg-btn.default:hover {
+    opacity: 0.9;
+    background: var(--accent-color);
+}
+
+/* Checkbox / Radio (Windows 10 Style) */
+.gos-w32-check-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 6px;
+    gap: 10px;
+    margin-bottom: 8px;
     font-size: 0.85rem;
     cursor: pointer;
+    user-select: none;
+    color: #eee;
 }
 
-.lde-w32-check {
-    width: 14px;
-    height: 14px;
-    border: 1px solid #555;
-    background: #111;
+.gos-w32-check-row:hover .gos-w32-check,
+.gos-w32-check-row:hover .gos-w32-radio {
+    border-color: #fff;
+}
+
+.gos-w32-check {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #999;
+    background: transparent;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: all 0.1s;
 }
 
-.lde-w32-check.checked::after {
+.gos-w32-check.checked {
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+}
+
+.gos-w32-check.checked::after {
     content: '✔';
-    font-size: 0.6rem;
-    color: var(--win32-highlight);
+    font-size: 0.8rem;
+    color: #fff;
 }
 
-.lde-w32-radio {
-    width: 14px;
-    height: 14px;
-    border: 1px solid #555;
-    background: #111;
+.gos-w32-radio {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #999;
+    background: transparent;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: all 0.1s;
 }
 
-.lde-w32-radio.checked::after {
+.gos-w32-radio.checked {
+    border-color: var(--accent-color);
+}
+
+.gos-w32-radio.checked::after {
     content: '';
-    width: 6px;
-    height: 6px;
-    background: var(--win32-highlight);
+    width: 8px;
+    height: 8px;
+    background: var(--accent-color);
     border-radius: 50%;
 }
 
 /* Text Box */
-.lde-w32-input {
+.gos-w32-input,
+input[type="text"]:not(.gos-search-input):not(.gos-fm-addressbar):not(.gos-fd-addressbar),
+input[type="password"],
+input[type="number"],
+textarea {
     background: #111;
     border: 1px solid #444;
     color: #fff;
     padding: 3px 6px;
     font-size: 0.85rem;
     width: 100%;
+    outline: none !important;
+    box-sizing: border-box;
 }
 
-.lde-w32-input:focus {
-    outline: 1px solid var(--win32-highlight);
-    border-color: var(--win32-highlight);
+.gos-w32-input:focus,
+input[type="text"]:not(.gos-search-input):not(.gos-fm-addressbar):not(.gos-fd-addressbar):focus,
+input[type="number"]:focus,
+textarea:focus {
+    border-color: var(--accent-color) !important;
 }
 
 /* Progress Bar */
-.lde-w32-progress {
+.gos-w32-progress {
     height: 18px;
     background: #111;
     border: 1px solid #444;
@@ -119,7 +166,7 @@
     overflow: hidden;
 }
 
-.lde-w32-progress-fill {
+.gos-w32-progress-fill {
     height: 100%;
     background: var(--win32-highlight);
     width: 0%;
@@ -127,24 +174,156 @@
 }
 
 /* List Box */
-.lde-w32-list {
+.gos-w32-list {
     background: #111;
     border: 1px solid #444;
     height: 100px;
     overflow-y: auto;
 }
 
-.lde-w32-list-item {
+.gos-w32-list-item {
     padding: 2px 8px;
     font-size: 0.85rem;
     cursor: default;
 }
 
-.lde-w32-list-item.selected {
+.gos-w32-list-item.selected {
     background: var(--win32-highlight);
     color: #fff;
 }
 
-.lde-w32-list-item:hover:not(.selected) {
+.gos-w32-list-item:hover:not(.selected) {
     background: #252525;
+}
+
+/* Table / Data Grid */
+.gos-w32-table-container {
+    flex: 1;
+    overflow: auto;
+    border: 1px solid #333;
+    background-color: #1a1a1a;
+    display: flex;
+    flex-direction: column;
+}
+
+.gos-w32-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+    user-select: none;
+}
+
+.gos-w32-table th {
+    position: sticky;
+    top: 0;
+    background-color: #2b2b2b;
+    text-align: left;
+    padding: 6px 10px;
+    font-weight: 500;
+    border-bottom: 1px solid #444;
+    border-right: 1px solid #3d3d3d;
+    white-space: nowrap;
+    z-index: 10;
+    cursor: pointer;
+}
+
+.gos-w32-table th:hover {
+    background-color: #3f3f3f;
+}
+
+.gos-w32-table th .sort-icon {
+    display: inline-block;
+    width: 12px;
+    text-align: center;
+    color: var(--win32-highlight);
+    margin-left: 4px;
+}
+
+.gos-w32-table td {
+    padding: 4px 10px;
+    border-bottom: 1px solid #2a2a2a;
+    border-right: 1px solid #2a2a2a;
+    white-space: nowrap;
+    color: #ccc;
+    cursor: default;
+}
+
+.gos-w32-table tr:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.gos-w32-table tr.selected {
+    background-color: var(--accent-muted, rgba(0, 120, 215, 0.4));
+    outline: 1px solid var(--accent-color);
+    outline-offset: -1px;
+}
+
+.gos-w32-table tr td:first-child {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.gos-w32-table tr td:first-child i {
+    font-size: 1rem;
+    color: #fff;
+}
+
+/* UWP Checkbox (Windows 10 style) */
+.gos-uwp-check-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s, border-color 0.2s;
+    margin-bottom: 8px;
+    position: relative;
+    overflow: hidden;
+}
+
+.gos-uwp-check-row:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.gos-uwp-check-row span {
+    font-size: 0.9rem;
+    color: #ddd;
+}
+
+.gos-uwp-check {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #aaa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s cubic-bezier(0.1, 0.9, 0.2, 1);
+    background: transparent;
+    flex-shrink: 0;
+}
+
+.gos-uwp-check.checked {
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+}
+
+.gos-uwp-check-mark {
+    color: #fff;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: scale(0.5);
+    transition: all 0.2s cubic-bezier(0.1, 0.9, 0.2, 1);
+}
+
+.gos-uwp-check.checked .gos-uwp-check-mark {
+    opacity: 1;
+    transform: scale(1);
 }

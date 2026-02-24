@@ -2,13 +2,13 @@
 
 function launchWidgetGallery() {
     const container = document.createElement('div');
-    container.className = 'lde-app-padded h-100 overflow-auto';
+    container.className = 'gos-app-padded h-100 overflow-auto';
     container.style.backgroundColor = '#1e1e1e';
 
     const createGroup = (label, content) => {
         const group = document.createElement('div');
-        group.className = 'lde-w32-group';
-        group.innerHTML = `<div class="lde-w32-group-label">${label}</div>`;
+        group.className = 'gos-w32-group';
+        group.innerHTML = `<div class="gos-w32-group-label">${label}</div>`;
         group.appendChild(content);
         return group;
     };
@@ -22,17 +22,17 @@ function launchWidgetGallery() {
     const btnRow = document.createElement('div');
     btnRow.className = 'd-flex gap-2';
     const btn1 = document.createElement('button');
-    btn1.className = 'lde-w32-btn';
+    btn1.className = 'gos-w32-btn';
     btn1.textContent = 'Command 1';
     const btn2 = document.createElement('button');
-    btn2.className = 'lde-w32-btn';
+    btn2.className = 'gos-w32-btn';
     btn2.textContent = 'Command 2';
     btnRow.append(btn1, btn2);
 
     const checkRow = document.createElement('div');
-    checkRow.className = 'lde-w32-check-row';
+    checkRow.className = 'gos-w32-check-row';
     const check = document.createElement('div');
-    check.className = 'lde-w32-check';
+    check.className = 'gos-w32-check';
     check.onclick = () => check.classList.toggle('checked');
     const checkLbl = document.createElement('span');
     checkLbl.textContent = 'Enable Advanced Features';
@@ -42,12 +42,12 @@ function launchWidgetGallery() {
     radioRow.className = 'd-flex gap-3';
     ['Option A', 'Option B'].forEach((txt, i) => {
         const rRow = document.createElement('div');
-        rRow.className = 'lde-w32-check-row';
+        rRow.className = 'gos-w32-check-row';
         const radio = document.createElement('div');
-        radio.className = 'lde-w32-radio' + (i === 0 ? ' checked' : '');
+        radio.className = 'gos-w32-radio' + (i === 0 ? ' checked' : '');
         rRow.append(radio, document.createTextNode(txt));
         rRow.onclick = () => {
-            radioRow.querySelectorAll('.lde-w32-radio').forEach(r => r.classList.remove('checked'));
+            radioRow.querySelectorAll('.gos-w32-radio').forEach(r => r.classList.remove('checked'));
             radio.classList.add('checked');
         };
         radioRow.appendChild(rRow);
@@ -58,9 +58,9 @@ function launchWidgetGallery() {
     // ── Progress & Status ────────────────────────────────────────────────────
     const progressBox = document.createElement('div');
     const pBar = document.createElement('div');
-    pBar.className = 'lde-w32-progress';
+    pBar.className = 'gos-w32-progress';
     const pFill = document.createElement('div');
-    pFill.className = 'lde-w32-progress-fill';
+    pFill.className = 'gos-w32-progress-fill';
     pFill.style.width = '45%';
     pBar.appendChild(pFill);
 
@@ -74,13 +74,13 @@ function launchWidgetGallery() {
 
     // ── List & Input ─────────────────────────────────────────────────────────
     const listBox = document.createElement('div');
-    listBox.className = 'lde-w32-list';
+    listBox.className = 'gos-w32-list';
     ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon'].forEach((name, i) => {
         const item = document.createElement('div');
-        item.className = 'lde-w32-list-item' + (i === 0 ? ' selected' : '');
+        item.className = 'gos-w32-list-item' + (i === 0 ? ' selected' : '');
         item.textContent = name;
         item.onclick = () => {
-            listBox.querySelectorAll('.lde-w32-list-item').forEach(li => li.classList.remove('selected'));
+            listBox.querySelectorAll('.gos-w32-list-item').forEach(li => li.classList.remove('selected'));
             item.classList.add('selected');
         };
         listBox.appendChild(item);
@@ -93,7 +93,7 @@ function launchWidgetGallery() {
     inputLbl.style.marginBottom = '2px';
     inputLbl.textContent = 'Configuration Key:';
     const input = document.createElement('input');
-    input.className = 'lde-w32-input';
+    input.className = 'gos-w32-input';
     input.value = 'GLTR-1234-X99';
     inputBox.append(inputLbl, input);
 

@@ -1,5 +1,5 @@
 /* ── Search button in taskbar ── */
-.lde-taskbar-search-btn {
+.gos-taskbar-search-btn {
     width: 40px;
     height: 100%;
     display: flex;
@@ -12,30 +12,30 @@
     transition: background-color 0.1s, color 0.1s;
 }
 
-.lde-taskbar-search-btn:hover {
+.gos-taskbar-search-btn:hover {
     background-color: rgba(255, 255, 255, 0.1);
     color: #fff;
 }
 
-.lde-taskbar-search-btn.active {
+.gos-taskbar-search-btn.active {
     background-color: rgba(255, 255, 255, 0.15);
     color: #fff;
 }
 
 /* ── Overlay to dismiss panel ── */
-.lde-search-overlay {
+.gos-search-overlay {
     display: none;
     position: fixed;
     inset: 0;
     z-index: 3499;
 }
 
-.lde-search-overlay.visible {
+.gos-search-overlay.visible {
     display: block;
 }
 
 /* ── Main search panel — Windows 10 Acrylic ── */
-.lde-search-panel {
+.gos-search-panel {
     position: fixed;
     bottom: 40px;
     left: 0;
@@ -57,14 +57,14 @@
         opacity 0.22s cubic-bezier(0.1, 0.9, 0.2, 1);
 }
 
-.lde-search-panel.open {
+.gos-search-panel.open {
     transform: translateY(0);
     opacity: 1;
     pointer-events: auto;
 }
 
 /* ── UWP Search box ── */
-.lde-search-box-wrap {
+.gos-search-box-wrap {
     display: flex;
     align-items: center;
     margin: 8px 16px 16px;
@@ -76,23 +76,23 @@
     transition: border-color 0.15s, background-color 0.15s;
 }
 
-.lde-search-box-wrap:focus-within {
+.gos-search-box-wrap:focus-within {
     background-color: #fff;
     border-color: var(--accent-color);
 }
 
-.lde-search-icon {
+.gos-search-icon {
     color: rgba(255, 255, 255, 0.5);
     font-size: 0.9rem;
     flex-shrink: 0;
     transition: color 0.15s;
 }
 
-.lde-search-box-wrap:focus-within .lde-search-icon {
+.gos-search-box-wrap:focus-within .gos-search-icon {
     color: var(--accent-color);
 }
 
-.lde-search-input {
+.gos-search-input {
     flex: 1;
     background: none;
     border: none;
@@ -105,21 +105,21 @@
     transition: color 0.15s;
 }
 
-.lde-search-box-wrap:focus-within .lde-search-input {
+.gos-search-box-wrap:focus-within .gos-search-input {
     color: #111;
 }
 
-.lde-search-input::placeholder {
+.gos-search-input::placeholder {
     color: rgba(255, 255, 255, 0.35);
     transition: color 0.15s;
 }
 
-.lde-search-box-wrap:focus-within .lde-search-input::placeholder {
+.gos-search-box-wrap:focus-within .gos-search-input::placeholder {
     color: rgba(0, 0, 0, 0.35);
 }
 
 /* ── Apps section header ── */
-.lde-app-list-header {
+.gos-app-list-header {
     font-size: 0.7rem;
     font-weight: 600;
     letter-spacing: 0.08em;
@@ -128,14 +128,14 @@
     padding: 16px 20px 4px;
 }
 
-.lde-app-list {
+.gos-app-list {
     overflow-y: auto;
     flex: 1;
     padding-bottom: 8px;
 }
 
 /* ── App list item — tile-style spotlight hover ── */
-.lde-app-item {
+.gos-app-item {
     display: flex;
     align-items: center;
     gap: 14px;
@@ -152,13 +152,13 @@
     margin: 1px 8px;
 }
 
-.lde-app-item:hover {
+.gos-app-item:hover {
     border-color: rgba(255, 255, 255, 0.1);
     background-color: rgba(255, 255, 255, 0.04);
 }
 
 /* Spotlight glow */
-.lde-app-item::before {
+.gos-app-item::before {
     content: '';
     position: absolute;
     width: 200px;
@@ -175,11 +175,11 @@
     z-index: 0;
 }
 
-.lde-app-item:hover::before {
+.gos-app-item:hover::before {
     opacity: 1;
 }
 
-.lde-app-item-icon {
+.gos-app-item-icon {
     width: 30px;
     height: 30px;
     display: flex;
@@ -192,7 +192,7 @@
     z-index: 1;
 }
 
-.lde-app-item-name {
+.gos-app-item-name {
     flex: 1;
     white-space: nowrap;
     overflow: hidden;
@@ -201,12 +201,12 @@
     z-index: 1;
 }
 
-.lde-app-item.hidden {
+.gos-app-item.hidden {
     display: none;
 }
 
 /* No results */
-.lde-search-no-results {
+.gos-search-no-results {
     padding: 20px;
     text-align: center;
     color: rgba(255, 255, 255, 0.3);
@@ -214,12 +214,12 @@
     display: none;
 }
 
-.lde-search-no-results.visible {
+.gos-search-no-results.visible {
     display: block;
 }
 
 /* Keyboard-focused app item */
-.lde-app-item-focused {
+.gos-app-item-focused {
     background-color: var(--accent-muted);
     border-color: var(--accent-color) !important;
 }

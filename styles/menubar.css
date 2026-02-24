@@ -1,4 +1,4 @@
-.lde-mbar {
+.gos-mbar {
     width: 100%;
     padding: 0;
     background-color: rgba(26, 26, 26, 0.85);
@@ -17,64 +17,65 @@
     border-bottom: 1px solid #333;
 }
 
-.lde-mbar b {
+.gos-mbar b {
     font-weight: normal;
 }
 
-.lde-mbar-left {
+.gos-mbar-left {
     display: flex;
     flex-direction: row;
     margin-right: auto;
     height: 100%;
 }
 
-.lde-mbar-left>.dropdown,
-.lde-mbar-right>.dropdown {
+.gos-mbar-left>.dropdown,
+.gos-mbar-right>.dropdown {
     height: 100%;
 }
 
-.lde-mbar-right {
+.gos-mbar-right {
     display: flex;
     flex-direction: row;
     height: 100%;
 }
 
-.lde-mseperator {
+.gos-mseperator {
     padding: 0;
     margin: 0.4em;
 }
 
-.lde-mbar-item {
-    background-color: transparent;
+.gos-mbar-item {
+    background-color: transparent !important;
     color: #aaaaaa;
     padding: 0 0.5em;
     cursor: pointer;
     user-select: none;
-    outline: none;
-    border: none;
+    outline: none !important;
+    border: none !important;
     height: 100%;
     display: flex;
     align-items: center;
+    box-shadow: none !important;
 }
 
-.lde-mbar-item:active,
-.lde-mbar-item:focus,
-.lde-mbar-item:hover {
+.gos-mbar-item:active,
+.gos-mbar-item:focus,
+.gos-mbar-item:hover {
     border: none;
     border-color: none;
     outline: none;
 }
 
-.lde-mbar-item:hover {
+.gos-mbar-item:hover {
     color: white;
     background-color: rgba(255, 255, 255, 0.1);
     border-radius: 0;
 }
 
-.lde-mbar-item:focus {
+.gos-mbar-item:focus {
     background-color: rgba(255, 255, 255, 0.15);
 }
 
-.lde-mbar-item-highlight {
+.gos-mbar-item-highlight {
     color: white;
 }

@@ -2,11 +2,11 @@
 
 function launchTaskManager() {
     const container = document.createElement('div');
-    container.className = 'lde-taskmgr';
+    container.className = 'gos-taskmgr';
 
     // ── State ─────────────────────────────────────────────────────────────────
     let _activeTab = 'processes';
-    let _selectedPid = null;
+    let _selectedPids = [];
     let _perfData = {
         cpu: Array(60).fill(0),
         mem: Array(60).fill(0)
@@ -15,7 +15,7 @@ function launchTaskManager() {
 
     // ── Components ────────────────────────────────────────────────────────────
     const header = document.createElement('div');
-    header.className = 'lde-taskmgr-tabs';
+    header.className = 'gos-taskmgr-tabs';
 
     const tabs = [
         { id: 'processes', label: 'Processes' },
@@ -25,20 +25,20 @@ function launchTaskManager() {
 
     tabs.forEach(tab => {
         const el = document.createElement('div');
-        el.className = 'lde-taskmgr-tab' + (tab.id === _activeTab ? ' active' : '');
+        el.className = 'gos-taskmgr-tab' + (tab.id === _activeTab ? ' active' : '');
         el.innerText = tab.label;
         el.onclick = () => switchTab(tab.id);
         header.appendChild(el);
     });
 
     const content = document.createElement('div');
-    content.className = 'lde-taskmgr-content';
+    content.className = 'gos-taskmgr-content';
 
     const footer = document.createElement('div');
-    footer.className = 'lde-taskmgr-footer';
+    footer.className = 'gos-taskmgr-footer';
 
     const killAllBtn = document.createElement('button');
-    killAllBtn.className = 'lde-taskmgr-btn';
+    killAllBtn.className = 'gos-taskmgr-btn';
     killAllBtn.innerText = 'Kill all';
     killAllBtn.onclick = () => {
         wm.messageBox('Task Manager', 'Are you sure you want to end all processes?\nAll unsaved work will be lost.', {
@@ -49,20 +49,20 @@ function launchTaskManager() {
                 allWins.forEach(w => {
                     if (w.id !== win.id) wm.closeWindow(w.id);
                 });
-                _selectedPid = null;
+                _selectedPids = [];
                 updateViews();
             }
         });
     };
 
     const endTaskBtn = document.createElement('button');
-    endTaskBtn.className = 'lde-taskmgr-btn';
+    endTaskBtn.className = 'gos-taskmgr-btn';
     endTaskBtn.innerText = 'End task';
     endTaskBtn.disabled = true;
     endTaskBtn.onclick = () => {
-        if (_selectedPid) {
-            wm.closeWindow(_selectedPid);
-            _selectedPid = null;
+        if (_selectedPids.length > 0) {
+            _selectedPids.forEach(pid => wm.closeWindow(pid));
+            _selectedPids = [];
             updateViews();
         }
     };
@@ -73,7 +73,7 @@ function launchTaskManager() {
     // ── Tab Switching ─────────────────────────────────────────────────────────
     function switchTab(id) {
         _activeTab = id;
-        header.querySelectorAll('.lde-taskmgr-tab').forEach(t => {
+        header.querySelectorAll('.gos-taskmgr-tab').forEach(t => {
             t.classList.toggle('active', t.innerText.toLowerCase() === id);
         });
         updateViews();
@@ -91,16 +91,16 @@ function launchTaskManager() {
             updateViews();
         }
     };
-    window.addEventListener('lde-window-changed', winChangeListener);
+    window.addEventListener('gos-window-changed', winChangeListener);
 
     // ── Views ─────────────────────────────────────────────────────────────────
     function updateViews() {
         // Save selection if possible
-        const prevPid = _selectedPid;
+        const prevPids = [..._selectedPids];
 
         content.innerHTML = '';
         const view = document.createElement('div');
-        view.className = 'lde-taskmgr-view active';
+        view.className = 'gos-taskmgr-view active';
 
         if (_activeTab === 'processes' || _activeTab === 'details') {
             renderProcessTable(view, _activeTab === 'details');
@@ -113,15 +113,8 @@ function launchTaskManager() {
         content.appendChild(view);
 
         // Restore selection
-        if (prevPid && wm.windows.find(w => w.id === prevPid)) {
-            _selectedPid = prevPid;
-            const row = content.querySelector(`tr[data-pid="${prevPid}"]`);
-            if (row) row.classList.add('selected');
-        } else {
-            _selectedPid = null;
-        }
-
-        endTaskBtn.disabled = !_selectedPid;
+        _selectedPids = prevPids.filter(pid => wm.windows.some(w => w.id === pid));
+        endTaskBtn.disabled = _selectedPids.length === 0;
     }
 
     // ── Task context menu ──────────────────────────────────────────────────────
@@ -151,7 +144,16 @@ function launchTaskManager() {
         closeItem.textContent = 'Close';
         closeItem.onmouseenter = () => closeItem.style.backgroundColor = '#3f3f3f';
         closeItem.onmouseleave = () => closeItem.style.backgroundColor = '';
-        closeItem.onclick = () => { _taskCtxMenu.remove(); wm.closeWindow(winObj.id); _selectedPid = null; updateViews(); };
+        closeItem.onclick = () => {
+            _taskCtxMenu.remove();
+            // Also close all other selected items if user context-clicks one
+            if (!_selectedPids.includes(winObj.id)) {
+                _selectedPids = [winObj.id];
+            }
+            _selectedPids.forEach(id => wm.closeWindow(id));
+            _selectedPids = [];
+            updateViews();
+        };
 
         _taskCtxMenu.append(focusItem, divider, closeItem);
         document.body.appendChild(_taskCtxMenu);
@@ -166,85 +168,87 @@ function launchTaskManager() {
     }
 
     function renderProcessTable(parent, isDetails) {
-        const tableWrap = document.createElement('div');
-        tableWrap.className = 'lde-taskmgr-table-container';
-
-        const table = document.createElement('table');
-        table.className = 'lde-taskmgr-table';
-
-        const headers = isDetails ?
-            ['Name', 'PID', 'Status', 'User name', 'CPU', 'Memory'] :
-            ['Name', 'Status', 'CPU', 'Memory'];
-
-        table.innerHTML = `
-            <thead>
-                <tr>
-                    ${headers.map(h => `<th>${h}</th>`).join('')}
-                </tr>
-            </thead>
-            <tbody id="taskmgr-tbody"></tbody>
-        `;
-
-        tableWrap.appendChild(table);
-        parent.appendChild(tableWrap);
-
-        const tbody = table.querySelector('#taskmgr-tbody');
         const wins = wm.windows;
 
-        wins.forEach(winItem => {
-            const tr = document.createElement('tr');
-            tr.dataset.pid = winItem.id;
-            if (_selectedPid === winItem.id) tr.classList.add('selected');
+        let cols = [];
+        if (isDetails) {
+            cols = [
+                { id: 'name', label: 'Name', width: '30%', render: (val, row) => `<i class="${getFullIcon(row.icon)}"></i> ${val}` },
+                { id: 'pid', label: 'PID', width: '10%' },
+                { id: 'status', label: 'Status', width: '15%' },
+                { id: 'user', label: 'User name', width: '15%' },
+                { id: 'cpu', label: 'CPU', width: '15%', sortValue: row => row._cpuRaw },
+                { id: 'mem', label: 'Memory', width: '15%', sortValue: row => row._memRaw }
+            ];
+        } else {
+            cols = [
+                { id: 'name', label: 'Name', width: '40%', render: (val, row) => `<i class="${getFullIcon(row.icon)}"></i> ${val}` },
+                { id: 'status', label: 'Status', width: '20%' },
+                { id: 'cpu', label: 'CPU', width: '20%', sortValue: row => row._cpuRaw },
+                { id: 'mem', label: 'Memory', width: '20%', sortValue: row => row._memRaw }
+            ];
+        }
 
-            tr.onclick = () => {
-                _selectedPid = winItem.id;
-                table.querySelectorAll('tr').forEach(r => r.classList.remove('selected'));
-                tr.classList.add('selected');
-                endTaskBtn.disabled = false;
+        const data = wins.map(winItem => {
+            const status = winItem.element.classList.contains('minimized') ? 'Minimized' : 'Running';
+            const winCount = wins.length;
+            const baseCpu = Math.max(1, Math.floor(Math.random() * (3 + winCount * 0.8)));
+            const cpuStr = baseCpu + '%';
+            const baseMem = Math.floor(12 + Math.random() * 25 + winCount * 3.5);
+            const memStr = baseMem + ' MB';
+
+            return {
+                id: winItem.id,
+                name: winItem.title,
+                icon: winItem.icon,
+                pid: winItem.id.split('-')[1],
+                status: status,
+                user: 'User',
+                cpu: cpuStr,
+                mem: memStr,
+                _cpuRaw: baseCpu,
+                _memRaw: baseMem
             };
+        });
 
+        const tbl = Widgets.createTable({
+            columns: cols,
+            data: data,
+            keyField: 'id',
+            onSelectionChange: (selectedIds) => {
+                _selectedPids = selectedIds;
+                endTaskBtn.disabled = _selectedPids.length === 0;
+            },
+            onAction: (id, row) => {
+                wm.focusWindow(id);
+            }
+        });
+
+        // Context menu integration mapping
+        tbl.element.querySelectorAll('table tbody tr').forEach((tr, idx) => {
             tr.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                _selectedPid = winItem.id;
-                table.querySelectorAll('tr').forEach(r => r.classList.remove('selected'));
-                tr.classList.add('selected');
-                endTaskBtn.disabled = false;
-                showTaskContextMenu(e.clientX, e.clientY, winItem);
+
+                const winObj = wins.find(w => w.id === tr.cells[1]?.textContent) || wins[idx];
+                if (winObj) {
+                    if (!_selectedPids.includes(winObj.id)) {
+                        _selectedPids = [winObj.id];
+                        updateViews(); // Will re-render and select
+                    }
+                    showTaskContextMenu(e.clientX, e.clientY, winObj);
+                }
             });
-
-            const name = winItem.title;
-            const status = winItem.element.classList.contains('minimized') ? 'Minimized' : 'Running';
-            // Smart values: scale with number of open apps
-            const winCount = wins.length;
-            const baseCpu = Math.max(1, Math.floor(Math.random() * (3 + winCount * 0.8)));
-            const cpu = baseCpu + '%';
-            const baseMem = Math.floor(12 + Math.random() * 25 + winCount * 3.5);
-            const mem = baseMem + ' MB';
-
-            if (isDetails) {
-                tr.innerHTML = `
-                    <td><i class="${getFullIcon(winItem.icon)}"></i> ${name}</td>
-                    <td>${winItem.id.split('-')[1]}</td>
-                    <td>${status}</td>
-                    <td>User</td>
-                    <td>${cpu}</td>
-                    <td>${mem}</td>
-                `;
-            } else {
-                tr.innerHTML = `
-                    <td><i class="${getFullIcon(winItem.icon)}"></i> ${name}</td>
-                    <td>${status}</td>
-                    <td>${cpu}</td>
-                    <td>${mem}</td>
-                `;
-            }
-            tbody.appendChild(tr);
         });
 
-        if (wins.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="${headers.length}" class="text-center p-4 text-secondary">No active processes.</td></tr>`;
+        // Set initial selection visually if already set
+        if (_selectedPids.length > 0) {
+            tbl.element.querySelectorAll('tbody tr').forEach((tr, i) => {
+                if (_selectedPids.includes(data[i].id)) tr.classList.add('selected');
+            });
         }
+
+        parent.appendChild(tbl.element);
     }
 
     // ── CPU Name Detection ─────────────────────────────────────────────────────
@@ -271,10 +275,10 @@ function launchTaskManager() {
     let _perfView = 'cpu'; // 'cpu' or 'memory'
     function renderPerformance(parent) {
         const layout = document.createElement('div');
-        layout.className = 'lde-taskmgr-perf-layout';
+        layout.className = 'gos-taskmgr-perf-layout';
 
         const sidebar = document.createElement('div');
-        sidebar.className = 'lde-taskmgr-perf-sidebar';
+        sidebar.className = 'gos-taskmgr-perf-sidebar';
 
         const totalMemGB = navigator.deviceMemory || 8;
         const currentCpuPct = Math.floor(_perfData.cpu[_perfData.cpu.length - 1]);
@@ -291,16 +295,16 @@ function launchTaskManager() {
         cpuItem.onclick = () => { _perfView = 'cpu'; updateViews(); };
         memItem.onclick = () => { _perfView = 'memory'; updateViews(); };
 
-        registerTileEffect(cpuItem, { tilt: true, ripple: true, glow: true, liveTilt: true });
-        registerTileEffect(memItem, { tilt: true, ripple: true, glow: true, liveTilt: true });
+        Widgets.registerTileEffect(cpuItem, { tilt: true, ripple: true, glow: true, liveTilt: true });
+        Widgets.registerTileEffect(memItem, { tilt: true, ripple: true, glow: true, liveTilt: true });
 
         sidebar.append(cpuItem, memItem);
 
         const main = document.createElement('div');
-        main.className = 'lde-taskmgr-perf-main';
+        main.className = 'gos-taskmgr-perf-main';
 
         const graphHeader = document.createElement('div');
-        graphHeader.className = 'lde-taskmgr-graph-header';
+        graphHeader.className = 'gos-taskmgr-graph-header';
 
         const currentData = _perfView === 'cpu' ? _perfData.cpu : _perfData.mem;
         const currentVal = Math.floor(currentData[currentData.length - 1]);
@@ -311,29 +315,29 @@ function launchTaskManager() {
         if (_perfView === 'cpu') {
             graphHeader.innerHTML = `
                 <div style="display:flex;flex-direction:column;gap:2px;">
-                    <div class="lde-taskmgr-graph-title" style="font-weight:300;">${_cpuName}</div>
+                    <div class="gos-taskmgr-graph-title" style="font-weight:300;">${_cpuName}</div>
                     <div style="font-size:0.7rem;color:#888;">${_cpuCores} Logical processors</div>
                 </div>
                 <div style="text-align:right;">
-                    <div class="lde-taskmgr-graph-value" id="perf-val">${currentVal}%</div>
+                    <div class="gos-taskmgr-graph-value" id="perf-val">${currentVal}%</div>
                     <div style="font-size:0.7rem;color:#888;">${currentGhz} GHz</div>
                 </div>
             `;
         } else {
             const usedGB = ((_perfData.mem[_perfData.mem.length - 1] / 100) * totalMemGB).toFixed(1);
             graphHeader.innerHTML = `
-                <div class="lde-taskmgr-graph-title" style="font-weight:300;">MEMORY</div>
+                <div class="gos-taskmgr-graph-title" style="font-weight:300;">MEMORY</div>
                 <div style="text-align:right;">
-                    <div class="lde-taskmgr-graph-value" id="perf-val">${usedGB}/${totalMemGB} GB</div>
+                    <div class="gos-taskmgr-graph-value" id="perf-val">${usedGB}/${totalMemGB} GB</div>
                     <div style="font-size:0.7rem;color:#888;">${currentVal}% in use</div>
                 </div>
             `;
         }
 
         const canvasContainer = document.createElement('div');
-        canvasContainer.className = 'lde-taskmgr-graph-container';
+        canvasContainer.className = 'gos-taskmgr-graph-container';
         const canvas = document.createElement('canvas');
-        canvas.className = 'lde-taskmgr-canvas';
+        canvas.className = 'gos-taskmgr-canvas';
         canvasContainer.appendChild(canvas);
 
         main.append(graphHeader, canvasContainer);
@@ -385,10 +389,10 @@ function launchTaskManager() {
 
     function createPerfSidebarItem(title, sub1) {
         const item = document.createElement('div');
-        item.className = 'lde-taskmgr-perf-item';
+        item.className = 'gos-taskmgr-perf-item';
         item.innerHTML = `
-            <div class="lde-taskmgr-perf-item-title">${title}</div>
-            <div class="lde-taskmgr-perf-item-sub">${sub1}</div>
+            <div class="gos-taskmgr-perf-item-title">${title}</div>
+            <div class="gos-taskmgr-perf-item-sub">${sub1}</div>
         `;
         return item;
     }
@@ -436,7 +440,7 @@ function launchTaskManager() {
         height: 400,
         onClose: () => {
             stopPerfMonitoring();
-            window.removeEventListener('lde-window-changed', winChangeListener);
+            window.removeEventListener('gos-window-changed', winChangeListener);
         }
     });
 

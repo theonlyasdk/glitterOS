@@ -1,5 +1,5 @@
 /* Action Centre — Windows 10 Acrylic */
-.lde-action-centre {
+.gos-action-centre {
     position: fixed;
     top: 0;
     right: 0;
@@ -21,12 +21,12 @@
     overflow-y: auto;
 }
 
-.lde-action-centre.open {
+.gos-action-centre.open {
     transform: translateX(0);
     box-shadow: var(--panel-shadow-right);
 }
 
-.lde-ac-header {
+.gos-ac-header {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
@@ -35,19 +35,19 @@
     border-bottom: 1px solid #3a3a3a;
 }
 
-.lde-ac-header>span:first-child {
+.gos-ac-header>span:first-child {
     font-size: 1rem;
     font-weight: 600;
     color: #fff;
 }
 
-.lde-ac-date {
+.gos-ac-date {
     font-size: 0.78rem;
     color: #888;
 }
 
 /* Quick action tiles */
-.lde-ac-tiles {
+.gos-ac-tiles {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 8px;
@@ -67,7 +67,7 @@
     }
 }
 
-.lde-ac-tile-ripple {
+.gos-ac-tile-ripple {
     position: absolute;
     width: 100px;
     height: 100px;
@@ -79,7 +79,7 @@
     animation: tile-ripple 0.6s ease-in forwards;
 }
 
-.lde-ac-tile {
+.gos-ac-tile {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -100,7 +100,7 @@
 }
 
 /* Slider icon buttons — same visual style as tiles but compact */
-.lde-ac-icon-tile {
+.gos-ac-icon-tile {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -119,13 +119,13 @@
     will-change: transform;
 }
 
-.lde-ac-icon-tile i {
+.gos-ac-icon-tile i {
     font-size: 1rem;
     position: relative;
     z-index: 1;
 }
 
-.lde-ac-icon-tile::before {
+.gos-ac-icon-tile::before {
     content: '';
     position: absolute;
     width: 80px;
@@ -142,17 +142,17 @@
     z-index: 0;
 }
 
-.lde-ac-icon-tile:hover::before {
+.gos-ac-icon-tile:hover::before {
     opacity: 1;
 }
 
-.lde-ac-icon-tile.active {
+.gos-ac-icon-tile.active {
     background-color: var(--accent-muted);
     border-color: var(--accent-color);
     color: #fff;
 }
 
-.lde-ac-tile::before {
+.gos-ac-tile::before {
     content: '';
     position: absolute;
     width: 120px;
@@ -169,53 +169,53 @@
     z-index: 0;
 }
 
-.lde-ac-tile:hover::before {
+.gos-ac-tile:hover::before {
     opacity: 1;
 }
 
-.lde-ac-tile i,
-.lde-ac-tile span {
+.gos-ac-tile i,
+.gos-ac-tile span {
     position: relative;
     z-index: 1;
 }
 
-.lde-ac-tile i {
+.gos-ac-tile i {
     font-size: 1.2rem;
 }
 
-.lde-ac-tile.active {
+.gos-ac-tile.active {
     background-color: var(--accent-muted);
     border-color: var(--accent-color);
     color: #fff;
 }
 
-.lde-ac-tile.active::before {
+.gos-ac-tile.active::before {
     background: radial-gradient(circle, rgba(255, 255, 255, 0.25) 0%, transparent 70%);
 }
 
 /* Sliders */
-.lde-ac-sliders {
+.gos-ac-sliders {
     display: flex;
     flex-direction: column;
     gap: 14px;
     margin-top: 4px;
 }
 
-.lde-ac-slider-row {
+.gos-ac-slider-row {
     display: flex;
     align-items: center;
     gap: 12px;
     color: #ccc;
 }
 
-.lde-ac-slider-row i {
+.gos-ac-slider-row i {
     font-size: 1rem;
     flex-shrink: 0;
     width: 20px;
     text-align: center;
 }
 
-.lde-ac-slider {
+.gos-ac-slider {
     flex: 1;
     -webkit-appearance: none;
     appearance: none;
@@ -231,7 +231,7 @@
             #555 100%);
 }
 
-.lde-ac-slider::-webkit-slider-thumb {
+.gos-ac-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
     width: 6px;
@@ -241,7 +241,7 @@
     cursor: pointer;
 }
 
-.lde-ac-slider::-moz-range-thumb {
+.gos-ac-slider::-moz-range-thumb {
     width: 6px;
     height: 20px;
     border-radius: 3px;
@@ -250,7 +250,15 @@
     border: none;
 }
 
-.lde-ac-slider::-webkit-slider-thumb:hover {
+.gos-ac-slider::-webkit-slider-thumb:hover {
     background: var(--accent-color);
     filter: brightness(1.2);
+}
+
+.gos-ac-slider::-webkit-slider-thumb:active {
+    filter: brightness(0.8) contrast(1.2);
+}
+
+.gos-ac-slider::-moz-range-thumb:active {
+    filter: brightness(0.8) contrast(1.2);
 }

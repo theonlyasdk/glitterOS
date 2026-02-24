@@ -15,22 +15,22 @@
   -webkit-user-drag: none;
 }
 
-.lde-win-header,
-.lde-mbar,
-.lde-taskbar,
-.lde-w32-btn,
-.lde-msg-btn,
-.lde-win-btn,
-.lde-mbar-item,
-.lde-ac-tile,
-.lde-ac-icon-tile,
-.lde-cp-nav-item,
-.lde-cp-wallpaper-thumb,
-.lde-fm-btn,
-.lde-fm-sidebar-item,
+.gos-win-header,
+.gos-mbar,
+.gos-taskbar,
+.gos-w32-btn,
+.gos-msg-btn,
+.gos-win-btn,
+.gos-mbar-item,
+.gos-ac-tile,
+.gos-ac-icon-tile,
+.gos-cp-nav-item,
+.gos-cp-wallpaper-thumb,
+.gos-fm-btn,
+.gos-fm-sidebar-item,
 .dropdown-item,
 .cal-nav,
-.lde-taskbar-search-btn {
+.gos-taskbar-search-btn {
   user-select: none;
   -webkit-user-select: none;
 }
@@ -153,7 +153,11 @@ body.loaded {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: #666;
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: #333;
 }
 
 ::-webkit-scrollbar-button {
@@ -328,7 +332,7 @@ body.loaded {
   stroke-width: 1;
 }
 
-.lde-selection-rect {
+.gos-selection-rect {
   position: absolute;
   background-color: rgba(0, 120, 215, 0.3);
   border: 1px solid rgba(0, 120, 215, 0.8);

@@ -24,9 +24,9 @@ const fs = (() => {
                 ]
             },
             {
-                type: 'dir', name: 'Windows', children: [
+                type: 'dir', name: 'glitterOS', children: [
                     {
-                        type: 'dir', name: 'System32', children: [
+                        type: 'dir', name: 'System', children: [
                             { type: 'file', name: 'edit.exe', content: '[glitterOS System Executable]' },
                         ]
                     },
@@ -54,7 +54,7 @@ const fs = (() => {
     // Current working directory as array of path segments
     let _cwd = ['Users', 'User'];
 
-    const STORAGE_KEY = 'lde_filesystem_root';
+    const STORAGE_KEY = 'gos_filesystem_root';
 
     function _save() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(_tree));
@@ -132,7 +132,13 @@ const fs = (() => {
             const node = _getNode(segs);
             if (!node) return { error: `The system cannot find the path specified.` };
             if (node.type !== 'dir') return { error: `The directory name is invalid.` };
-            return { entries: node.children.map(c => ({ name: c.name, type: c.type })) };
+            return {
+                entries: node.children.map(c => ({
+                    name: c.name,
+                    type: c.type,
+                    size: c.type === 'dir' ? 'N/A' : (c.size !== undefined ? c.size : (c.content ? new TextEncoder().encode(c.content).length : 0))
+                }))
+            };
         },
 
         cd(path = '~') {
@@ -159,13 +165,16 @@ const fs = (() => {
             const dirNode = _getNode(segs);
             if (!dirNode) return { error: `The system cannot find the path specified.` };
             if (dirNode.type !== 'dir') return { error: `The directory name is invalid.` };
+            // Calculate size in bytes
+            const size = new TextEncoder().encode(content).length;
             // Case-insensitive check
             const existing = dirNode.children.find(c => c.name.toLowerCase() === name.toLowerCase());
             if (existing) {
                 existing.content = content;
                 existing.name = name; // update case?
+                existing.size = size;
             } else {
-                dirNode.children.push({ type: 'file', name, content });
+                dirNode.children.push({ type: 'file', name, content, size });
             }
             _save();
             return { ok: true };
@@ -178,7 +187,7 @@ const fs = (() => {
             if (!dirNode) return { error: `The system cannot find the path specified.` };
             if (dirNode.type !== 'dir') return { error: `The directory name is invalid.` };
             if (!dirNode.children.find(c => c.name.toLowerCase() === name.toLowerCase())) {
-                dirNode.children.push({ type: 'file', name, content: '' });
+                dirNode.children.push({ type: 'file', name, content: '', size: 0 });
             }
             _save();
             return { ok: true };
@@ -230,7 +239,9 @@ const fs = (() => {
         stat(path) {
             const node = _getNode(_resolvePath(path));
             if (!node) return { error: `The system cannot find the path specified.` };
-            return { name: node.name, type: node.type };
+            // Return N/A size for directories
+            const size = node.type === 'dir' ? 'N/A' : (node.size !== undefined ? node.size : (node.content ? new TextEncoder().encode(node.content).length : 0));
+            return { name: node.name, type: node.type, size: size };
         },
 
         getattr(path, key) {
@@ -272,7 +283,7 @@ const fs = (() => {
     ];
 
     apps.forEach(app => {
-        const path = `C:\\Windows\\System32\\${app.exe}`;
+        const path = `C:\\glitterOS\\System\\${app.exe}`;
         if (!fs.exists(path)) {
             fs.write(path, '[glitterOS System Executable]');
             fs.setattr(path, 'appId', app.id);
