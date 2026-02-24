@@ -8,6 +8,8 @@
     top: 0;
     z-index: 10;
     background-color: #000;
+    cursor: default;
+    user-select: none;
 }
 
 .lde-wallpaper-layer {
@@ -27,26 +29,91 @@
     opacity: 1;
 }
 
-.lde-desktop-icon {
-    background-color: darkred;
-    border-radius: 4px;
-    color: var(--bs-white);
-    padding: 0.3em;
-    width: 2em;
-    height: 2em;
+/* ── Desktop Icons Container ─────────────────────────────────────────────── */
+.lde-desktop-icons {
     display: flex;
-    font-size: 2em;
+    flex-direction: column;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: calc(var(--menubar-height) + 12px) 12px 12px 12px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: calc(100% - var(--taskbar-height));
+    box-sizing: border-box;
+    z-index: 1;
+    align-content: flex-start;
+    user-select: none;
+    -webkit-user-select: none;
+    overflow: hidden;
+}
+
+/* ── Individual Desktop Shortcut ─────────────────────────────────────────── */
+.lde-desktop-shortcut {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    width: 80px;
+    padding: 8px 4px;
+    gap: 4px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    border-radius: 0 !important;
+    /* Forces no radius */
+    transition: none !important;
+    /* Forces no transition */
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.lde-desktop-shortcut:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.lde-desktop-shortcut.selected {
+    background-color: var(--accent-muted) !important;
+    border-color: var(--accent-color) !important;
+}
+
+/* ── Icon ─────────────────────────────────────────────────────────────────── */
+.lde-desktop-shortcut-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: var(--shadow-elevation-medium);
-    box-sizing: border-box;
+    font-size: 1.8rem;
+    color: #fff;
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+    pointer-events: none;
 }
 
-.lde-desktop-icon:hover {
-    background-color: red;
-    box-shadow: var(--shadow-elevation-high);
+/* ── Label ────────────────────────────────────────────────────────────────── */
+.lde-desktop-shortcut-label {
+    font-size: 0.68rem;
+    color: #fff;
+    text-align: center;
+    word-break: break-word;
+    line-height: 1.2;
+    max-width: 72px;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    pointer-events: none;
 }
 
-.lde-desktop-icon:active {
-    filter: brightness(50%);
+/* ── Selection Marquee ────────────────────────────────────────────────────── */
+.lde-selection-marquee {
+    position: fixed;
+    border: 1px solid var(--accent-color);
+    background: var(--accent-muted);
+    pointer-events: none;
+    display: none;
+    z-index: 10000;
 }

@@ -17,22 +17,51 @@
     box-sizing: border-box;
     height: 40px;
     z-index: 2000;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE and Edge */
+}
+
+.lde-taskbar::-webkit-scrollbar {
+    display: none;
+    /* Chrome, Safari, Opera */
 }
 
 .lde-taskbar-item {
     color: white;
     min-width: 40px;
     max-width: 160px;
+    flex: 1 1 160px;
+    /* Allows shrinking as more items are added */
     height: 100%;
     display: flex;
     align-items: center;
+    justify-content: flex-start;
     padding: 0 10px;
     cursor: pointer;
     position: relative;
     overflow: hidden;
-    flex-shrink: 0;
-    transition: opacity 0.25s ease, max-width 0.25s ease, min-width 0.25s ease, padding 0.25s ease;
+    transition: opacity 0.25s ease, max-width 0.25s ease, min-width 0.25s ease, padding 0.25s ease, flex-basis 0.25s ease;
     opacity: 1;
+    container-type: inline-size;
+}
+
+@container (max-width: 85px) {
+    .lde-taskbar-item {
+        justify-content: center;
+        padding: 0;
+    }
+
+    .lde-taskbar-item i {
+        margin-right: 0 !important;
+    }
+
+    .lde-taskbar-item span {
+        display: none;
+    }
 }
 
 .lde-taskbar-item.mounting {
@@ -91,16 +120,16 @@
 
 .lde-taskbar-item.active::after {
     width: 100%;
-    background-color: #0078d7;
+    background-color: var(--accent-color);
 }
 
-.lde-taskbar-item .bi,
+.lde-taskbar-item i,
 .lde-taskbar-item span {
     position: relative;
     z-index: 2;
 }
 
-.lde-taskbar-item .bi {
+.lde-taskbar-item i {
     font-size: 1.2rem;
     margin-right: 8px;
     flex-shrink: 0;

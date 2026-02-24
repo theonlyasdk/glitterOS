@@ -2,6 +2,14 @@
  * Window Manager for glitterOS - Enhanced version
  */
 
+function getFullIcon(ico) {
+    if (!ico) return 'ri-window-line';
+    if (ico.includes(' ')) return ico;
+    if (ico.startsWith('ri-')) return ico;
+    if (ico.startsWith('bi-')) return 'bi ' + ico;
+    return 'ri-' + ico;
+}
+
 class WindowManager {
     constructor() {
         this.windows = []; // Store window objects: { id, title, icon, element, zIndex }
@@ -10,9 +18,14 @@ class WindowManager {
         this.desktop = document.getElementById('desktop');
         this.taskbar = document.getElementById('taskbar');
 
-        // Unfocus active window when clicking the desktop background
+        // Create snap preview element
+        this.snapPreview = document.createElement('div');
+        this.snapPreview.className = 'lde-snap-preview';
+        document.body.appendChild(this.snapPreview);
+
+        // Unfocus active window when clicking the desktop background or icon container
         this.desktop.addEventListener('mousedown', (e) => {
-            if (e.target === this.desktop) {
+            if (e.target === this.desktop || e.target.classList.contains('lde-desktop-icons')) {
                 this.unfocusActive();
             }
         });
@@ -55,7 +68,7 @@ class WindowManager {
 
         const minBtn = document.createElement('div');
         minBtn.className = 'lde-win-btn lde-win-btn-min';
-        minBtn.innerHTML = '<i class="bi bi-dash-lg"></i>';
+        minBtn.innerHTML = '<i class="ri-subtract-line"></i>';
         minBtn.onclick = (e) => {
             e.stopPropagation();
             this.minimizeWindow(id);
@@ -63,7 +76,7 @@ class WindowManager {
 
         const maxBtn = document.createElement('div');
         maxBtn.className = 'lde-win-btn lde-win-btn-max';
-        maxBtn.innerHTML = '<i class="bi bi-app"></i>';
+        maxBtn.innerHTML = '<i class="ri-checkbox-blank-line"></i>';
         maxBtn.onclick = (e) => {
             e.stopPropagation();
             this.toggleMaximize(win);
@@ -85,7 +98,9 @@ class WindowManager {
 
         const iconElem = document.createElement('div');
         iconElem.className = 'lde-win-icon';
-        iconElem.innerHTML = `<i class="bi ${options.icon || 'bi-window-sidebar'}"></i>`;
+        // getFullIcon is now global
+
+        iconElem.innerHTML = `<i class="${getFullIcon(options.icon)}"></i>`;
 
         // System menu popup
         const sysMenu = document.createElement('div');
@@ -151,14 +166,42 @@ class WindowManager {
 
         const body = document.createElement('div');
         body.className = 'lde-win-body';
+
+        // Windows 10 UWP Style Splash Screen
+        const splash = document.createElement('div');
+        splash.className = 'lde-splash';
+        // Pick a background color based on app or default
+        const splashColors = {
+            'Command Prompt': '#000000',
+            'File Explorer': '#0078d7',
+            'Notepad': '#222222',
+            'Control Panel': '#1e1e1e',
+            'Editor': '#0000aa'
+        };
+        splash.style.backgroundColor = splashColors[title] || '#0078d7';
+        splash.innerHTML = `
+            <div class="lde-splash-icon">
+                <i class="${getFullIcon(options.icon)}"></i>
+            </div>
+        `;
+        body.appendChild(splash);
+
         if (typeof content === 'string') {
-            body.innerHTML = content;
+            const contentDiv = document.createElement('div');
+            contentDiv.innerHTML = content;
+            body.appendChild(contentDiv);
         } else if (content instanceof HTMLElement) {
             body.appendChild(content);
         }
 
         win.appendChild(header);
         win.appendChild(body);
+
+        // Fade out splash after 700ms
+        setTimeout(() => {
+            splash.classList.add('fade-out');
+            setTimeout(() => splash.remove(), 400); // Cleanup after CSS transition
+        }, 700);
 
         if (!options.noResize) {
             const resizers = ['r', 'b', 'rb'];
@@ -170,12 +213,14 @@ class WindowManager {
             });
         }
 
+        // Add opening class BEFORE inserting into DOM so browser paints initial state
+        win.classList.add('opening');
         this.desktop.appendChild(win);
 
         const winObj = {
             id: id,
             title: title,
-            icon: options.icon || 'bi-window-sidebar',
+            icon: options.icon || 'ri-window-line',
             element: win,
             zIndex: win.style.zIndex,
             showSysMenu: showSysMenu
@@ -191,8 +236,10 @@ class WindowManager {
         this.focusWindow(id);
         this.updateTaskbar();
 
-        // Trigger opening animation
-        win.classList.add('opening');
+        // Notify system of window change
+        window.dispatchEvent(new CustomEvent('lde-window-changed'));
+
+        // Remove opening class after browser has painted the initial (scaled-down) state
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
                 win.classList.remove('opening');
@@ -214,26 +261,8 @@ class WindowManager {
             win.dataset.oldTop = win.style.top;
         }
 
-        const startW = parseFloat(win.style.width);
-        const startH = parseFloat(win.style.height);
-        const startL = parseFloat(win.style.left);
-        const startT = parseFloat(win.style.top);
-
-        const targetW = isMax ? parseFloat(win.dataset.oldWidth) : window.innerWidth;
-        const targetH = isMax ? parseFloat(win.dataset.oldHeight) : window.innerHeight - mbarHeight - taskbarHeight;
-        const targetL = isMax ? parseFloat(win.dataset.oldLeft) : 0;
-        const targetT = isMax ? parseFloat(win.dataset.oldTop) : mbarHeight;
-
-        // Snappy jump to 85%
         win.classList.add('no-transition');
-        win.style.width = (startW + (targetW - startW) * 0.85) + 'px';
-        win.style.height = (startH + (targetH - startH) * 0.85) + 'px';
-        win.style.left = (startL + (targetL - startL) * 0.85) + 'px';
-        win.style.top = (startT + (targetT - startT) * 0.85) + 'px';
 
-        win.offsetHeight; // Reflow
-
-        win.classList.remove('no-transition');
         if (isMax) {
             win.style.width = win.dataset.oldWidth;
             win.style.height = win.dataset.oldHeight;
@@ -247,6 +276,9 @@ class WindowManager {
             win.style.top = mbarHeight + 'px';
             win.dataset.maximized = 'true';
         }
+
+        win.offsetHeight; // Force reflow
+        win.classList.remove('no-transition');
     }
 
     focusWindow(id) {
@@ -282,12 +314,12 @@ class WindowManager {
 
         if (taskItem) {
             const rect = taskItem.getBoundingClientRect();
-            win.dataset.preMinLeft = win.style.left;
-            win.dataset.preMinTop = win.style.top;
-            win.dataset.preMinW = win.style.width;
-            win.dataset.preMinH = win.style.height;
+            win.dataset.preMinLeft = win.offsetLeft + 'px';
+            win.dataset.preMinTop = win.offsetTop + 'px';
+            win.dataset.preMinW = win.offsetWidth + 'px';
+            win.dataset.preMinH = win.offsetHeight + 'px';
 
-            win.style.left = (rect.left + rect.width / 2 - parseFloat(win.style.width) / 2) + 'px';
+            win.style.left = (rect.left + rect.width / 2 - win.offsetWidth / 2) + 'px';
             win.style.top = rect.top + 'px';
             win.style.transform = 'scale(0.01)';
         }
@@ -363,6 +395,7 @@ class WindowManager {
                 this.windows.splice(finalIndex, 1);
             }
             this.updateTaskbar();
+            window.dispatchEvent(new CustomEvent('lde-window-changed'));
         }, 300);
 
         if (this.activeWindow && this.activeWindow.id === id) {
@@ -390,8 +423,8 @@ class WindowManager {
 
         const icon = document.createElement('div');
         icon.className = 'lde-messagebox-icon';
-        const iconName = options.icon || 'bi-info-circle-fill';
-        icon.innerHTML = `<i class="bi ${iconName}"></i>`;
+        const iconName = options.icon || 'ri-information-line';
+        icon.innerHTML = `<i class="${getFullIcon(iconName)}"></i>`;
 
         const text = document.createElement('div');
         text.className = 'lde-messagebox-text';
@@ -431,7 +464,7 @@ class WindowManager {
             noResize: true,
             width: 380,
             height: 190,
-            icon: options.icon || 'bi-info-circle-fill'
+            icon: options.icon || 'ri-information-line'
         });
         win.element.classList.add('lde-window-messagebox');
     }
@@ -458,7 +491,7 @@ class WindowManager {
                 task.className = 'lde-taskbar-item mounting';
                 task.setAttribute('data-win-id', win.id);
                 task.innerHTML = `
-                    <i class="bi ${win.icon}"></i>
+                    <i class="${getFullIcon(win.icon)}"></i>
                     <span>${win.title}</span>
                 `;
                 task.onclick = () => {
@@ -483,6 +516,8 @@ class WindowManager {
 
             if (this.activeWindow && this.activeWindow.id === win.id) {
                 task.classList.add('active');
+                // Ensure active item is visible in scrolled taskbar
+                task.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
             } else {
                 task.classList.remove('active');
             }
@@ -493,7 +528,8 @@ class WindowManager {
         let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
 
         header.onmousedown = (e) => {
-            if (e.target.closest('.lde-win-btn')) return;
+            if (e.button !== 0) return; // Left click only for dragging
+            if (e.target.closest('.lde-win-btn') || e.target.closest('.lde-win-icon')) return;
 
             e.preventDefault();
 
@@ -511,11 +547,6 @@ class WindowManager {
             win.classList.add('dragging');
             pos3 = e.clientX;
             pos4 = e.clientY;
-            document.onmouseup = () => {
-                win.classList.remove('dragging');
-                document.onmouseup = null;
-                document.onmousemove = null;
-            };
             document.onmousemove = (e) => {
                 e.preventDefault();
                 pos1 = pos3 - e.clientX;
@@ -524,13 +555,96 @@ class WindowManager {
                 pos4 = e.clientY;
                 win.style.top = (win.offsetTop - pos2) + "px";
                 win.style.left = (win.offsetLeft - pos1) + "px";
+
+                // Check for snapping
+                this.updateSnapPreview(e.clientX, e.clientY);
+            };
+            document.onmouseup = () => {
+                win.classList.remove('dragging');
+                this.handleSnap(win, pos3, pos4);
+                this.snapPreview.classList.remove('visible');
+                document.onmouseup = null;
+                document.onmousemove = null;
             };
             this.focusWindow(win.id);
         };
     }
 
+    updateSnapPreview(x, y) {
+        const threshold = 10;
+        const mbarHeight = document.getElementById('menubar').offsetHeight;
+        const taskbarHeight = document.getElementById('taskbar').offsetHeight;
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        const availableH = h - mbarHeight - taskbarHeight;
+
+        if (y < mbarHeight + threshold) {
+            // Top - Maximize
+            this.showSnapPreview(0, mbarHeight, w, availableH);
+        } else if (x < threshold) {
+            // Left - Half
+            this.showSnapPreview(0, mbarHeight, w / 2, availableH);
+        } else if (x > w - threshold) {
+            // Right - Half
+            this.showSnapPreview(w / 2, mbarHeight, w / 2, availableH);
+        } else {
+            this.snapPreview.classList.remove('visible');
+        }
+    }
+
+    showSnapPreview(x, y, w, h) {
+        this.snapPreview.style.left = x + 'px';
+        this.snapPreview.style.top = y + 'px';
+        this.snapPreview.style.width = w + 'px';
+        this.snapPreview.style.height = h + 'px';
+        this.snapPreview.classList.add('visible');
+    }
+
+    handleSnap(win, x, y) {
+        const threshold = 10;
+        const mbarHeight = document.getElementById('menubar').offsetHeight;
+        const taskbarHeight = document.getElementById('taskbar').offsetHeight;
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        const availableH = h - mbarHeight - taskbarHeight;
+
+        win.classList.add('no-transition');
+
+        if (y < mbarHeight + threshold) {
+            // Top - Maximize
+            win.dataset.oldWidth = win.style.width;
+            win.dataset.oldHeight = win.style.height;
+            win.dataset.oldLeft = win.style.left;
+            win.dataset.oldTop = win.style.top;
+
+            win.style.width = '100%';
+            win.style.height = availableH + 'px';
+            win.style.left = '0';
+            win.style.top = mbarHeight + 'px';
+            win.dataset.maximized = 'true';
+        } else if (x < threshold) {
+            // Left - Half
+            win.style.width = (w / 2) + 'px';
+            win.style.height = availableH + 'px';
+            win.style.left = '0';
+            win.style.top = mbarHeight + 'px';
+            win.dataset.maximized = 'false';
+        } else if (x > w - threshold) {
+            // Right - Half
+            win.style.width = (w / 2) + 'px';
+            win.style.height = availableH + 'px';
+            win.style.left = (w / 2) + 'px';
+            win.style.top = mbarHeight + 'px';
+            win.dataset.maximized = 'false';
+        }
+
+        win.offsetHeight; // Force reflow
+        win.classList.remove('no-transition');
+    }
+
     makeResizable(win, resizer, type) {
         resizer.onmousedown = (e) => {
+            if (e.button !== 0) return; // Left click only for resizing
             e.preventDefault();
             win.classList.add('resizing');
             const startWidth = parseFloat(getComputedStyle(win).width);
@@ -560,8 +674,3 @@ class WindowManager {
 }
 
 const wm = new WindowManager();
-
-// Example window for testing
-window.addEventListener('load', () => {
-    launchWidgetGallery();
-});

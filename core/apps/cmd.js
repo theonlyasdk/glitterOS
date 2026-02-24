@@ -1,6 +1,6 @@
 // ── glitterOS Command Prompt — Windows CMD style ──────────────────────────────
 
-function launchCommandPrompt() {
+function launchCommandPrompt(autoRun = null, isBoot = false) {
     // Container
     const container = document.createElement('div');
     container.className = 'lde-cmd';
@@ -63,12 +63,12 @@ function launchCommandPrompt() {
 
     function refreshActiveLine() {
         if (!_activeLine) return;
-        const val = escHtml(hiddenInput.value);
-        const cur = hiddenInput.selectionStart ?? hiddenInput.value.length;
+        const val = hiddenInput.value;
+        const cur = hiddenInput.selectionStart ?? val.length;
         // Split around cursor for blinking block render
-        const before = escHtml(hiddenInput.value.slice(0, cur));
-        const after = escHtml(hiddenInput.value.slice(cur + 1));
-        const curChar = escHtml(hiddenInput.value[cur] || ' ');
+        const before = escHtml(val.slice(0, cur));
+        const after = escHtml(val.slice(cur + 1));
+        const curChar = escHtml(val[cur] || ' ');
         _activeLine.innerHTML =
             `<span class="lde-cmd-prompt">${escHtml(getPrompt())}</span>` +
             `<span class="lde-cmd-typed">${before}</span>` +
@@ -104,6 +104,7 @@ function launchCommandPrompt() {
                 '<span style="color:#e8c84a">RD / RMDIR</span> Removes a directory.<br>' +
                 '<span style="color:#e8c84a">REN</span>       Renames a file.<br>' +
                 '<span style="color:#e8c84a">COPY</span>      Copies one file to another location.<br>' +
+                '<span style="color:#e8c84a">EDIT</span>      Starts the glitterOS Editor.<br>' +
                 '<span style="color:#e8c84a">VER</span>       Displays the Windows version.<br>' +
                 '<span style="color:#e8c84a">EXIT</span>      Quits the CMD program.'
             );
@@ -140,14 +141,13 @@ function launchCommandPrompt() {
             const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
             appendLine(` Directory of ${winPath}\n`);
             if (res.entries.length === 0) {
-                appendLine(' File Not Found');
+                appendLine(' No items in this directory');
             } else {
                 let dirs = 0, files = 0;
                 res.entries.forEach(e => {
-                    // escHtml the tag so <DIR> doesn't get parsed as HTML
                     const tag = e.type === 'dir' ? escHtml('<DIR>') : '     ';
                     const col = e.type === 'dir' ? '#7ec8ff' : '#cccccc';
-                    appendHTML(`${escHtml(dateStr)}  ${escHtml(timeStr)}    <span style="color:${col}">${tag}</span>   ${escHtml(e.name)}`);
+                    appendHTML(`${escHtml(dateStr)}  ${escHtml(timeStr)} <span style="color:${col}">${tag}</span>   ${escHtml(e.name)}`);
                     e.type === 'dir' ? dirs++ : files++;
                 });
                 appendLine(`\n       ${files} File(s)   ${dirs} Dir(s)`);
@@ -194,27 +194,105 @@ function launchCommandPrompt() {
             fs.write(args[1], catRes.content);
             appendLine('        1 file(s) copied.');
         },
+        edit(args) {
+            launchEdit(args[0], container, () => {
+                setTimeout(() => hiddenInput.focus(), 50);
+                refreshActiveLine();
+            });
+        },
         exit() {
-            const winObj = wm.windows.find(w => w.element.querySelector('.lde-cmd'));
+            const winObj = wm.windows.find(w => w.element === container.closest('.lde-window'));
             if (winObj) wm.closeWindow(winObj.id);
         },
     };
 
     // ── Input dispatch ────────────────────────────────────────────────────────
     function dispatch(raw) {
-        const tokens = raw.trim().split(/\s+/);
+        const line = raw.trim();
+        if (!line) return;
+
+        // Try built-in commands first
+        const tokens = line.split(/\s+/);
         const cmd = tokens[0].toLowerCase();
         const args = tokens.slice(1);
-        if (!cmd) return;
-        if (CMDS[cmd]) CMDS[cmd](args);
-        else appendLine(`'${cmd}' is not recognized as an internal or external command,\noperable program or batch file.`, 'lde-cmd-err');
+
+        if (CMDS[cmd]) {
+            CMDS[cmd](args);
+            return;
+        }
+
+        // Try as an executable
+        // Check current directory, then C:\Windows\System32
+        const possiblePaths = [
+            line,
+            line + '.exe',
+            'C:\\Windows\\System32\\' + line,
+            'C:\\Windows\\System32\\' + line + '.exe'
+        ];
+
+        for (const p of possiblePaths) {
+            if (fs.exists(p)) {
+                const res = SystemExec.run(p);
+                if (res.ok) return;
+                if (res.error === 'App not installed') return; // error already shown
+                // if other error, continue or show
+            }
+        }
+
+        appendLine(`'${cmd}' is not recognized as an internal or external command, \noperable program or batch file.`, 'lde-cmd-err');
     }
 
     // ── Keyboard handler ──────────────────────────────────────────────────────
     hiddenInput.addEventListener('input', () => refreshActiveLine());
 
+    let tabMatches = [];
+    let tabIndex = -1;
+    let tabPrefix = '';
+    let tabBase = '';
+
     hiddenInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            const val = hiddenInput.value;
+            if (tabMatches.length > 0) {
+                // Cycle
+                tabIndex = (tabIndex + 1) % tabMatches.length;
+                const match = tabMatches[tabIndex];
+                hiddenInput.value = tabBase + match;
+                refreshActiveLine();
+                return;
+            }
+
+            // New search
+            const parts = val.split(/\s+/);
+            const lastPart = parts[parts.length - 1];
+            if (lastPart === undefined) return;
+
+            let searchPath = '.';
+            let prefix = lastPart;
+
+            if (lastPart.includes('\\')) {
+                const lastSlash = lastPart.lastIndexOf('\\');
+                searchPath = lastPart.substring(0, lastSlash) || '\\';
+                prefix = lastPart.substring(lastSlash + 1);
+            }
+
+            const res = fs.ls(searchPath);
+            if (res.entries) {
+                tabMatches = res.entries
+                    .filter(e => e.name.toLowerCase().startsWith(prefix.toLowerCase()))
+                    .map(e => e.name);
+
+                if (tabMatches.length > 0) {
+                    tabIndex = 0;
+                    tabPrefix = prefix;
+                    tabBase = val.substring(0, val.length - prefix.length);
+                    hiddenInput.value = tabBase + tabMatches[0];
+                    refreshActiveLine();
+                }
+            }
+        } else if (e.key === 'Enter') {
+            tabMatches = []; // Reset tab state
             const raw = hiddenInput.value;
             commitActiveLine(raw);
             hiddenInput.value = '';
@@ -223,8 +301,9 @@ function launchCommandPrompt() {
                 histIdx = -1;
                 dispatch(raw);
             }
-            createActiveLine();
+            if (_activeLine === null) createActiveLine(); // might be replaced by app
         } else if (e.key === 'ArrowUp') {
+            tabMatches = [];
             e.preventDefault();
             if (histIdx < cmdHistory.length - 1) {
                 histIdx++;
@@ -233,13 +312,17 @@ function launchCommandPrompt() {
             }
             refreshActiveLine();
         } else if (e.key === 'ArrowDown') {
+            tabMatches = [];
             e.preventDefault();
             if (histIdx > 0) { histIdx--; hiddenInput.value = cmdHistory[histIdx]; }
             else { histIdx = -1; hiddenInput.value = ''; }
             setTimeout(() => hiddenInput.setSelectionRange(hiddenInput.value.length, hiddenInput.value.length), 0);
             refreshActiveLine();
         } else {
-            // Refresh after any key for cursor position update
+            // Reset tab state on normal key
+            if (e.key !== 'Shift' && e.key !== 'Control' && e.key !== 'Alt' && e.key !== 'Meta') {
+                tabMatches = [];
+            }
             requestAnimationFrame(() => refreshActiveLine());
         }
     });
@@ -257,11 +340,42 @@ function launchCommandPrompt() {
     createActiveLine();
 
     // ── Launch window ─────────────────────────────────────────────────────────
-    wm.createWindow('Command Prompt', container, {
-        icon: 'bi-terminal-fill',
+    const winOptions = {
+        icon: 'ri-terminal-box-line',
         width: 600,
-        height: 380,
-    });
+        height: 380
+    };
+
+    if (isBoot) {
+        const margin = 40;
+        winOptions.x = window.innerWidth - winOptions.width - margin;
+        winOptions.y = 60;
+    }
+
+    const winObj = wm.createWindow('Command Prompt', container, winOptions);
+
+    // Handle autoRun
+    if (autoRun) {
+        hiddenInput.value = autoRun;
+        refreshActiveLine();
+        // Simulate Enter
+        setTimeout(() => {
+            const raw = hiddenInput.value;
+            commitActiveLine(raw);
+            hiddenInput.value = '';
+            dispatch(raw);
+            if (_activeLine === null) createActiveLine();
+        }, 100);
+    }
 
     setTimeout(() => hiddenInput.focus(), 100);
 }
+
+AppRegistry.register({
+    id: 'cmd',
+    name: 'Command Prompt',
+    exe: 'cmd.exe',
+    icon: 'ri-terminal-box-line',
+    launch: (autoRun) => launchCommandPrompt(autoRun),
+    desktopShortcut: true
+});

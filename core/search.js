@@ -26,54 +26,58 @@ function fuzzyScore(query, target) {
     return qi === query.length ? score : 0; // 0 if not all query chars matched
 }
 
-// ── App definitions ───────────────────────────────────────────────────────────
-const APPS = [
-    { name: 'Command Prompt', icon: 'bi-terminal-fill', action: () => launchCommandPrompt() },
-    { name: 'File Explorer', icon: 'bi-folder2-open', action: () => launchFileManager() },
-    { name: 'Control Panel', icon: 'bi-sliders', action: () => launchControlPanel() },
-    { name: 'Notepad', icon: 'bi-file-earmark-text', action: () => launchNotepad() },
-    { name: 'Welcome Gallery', icon: 'bi-balloon-fill', action: () => launchWidgetGallery() }
-];
+// ── App definitions — driven by AppRegistry ───────────────────────────────────
 
 // ── Build app list DOM ────────────────────────────────────────────────────────
-APPS.forEach(app => {
-    const item = document.createElement('div');
-    item.className = 'lde-app-item';
-    item.dataset.name = app.name.toLowerCase();
-    item.innerHTML = `
+function refreshSearchAppList() {
+    _appList.innerHTML = '';
+    const apps = AppRegistry.getAll().map(app => ({
+        name: app.name,
+        icon: app.icon,
+        action: app.launch
+    }));
+
+    apps.forEach(app => {
+        const item = document.createElement('div');
+        item.className = 'lde-app-item';
+        item.dataset.name = app.name.toLowerCase();
+        item.innerHTML = `
 		<div class="lde-app-item-icon">
-			<i class="bi ${app.icon}"></i>
+			<i class="${app.icon}"></i>
 		</div>
 		<span class="lde-app-item-name">${app.name}</span>
 	`;
 
-    // Spotlight glow
-    item.addEventListener('mousemove', (e) => {
-        const r = item.getBoundingClientRect();
-        item.style.setProperty('--glow-x', (e.clientX - r.left) + 'px');
-        item.style.setProperty('--glow-y', (e.clientY - r.top) + 'px');
+        // Spotlight glow
+        item.addEventListener('mousemove', (e) => {
+            const r = item.getBoundingClientRect();
+            item.style.setProperty('--glow-x', (e.clientX - r.left) + 'px');
+            item.style.setProperty('--glow-y', (e.clientY - r.top) + 'px');
+        });
+        // Tilt press
+        item.addEventListener('mousedown', (e) => applyTiltPress(item, e));
+        item.addEventListener('mouseup', () => resetTilt(item));
+        item.addEventListener('mouseleave', () => resetTilt(item));
+
+        item.addEventListener('click', () => {
+            closeSearch();
+            if (app.action) {
+                app.action();
+            } else {
+                wm.createWindow(app.name, `<p style="padding:8px">${app.name}</p>`, { icon: app.icon });
+            }
+        });
+
+        _appList.appendChild(item);
     });
-    // Tilt press
-    item.addEventListener('mousedown', (e) => applyTiltPress(item, e));
-    item.addEventListener('mouseup', () => resetTilt(item));
-    item.addEventListener('mouseleave', () => resetTilt(item));
 
-    item.addEventListener('click', () => {
-        closeSearch();
-        if (app.action) {
-            app.action();
-        } else {
-            wm.createWindow(app.name, `<p style="padding:8px">${app.name}</p>`, { icon: app.icon });
-        }
-    });
+    const noResults = document.createElement('div');
+    noResults.className = 'lde-search-no-results';
+    noResults.textContent = 'No results found';
+    _appList.appendChild(noResults);
+}
 
-    _appList.appendChild(item);
-});
-
-const _noResults = document.createElement('div');
-_noResults.className = 'lde-search-no-results';
-_noResults.textContent = 'No results found';
-_appList.appendChild(_noResults);
+refreshSearchAppList();
 
 // ── Fuzzy filter + keyboard navigation ───────────────────────────────────────
 let _focusedItem = null;
@@ -90,10 +94,11 @@ function setFocusedItem(item) {
 _searchInput.addEventListener('input', () => {
     const q = _searchInput.value.trim();
     const items = Array.from(_appList.querySelectorAll('.lde-app-item'));
+    const noResultsEl = _appList.querySelector('.lde-search-no-results');
 
     if (!q) {
         items.forEach(i => i.classList.remove('hidden'));
-        _noResults.classList.remove('visible');
+        if (noResultsEl) noResultsEl.classList.remove('visible');
         setFocusedItem(null);
         return;
     }
@@ -106,10 +111,10 @@ _searchInput.addEventListener('input', () => {
         const visible = score > 0;
         el.classList.toggle('hidden', !visible);
         if (visible && !firstVisible) firstVisible = el;
-        _appList.insertBefore(el, _noResults);
+        if (noResultsEl) _appList.insertBefore(el, noResultsEl);
     });
 
-    _noResults.classList.toggle('visible', !firstVisible);
+    if (noResultsEl) noResultsEl.classList.toggle('visible', !firstVisible);
     setFocusedItem(firstVisible);
 });
 
@@ -138,14 +143,11 @@ function toggleSearch() {
 }
 
 function openSearch() {
+    refreshSearchAppList(); // Rebuild list from current registry
     _searchPanel.classList.add('open');
     _searchOverlay.classList.add('visible');
     _searchBtn.classList.add('active');
     _searchInput.value = '';
-    // Reset list order and visibility
-    const items = Array.from(_appList.querySelectorAll('.lde-app-item'));
-    items.forEach(i => { i.classList.remove('hidden'); _appList.insertBefore(i, _noResults); });
-    _noResults.classList.remove('visible');
     setTimeout(() => _searchInput.focus(), 60);
 }
 
@@ -157,6 +159,3 @@ function closeSearch() {
 }
 
 _searchOverlay.addEventListener('click', closeSearch);
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && _searchPanel.classList.contains('open')) closeSearch();
-});

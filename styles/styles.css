@@ -1,14 +1,36 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap');
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* ── System Drag/Selection Inhibition ── */
 * {
   -webkit-user-drag: none;
-  user-drag: none;
 }
 
 .lde-win-header,
 .lde-mbar,
 .lde-taskbar,
 .lde-w32-btn,
-.lde-msg-btn {
+.lde-msg-btn,
+.lde-win-btn,
+.lde-mbar-item,
+.lde-ac-tile,
+.lde-ac-icon-tile,
+.lde-cp-nav-item,
+.lde-cp-wallpaper-thumb,
+.lde-fm-btn,
+.lde-fm-sidebar-item,
+.dropdown-item,
+.cal-nav,
+.lde-taskbar-search-btn {
   user-select: none;
   -webkit-user-select: none;
 }
@@ -22,35 +44,7 @@ textarea,
   -webkit-user-select: text;
 }
 
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap');
 
-:root {
-  --menubar-height: 2.3em;
-  --ease: cubic-bezier(.07, -0.07, 0, 1.03);
-  --blur: blur(5px);
-  --font-family: 'Noto Sans', sans-serif;
-
-  /* Thanks https://www.joshwcomeau.com/shadow-palette/ */
-  --shadow-color: 0deg 0% 0%;
-  --shadow-elevation-low:
-    0px 1px 1px hsl(var(--shadow-color) / 0.12),
-    0px 1.5px 1.4px -1.8px hsl(var(--shadow-color) / 0.1),
-    0.1px 3.6px 3.5px -3.6px hsl(var(--shadow-color) / 0.07);
-  --shadow-elevation-medium:
-    0px 1px 1px hsl(var(--shadow-color) / 0.13),
-    0.1px 2.4px 2.3px -1.2px hsl(var(--shadow-color) / 0.11),
-    0.1px 6.9px 6.6px -2.4px hsl(var(--shadow-color) / 0.09),
-    0.4px 18.1px 17.4px -3.6px hsl(var(--shadow-color) / 0.07);
-  --shadow-elevation-high:
-    0px 1px 1px hsl(var(--shadow-color) / 0.12),
-    0.1px 3.3px 3.2px -0.5px hsl(var(--shadow-color) / 0.11),
-    0.1px 6.3px 6px -1px hsl(var(--shadow-color) / 0.1),
-    0.2px 11.4px 10.9px -1.5px hsl(var(--shadow-color) / 0.09),
-    0.4px 20px 19.2px -2.1px hsl(var(--shadow-color) / 0.08),
-    0.7px 33.6px 32.3px -2.6px hsl(var(--shadow-color) / 0.07),
-    1.1px 53.4px 51.3px -3.1px hsl(var(--shadow-color) / 0.06),
-    1.7px 81px 77.8px -3.6px hsl(var(--shadow-color) / 0.05);
-}
 
 #app,
 html,
@@ -59,6 +53,15 @@ body {
   overflow: hidden;
   cursor: url("../res/default.svg"), auto;
   font-family: var(--font-family);
+}
+
+body {
+  opacity: 0;
+  transition: opacity 200ms ease-in-out;
+}
+
+body.loaded {
+  opacity: 1;
 }
 
 @keyframes kaboom {
@@ -202,26 +205,35 @@ body {
 }
 
 .cal-nav {
-  background: none;
-  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   color: white;
   cursor: pointer;
-  padding: 2px 8px;
-  border-radius: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 0 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.1s;
+  position: relative;
+  overflow: hidden;
 }
 
 .cal-nav:hover {
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .cal-nav:active {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--accent-muted);
+  border-color: var(--accent-color);
 }
 
 .calendar-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 2px;
 }
 
 .calendar-table th {
@@ -230,22 +242,42 @@ body {
   color: #888;
   padding-bottom: 5px;
   text-align: center;
+  width: 32px;
 }
 
 .calendar-table td {
   text-align: center;
-  padding: 5px;
+  padding: 0;
+  width: 32px;
+  height: 32px;
   font-size: 0.85rem;
   cursor: default;
-  border-radius: 4px;
+  border-radius: 0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.03);
+  transition: all 0.1s;
+  position: relative;
+  overflow: hidden;
+}
+
+.calendar-table td:empty {
+  background: transparent;
+  border-color: transparent;
+}
+
+.calendar-table td:not(:empty) {
+  cursor: pointer;
 }
 
 .calendar-table td:hover:not(:empty) {
   background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .calendar-table td.today {
-  background-color: #0d6efd;
+  background-color: var(--accent-color) !important;
+  border-color: var(--accent-color) !important;
+  color: white;
   font-weight: bold;
 }
 

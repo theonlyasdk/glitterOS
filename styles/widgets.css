@@ -6,7 +6,7 @@
     --win32-border-light: #444;
     --win32-border-dark: #111;
     --win32-text: #eee;
-    --win32-highlight: #0078d7;
+    --win32-highlight: var(--accent-color);
 }
 
 /* Group Box */

@@ -98,7 +98,7 @@ body.lde-switcher-active #taskbar {
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 0, 0, 0.4);
 }
 
 /* Scaled-down clone of the window */

@@ -1,0 +1,173 @@
+/* ── App Menu Bar (shared across apps) ── */
+.lde-app-menubar {
+    display: flex;
+    background: #2b2b2b;
+    border-bottom: 1px solid #3a3a3a;
+    font-family: var(--font-family, 'Segoe UI', system-ui, sans-serif);
+    font-size: 0.82rem;
+    padding: 0;
+}
+
+.lde-app-menu-item {
+    padding: 3px 10px;
+    cursor: pointer;
+    position: relative;
+    color: #ccc;
+    transition: background 0.1s;
+}
+
+.lde-app-menu-item:hover,
+.lde-app-menu-item.active {
+    background: #3f3f3f;
+    color: #fff;
+}
+
+.lde-app-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 0;
+    background: #2b2b2b;
+    border: 1px solid #444;
+    box-shadow: var(--menu-shadow);
+    z-index: 1000;
+    display: none;
+    min-width: 180px;
+    padding: 2px;
+    font-family: var(--font-family);
+}
+
+.lde-app-menu-item.active .lde-app-dropdown {
+    display: block;
+}
+
+.lde-app-dropdown-item {
+    padding: 6px 20px;
+    white-space: nowrap;
+    color: #eee;
+    font-size: 0.85rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
+
+.lde-app-dropdown-item:hover {
+    background: #3f3f3f;
+    color: #fff;
+}
+
+.lde-app-dropdown-item.disabled {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+.lde-app-dropdown-item .shortcut {
+    color: #888;
+    font-size: 0.75rem;
+    margin-left: 20px;
+}
+
+.lde-app-dropdown-item.danger {
+    color: #f44336;
+}
+
+.lde-app-dropdown-sep {
+    height: 1px;
+    background: #444;
+    margin: 2px 4px;
+}
+
+/* ── Menu Fade Out (Win32 Style) ── */
+.lde-app-menu-item.item-clicked .lde-app-dropdown {
+    display: block !important;
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+    pointer-events: none !important;
+}
+
+/* Hide all other items in the ghosting menu */
+.lde-app-menu-item.item-clicked .lde-app-dropdown>*:not(.lde-dropdown-item-ghost) {
+    visibility: hidden;
+}
+
+/* The ghost item itself fades out */
+.lde-dropdown-item-ghost {
+    background: #3f3f3f !important;
+    color: #fff !important;
+    animation: lde-ghost-fade 300ms forwards;
+    pointer-events: none;
+}
+
+@keyframes lde-ghost-fade {
+    to {
+        opacity: 0;
+    }
+}
+
+/* ── Generic Context Menu ── */
+.lde-context-menu {
+    position: fixed;
+    z-index: 99999;
+    background: #2b2b2b;
+    border: 1px solid #444;
+    box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5);
+    padding: 2px;
+    min-width: 160px;
+    font-family: var(--font-family);
+    animation: menu-pop 0.1s ease-out;
+}
+
+.lde-context-menu.item-clicked {
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+    pointer-events: none !important;
+}
+
+.lde-context-menu.item-clicked>*:not(.lde-dropdown-item-ghost) {
+    visibility: hidden;
+}
+
+@keyframes menu-pop {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.lde-context-menu-item {
+    padding: 6px 20px;
+    font-size: 0.85rem;
+    color: #eee;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.lde-context-menu-item:hover {
+    background: #3f3f3f;
+    color: #fff;
+}
+
+.lde-context-menu-item.danger {
+    color: #f44336;
+}
+
+.lde-context-menu-item.disabled {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+.lde-context-menu-sep {
+    height: 1px;
+    background: #444;
+    margin: 2px 4px;
+}

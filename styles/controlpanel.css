@@ -19,28 +19,49 @@
     background: #252525;
     border-right: 1px solid #333;
     padding: 10px 0;
+    position: relative;
+}
+
+.lde-cp-sidebar-highlighter {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    background: var(--accent-glow);
+    border-left: 3px solid var(--accent-color);
+    transition: top 0.3s cubic-bezier(0.1, 0.9, 0.2, 1), height 0.3s;
+    pointer-events: none;
+    z-index: 0;
 }
 
 .lde-cp-nav-item {
-    padding: 10px 20px;
+    padding: 12px 20px;
     cursor: pointer;
     font-size: 0.9rem;
     display: flex;
     align-items: center;
     gap: 12px;
     color: #bbb;
-    transition: all 0.2s;
+    transition: background 0.2s, color 0.2s, transform 0.12s;
+    position: relative;
+    z-index: 1;
+    border: 1px solid transparent;
+    overflow: hidden;
 }
 
 .lde-cp-nav-item:hover {
-    background: rgba(255, 255, 255, 0.05);
     color: #fff;
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
 }
 
 .lde-cp-nav-item.active {
-    background: rgba(0, 120, 215, 0.2);
     color: #fff;
-    border-left: 3px solid #0078d7;
+    background: transparent;
+    /* Highlighter handles background */
+}
+
+.lde-cp-nav-item:active {
+    transform: scale(0.98);
 }
 
 .lde-cp-content {
@@ -59,8 +80,8 @@
 /* Personalization / Wallpaper Grid */
 .lde-cp-wallpaper-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 15px;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
     margin-top: 20px;
 }
 
@@ -68,18 +89,30 @@
     aspect-ratio: 16/9;
     background-size: cover;
     background-position: center;
-    border: 2px solid transparent;
+    border: 1px solid rgba(255, 255, 255, 0.1);
     cursor: pointer;
-    transition: transform 0.2s;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    transition: transform 0.12s, border-color 0.2s, opacity 0.5s ease;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    position: relative;
+    overflow: hidden;
+    opacity: 0;
+}
+
+.lde-cp-wallpaper-thumb.loaded {
+    opacity: 1;
 }
 
 .lde-cp-wallpaper-thumb:hover {
-    transform: scale(1.05);
-    border-color: #555;
+    border-color: rgba(255, 255, 255, 0.3);
 }
 
 .lde-cp-wallpaper-thumb.active {
-    border-color: #0078d7;
-    box-shadow: 0 0 15px rgba(0, 120, 215, 0.5);
+    border: 2px solid var(--accent-color);
+    box-shadow: none;
+    /* Removed active glow as requested */
+}
+
+.lde-cp-wallpaper-thumb:active {
+    transform: scale(0.96) !important;
+    /* Force shrink on click */
 }

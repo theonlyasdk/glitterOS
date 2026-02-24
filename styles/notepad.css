@@ -80,7 +80,7 @@
     margin-top: 0;
     background: #2b2b2b;
     border: 1px solid #444;
-    box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.5);
+    box-shadow: var(--menu-shadow);
     z-index: 1000;
     display: none;
     min-width: 180px;

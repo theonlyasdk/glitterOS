@@ -1,0 +1,161 @@
+/* ── Registry Editor ──────────────────────────────────────────────────────── */
+
+.lde-regedit {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: #1e1e1e;
+    color: #fff;
+    font-family: var(--font-family);
+    overflow: hidden;
+}
+
+.lde-regedit-toolbar {
+    display: flex;
+    align-items: center;
+    padding: 2px 8px;
+    background: #252525;
+    border-bottom: 1px solid #333;
+    gap: 6px;
+    font-size: 0.8rem;
+}
+
+.lde-regedit-path {
+    flex: 1;
+    background: #1a1a1a;
+    border: 1px solid #444;
+    color: #ccc;
+    padding: 3px 8px;
+    font-size: 0.78rem;
+    font-family: monospace;
+}
+
+.lde-regedit-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* ── Tree Panel ── */
+.lde-regedit-tree {
+    width: 220px;
+    border-right: 1px solid #333;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: #1a1a1a;
+    padding: 4px 0;
+    flex-shrink: 0;
+}
+
+.lde-regedit-node {
+    cursor: pointer;
+    user-select: none;
+}
+
+.lde-regedit-node-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    white-space: nowrap;
+    font-size: 0.82rem;
+    color: #ccc;
+}
+
+.lde-regedit-node-row:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.lde-regedit-node-row.selected {
+    background: var(--accent-muted);
+    color: #fff;
+}
+
+.lde-regedit-node-arrow {
+    width: 14px;
+    text-align: center;
+    font-size: 0.65rem;
+    color: #888;
+    flex-shrink: 0;
+    transition: transform 0.15s;
+}
+
+.lde-regedit-node-arrow.expanded {
+    transform: rotate(90deg);
+}
+
+.lde-regedit-node-icon {
+    font-size: 0.85rem;
+    color: #e8a838;
+    flex-shrink: 0;
+}
+
+.lde-regedit-node-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lde-regedit-children {
+    padding-left: 16px;
+}
+
+/* ── Values Panel ── */
+.lde-regedit-values {
+    flex: 1;
+    overflow: auto;
+    background: #1e1e1e;
+}
+
+.lde-regedit-values-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+}
+
+.lde-regedit-values-table th {
+    position: sticky;
+    top: 0;
+    background: #2b2b2b;
+    text-align: left;
+    padding: 5px 10px;
+    font-weight: 500;
+    border-bottom: 1px solid #444;
+    border-right: 1px solid #3d3d3d;
+    z-index: 5;
+    color: #aaa;
+}
+
+.lde-regedit-values-table td {
+    padding: 3px 10px;
+    border-bottom: 1px solid #2a2a2a;
+    border-right: 1px solid #2a2a2a;
+    color: #ccc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 300px;
+}
+
+.lde-regedit-values-table tr:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.lde-regedit-values-table tr.selected {
+    background: var(--accent-muted);
+    outline: 1px solid var(--accent-color);
+    outline-offset: -1px;
+}
+
+.lde-regedit-type {
+    color: #888;
+    font-style: italic;
+}
+
+/* ── Status Bar ── */
+.lde-regedit-status {
+    padding: 3px 10px;
+    background: #252525;
+    border-top: 1px solid #333;
+    font-size: 0.75rem;
+    color: #888;
+}

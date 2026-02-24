@@ -108,8 +108,17 @@ function launchWidgetGallery() {
     );
 
     wm.createWindow('Widget Gallery', container, {
-        icon: 'bi-grid-3x3-gap-fill',
+        icon: 'ri-magic-line',
         width: 450,
         height: 520
     });
 }
+
+AppRegistry.register({
+    id: 'widgetgallery',
+    name: 'Widget Gallery',
+    exe: 'widgetgallery.exe',
+    icon: 'ri-magic-line',
+    launch: () => launchWidgetGallery(),
+    desktopShortcut: true
+});

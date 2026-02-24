@@ -55,7 +55,7 @@
 }
 
 .lde-fd-sidebar-item.active {
-    background: rgba(0, 120, 215, 0.2);
+    background: var(--accent-muted);
     color: #fff;
 }
 
@@ -86,8 +86,8 @@
 }
 
 .lde-fd-item.selected {
-    background: rgba(0, 120, 215, 0.35);
-    border-color: #0078d7;
+    background: var(--accent-muted);
+    border-color: var(--accent-color);
 }
 
 .lde-fd-item-icon {
@@ -162,8 +162,8 @@
 }
 
 .lde-fd-btn.primary {
-    background: #1b2938;
-    border-color: #0078d7;
+    background: var(--accent-hover);
+    border-color: var(--accent-color);
 }
 
 .lde-fd-nav-btn {

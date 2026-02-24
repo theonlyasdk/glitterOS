@@ -71,9 +71,9 @@ function renderCalendar(dateToRender, direction = null) {
 
     let html = `
 		<div class="calendar-header">
-			<button class="cal-nav" onclick="changeMonth(-1, event)"><i class="bi bi-chevron-left"></i></button>
+			<button class="cal-nav" onclick="changeMonth(-1, event)"><i class="ri-arrow-left-s-line"></i></button>
 			<b>${monthNames[month]} ${year}</b>
-			<button class="cal-nav" onclick="changeMonth(1, event)"><i class="bi bi-chevron-right"></i></button>
+			<button class="cal-nav" onclick="changeMonth(1, event)"><i class="ri-arrow-right-s-line"></i></button>
 		</div>
 		<table class="calendar-table">
 			<thead><tr><th>Su</th><th>Mo</th><th>Tu</th><th>We</th><th>Th</th><th>Fr</th><th>Sa</th></tr></thead>
@@ -87,6 +87,10 @@ function renderCalendar(dateToRender, direction = null) {
     }
     html += '</tr></tbody></table>';
     newPage.innerHTML = html;
+
+    // Register tile effects for nav and dates
+    newPage.querySelectorAll('.cal-nav').forEach(btn => registerTileEffect(btn, { tilt: true, ripple: true, glow: true, liveTilt: true }));
+    newPage.querySelectorAll('.calendar-table td:not(:empty)').forEach(td => registerTileEffect(td, { tilt: true, ripple: true, glow: true, liveTilt: true }));
 
     const oldPage = calendarContainer.querySelector('.calendar-page');
     newPage.style.visibility = 'hidden';

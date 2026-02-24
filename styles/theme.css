@@ -1,0 +1,51 @@
+:root {
+    /* Accent Colors */
+    --accent-color: #0078d7;
+    --accent-hover: #1b2938;
+    --accent-active: #233446;
+    --font-family: 'Noto Sans', sans-serif;
+    --accent-muted: rgba(0, 120, 215, 0.2);
+    --accent-glow: rgba(0, 120, 215, 0.4);
+
+    /* System UI Metrics */
+    --menubar-height: 36px;
+    --taskbar-height: 40px;
+
+    /* Visual Effects */
+    --ease: cubic-bezier(.07, -0.07, 0, 1.03);
+    --blur: blur(5px);
+    --acrylic-blur: blur(48px) saturate(180%) brightness(0.9);
+
+    /* Shadows */
+    --shadow-color: 0deg 0% 0%;
+
+    /* Elevated Surfaces (Search Panel, Action Centre) */
+    --panel-shadow-right: -4px 0 32px rgba(0, 0, 0, 0.5);
+    --panel-shadow-left: 4px 0 32px rgba(0, 0, 0, 0.5);
+
+    /* Menu & Context Surfaces (Win32 / Windows 10 style) */
+    --menu-shadow: 2px 2px 8px rgba(0, 0, 0, 0.45);
+
+    /* Floating Previews & Cards */
+    --floating-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+
+    /* Base Elevation Shadows (Low/Med/High) */
+    --shadow-elevation-low:
+        0px 1px 1px hsl(var(--shadow-color) / 0.12),
+        0px 1.5px 1.4px -1.8px hsl(var(--shadow-color) / 0.1),
+        0.1px 3.6px 3.5px -3.6px hsl(var(--shadow-color) / 0.07);
+    --shadow-elevation-medium:
+        0px 1px 1px hsl(var(--shadow-color) / 0.13),
+        0.1px 2.4px 2.3px -1.2px hsl(var(--shadow-color) / 0.11),
+        0.1px 6.9px 6.6px -2.4px hsl(var(--shadow-color) / 0.09),
+        0.4px 18.1px 17.4px -3.6px hsl(var(--shadow-color) / 0.07);
+    --shadow-elevation-high:
+        0px 1px 1px hsl(var(--shadow-color) / 0.12),
+        0.1px 3.3px 3.2px -0.5px hsl(var(--shadow-color) / 0.11),
+        0.1px 6.3px 6px -1px hsl(var(--shadow-color) / 0.1),
+        0.2px 11.4px 10.9px -1.5px hsl(var(--shadow-color) / 0.09),
+        0.4px 20px 19.2px -2.1px hsl(var(--shadow-color) / 0.08),
+        0.7px 33.6px 32.3px -2.6px hsl(var(--shadow-color) / 0.07),
+        1.1px 53.4px 51.3px -3.1px hsl(var(--shadow-color) / 0.06),
+        1.7px 81px 77.8px -3.6px hsl(var(--shadow-color) / 0.05);
+}

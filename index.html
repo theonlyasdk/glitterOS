@@ -5,9 +5,31 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>glitterOS</title>
+
+	<!-- Preloading Critical Assets -->
+	<link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" as="style"
+		crossorigin="anonymous">
+	<link rel="preload" href="styles/bs-theme.css" as="style">
+	<link rel="preload" href="styles/styles.css" as="style">
+
+	<!-- PWA & Mobile Meta -->
+	<meta name="theme-color" content="#1a1a1a">
+	<meta name="mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+	<meta name="apple-mobile-web-app-title" content="glitterOS">
+
+	<!-- Icons -->
+	<link rel="icon" type="image/png" sizes="32x32" href="res/icons/favicon-32.png">
+	<link rel="icon" type="image/png" sizes="16x16" href="res/icons/favicon-16.png">
+	<link rel="apple-touch-icon" href="res/icons/apple-touch-icon.png">
+	<link rel="manifest" href="manifest.json">
+
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
 		crossorigin="anonymous">
+	<link rel="stylesheet" href="lib/remix-icons/remixicon.css">
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+	<link rel="stylesheet" href="styles/theme.css">
 	<link rel="stylesheet" href="styles/bs-theme.css">
 	<link rel="stylesheet" href="styles/controls.css">
 	<link rel="stylesheet" href="styles/desktop.css">
@@ -20,10 +42,14 @@
 	<link rel="stylesheet" href="styles/cmd.css">
 	<link rel="stylesheet" href="styles/filemanager.css">
 	<link rel="stylesheet" href="styles/switcher.css">
+	<link rel="stylesheet" href="styles/appmenu.css">
 	<link rel="stylesheet" href="styles/notepad.css">
 	<link rel="stylesheet" href="styles/widgets.css">
 	<link rel="stylesheet" href="styles/filedialog.css">
 	<link rel="stylesheet" href="styles/controlpanel.css">
+	<link rel="stylesheet" href="styles/edit.css">
+	<link rel="stylesheet" href="styles/taskmanager.css">
+	<link rel="stylesheet" href="styles/regedit.css">
 	<link rel="stylesheet" href="styles/styles.css">
 </head>
 
@@ -34,20 +60,21 @@
 				<div class="dropdown">
 					<button class="lde-mbar-item" type="button" data-bs-toggle="dropdown" aria-expanded="false"
 						title="System Menu">
-						<b><i class="bi bi-balloon-fill"></i></b>
+						<b><i class="bi-balloon-fill"></i></b>
 					</button>
 					<ul class="dropdown-menu">
 						<li><a class="dropdown-item" href="#" onclick="aboutGlitterOS()">About glitterOS</a></li>
 						<li>
 							<hr class="dropdown-divider">
 						</li>
-						<li><a class="dropdown-item" href="#">System Preferences...</a></li>
+						<li><a class="dropdown-item" href="#" onclick="launchControlPanel()">Control Panel</a></li>
 						<li><a class="dropdown-item" href="#">Force Quit Desktop</a></li>
 						<li>
 							<hr class="dropdown-divider">
 						</li>
-						<li><a class="dropdown-item" href="#">Sleep</a></li>
-						<li><a class="dropdown-item" href="#">Restart</a></li>
+						<li><a class="dropdown-item" href="#"
+								onclick="wm.messageBox('Restart', 'Are you sure you want to restart glitterOS?', { buttons: 'yesno', icon: 'bi-arrow-clockwise', onYes: () => location.reload() })">Restart</a>
+						</li>
 						<li><a class="dropdown-item" href="#"
 								onclick="wm.messageBox('Shut Down', 'Are you sure you want to shut down glitterOS?', { buttons: 'yesno', icon: 'bi-power', onYes: () => { document.body.style.transition = 'opacity 2s'; document.body.style.opacity = '0'; setTimeout(() => location.reload(), 2500); } })">Power
 								off...</a></li>
@@ -101,7 +128,7 @@
 				</div>
 				<button class="lde-mbar-item" id="action-centre-btn" onclick="toggleActionCentre()"
 					title="Action Centre">
-					<i class="bi bi-layout-text-sidebar-reverse"></i>
+					<i class="ri-side-bar-line"></i>
 				</button>
 			</div>
 		</div>
@@ -113,84 +140,77 @@
 				<span id="ac-date-label" class="lde-ac-date"></span>
 			</div>
 			<div class="lde-ac-tiles">
-				<div class="lde-ac-tile active"><i class="bi bi-wifi"></i><span>Wi-Fi</span></div>
-				<div class="lde-ac-tile active"><i class="bi bi-bluetooth"></i><span>Bluetooth</span></div>
-				<div class="lde-ac-tile"><i class="bi bi-airplane"></i><span>Airplane</span></div>
-				<div class="lde-ac-tile active"><i class="bi bi-moon-stars"></i><span>Night Mode</span></div>
-				<div class="lde-ac-tile"><i class="bi bi-battery-charging"></i><span>Battery Saver</span></div>
-				<div class="lde-ac-tile active"><i class="bi bi-brightness-high"></i><span>Brightness</span></div>
+				<div class="lde-ac-tile active"><i class="ri-wifi-line"></i><span>Wi-Fi</span></div>
+				<div class="lde-ac-tile active"><i class="ri-bluetooth-line"></i><span>Bluetooth</span></div>
+				<div class="lde-ac-tile"><i class="ri-plane-line"></i><span>Airplane</span></div>
+				<div class="lde-ac-tile active"><i class="ri-moon-clear-line"></i><span>Night Mode</span></div>
+				<div class="lde-ac-tile"><i class="ri-battery-2-charge-line"></i><span>Battery Saver</span></div>
+				<div class="lde-ac-tile active"><i class="ri-sun-line"></i><span>Brightness</span></div>
 			</div>
 			<div class="lde-ac-sliders">
 				<div class="lde-ac-slider-row">
 					<div class="lde-ac-icon-tile" id="ac-vol-btn" data-muted="false" title="Mute/Unmute">
-						<i class="bi bi-volume-up-fill"></i>
+						<i class="ri-volume-up-line"></i>
 					</div>
 					<input type="range" class="lde-ac-slider" id="ac-vol-slider" value="75">
 				</div>
 				<div class="lde-ac-slider-row">
 					<div class="lde-ac-icon-tile" id="ac-bright-btn" data-toggled="false" title="Toggle Brightness">
-						<i class="bi bi-brightness-high-fill"></i>
+						<i class="ri-sun-line"></i>
 					</div>
 					<input type="range" class="lde-ac-slider" id="ac-bright-slider" value="100">
 				</div>
 			</div>
 		</div>
 		<div id="search-panel" class="lde-search-panel" aria-hidden="true">
+			<div class="lde-app-list-header">Apps</div>
+			<div id="app-list" class="lde-app-list"></div>
 			<div class="lde-search-box-wrap">
-				<i class="bi bi-search lde-search-icon"></i>
+				<i class="ri-search-line lde-search-icon"></i>
 				<input type="text" id="search-input" class="lde-search-input" placeholder="Type here to search"
 					autocomplete="off" spellcheck="false">
 			</div>
-			<div class="lde-app-list-header">Apps</div>
-			<div id="app-list" class="lde-app-list"></div>
 		</div>
 		<div id="search-overlay" class="lde-search-overlay"></div>
 		<div id="desktop" class="lde-desktop"></div>
 		<div id="taskbar" class="lde-taskbar">
 			<div id="search-btn" class="lde-taskbar-search-btn" title="Search" onclick="toggleSearch()">
-				<i class="bi bi-search"></i>
+				<i class="ri-search-line"></i>
 			</div>
 		</div>
 	</div>
 
-	<div class="modal fade" tabindex="-1" id="alert-dialog">
-		<div class="modal-dialog">
-			<div class="modal-content">
-				<div class="modal-header lde-win-header">
-					<h5 class="modal-title" id="alert-title"></h5>
-					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-				</div>
-				<div class="modal-body" id="alert-body">
-				</div>
-				<div class="modal-footer lde-win-footer" id="alert-footer">
-					<button id="alert-btn-close" type="button" class="btn wm-button btn-primary"
-						data-bs-dismiss="modal">Close</button>
-					<button id="alert-btn-1" type="button" class="btn wm-button btn-secondary"></button>
-					<button id="alert-btn-2" type="button" class="btn wm-button btn-secondary"></button>
-				</div>
-			</div>
-		</div>
-	</div>
+
 </body>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
 	crossorigin="anonymous"></script>
 <script src="core/document.js"></script>
 <script src="core/lib.js"></script>
 <script src="core/wm.js"></script>
-<!-- LDE modules (order matters: globals → applets → menubar → action-centre → search → boot) -->
+<!-- LDE modules (order: globals → applets → menubar → action-centre → fs → apps → search → boot) -->
 <script src="core/globals.js"></script>
 <script src="core/applets.js"></script>
 <script src="core/menubar.js"></script>
 <script src="core/action-centre.js"></script>
 <script src="core/fs.js"></script>
-<script src="core/search.js"></script>
 <script src="core/apps/cmd.js"></script>
 <script src="core/apps/filemanager.js"></script>
 <script src="core/apps/notepad.js"></script>
 <script src="core/filedialog.js"></script>
 <script src="core/apps/welcome.js"></script>
+<script src="core/apps/edit.js"></script>
 <script src="core/apps/controlpanel.js"></script>
+<script src="core/apps/taskmanager.js"></script>
+<script src="core/apps/regedit.js"></script>
+<script src="core/search.js"></script>
 <script src="core/switcher.js"></script>
 <script src="core/boot.js"></script>
+<script>
+	if ('serviceWorker' in navigator && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+		window.addEventListener('load', () => {
+			navigator.serviceWorker.register('./sw.js').catch(err => console.error('SW registration failed:', err));
+		});
+	}
+</script>
 
 </html>

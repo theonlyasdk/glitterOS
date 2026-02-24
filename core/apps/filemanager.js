@@ -36,7 +36,7 @@ function launchFileManager(startPath) {
 
     function navigateUp() {
         if (_cwd === 'C:\\') return;
-        const parts = _cwd.split('\\').filter(Boolean);
+        const parts = _cwd.replace('C:\\', '').split('\\').filter(Boolean);
         parts.pop();
         const parent = parts.length === 0 ? 'C:\\' : 'C:\\' + parts.join('\\');
         navigate(parent);
@@ -82,6 +82,12 @@ function launchFileManager(startPath) {
     const upBtn = makeBtn('bi-arrow-up', 'Up', navigateUp);
     const refreshBtn = makeBtn('bi-arrow-clockwise', 'Refresh', () => navigate(_cwd, false));
 
+    const viewBtn = makeBtn('bi-grid-3x3-gap', 'View');
+    viewBtn.onclick = (e) => {
+        e.stopPropagation();
+        showViewDropdown(e.clientX, e.clientY);
+    };
+
     const addressBar = document.createElement('input');
     addressBar.className = 'lde-fm-addressbar';
     addressBar.type = 'text';
@@ -91,8 +97,22 @@ function launchFileManager(startPath) {
         if (e.key === 'Enter') navigate(addressBar.value.trim());
     });
 
-    toolbar.append(backBtn, forwardBtn, upBtn, refreshBtn, addressBar);
+    const newFolderBtn = makeBtn('bi-folder-plus', 'New Folder', createFolder);
+
+    toolbar.append(backBtn, forwardBtn, upBtn, refreshBtn, viewBtn, addressBar, newFolderBtn);
     container.appendChild(toolbar);
+
+    function showViewDropdown(x, y) {
+        ldeShowContextMenu(x, y, [
+            { label: 'Extra large icons', icon: 'bi-grid-3x3-gap-fill', action: () => { } },
+            { label: 'Large icons', icon: 'bi-grid-3x3-gap', action: () => { } },
+            { label: 'Medium icons', icon: 'bi-grid', action: () => { } },
+            { label: 'Small icons', icon: 'bi-view-list', action: () => { } },
+            { type: 'sep' },
+            { label: 'List', icon: 'bi-list-ul', action: () => { } },
+            { label: 'Details', icon: 'bi-table', action: () => { } }
+        ]);
+    }
 
     function updateButtons() {
         backBtn.classList.toggle('disabled', _histIdx <= 0);
@@ -151,63 +171,57 @@ function launchFileManager(startPath) {
 
     // ── Context Menu ──────────────────────────────────────────────────────────
     function showCtxMenu(x, y, forItems) {
-        if (!_ctxMenu) {
-            _ctxMenu = document.createElement('div');
-            _ctxMenu.className = 'lde-fm-contextmenu';
-            document.body.appendChild(_ctxMenu);
-        }
-        _ctxMenu.innerHTML = '';
-
-        const addItem = (label, icon, danger, action) => {
-            const el = document.createElement('div');
-            el.className = 'lde-fm-ctx-item' + (danger ? ' danger' : '');
-            el.innerHTML = `<i class="bi ${icon}"></i>${label}`;
-            el.onclick = () => { _ctxMenu.classList.remove('visible'); action(); };
-            _ctxMenu.appendChild(el);
-        };
+        const items = [];
 
         if (forItems && forItems.length > 0) {
             if (forItems.length === 1) {
                 const name = forItems[0];
                 const path = (_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + name;
                 const isDir = fs.stat(path).type === 'dir';
-                addItem('Open', isDir ? 'bi-folder2-open' : 'bi-eye', false, () => {
-                    if (isDir) navigate(path);
-                    else {
-                        if (!fs.cat(path).error) launchNotepad(path);
+                items.push({
+                    label: 'Open',
+                    icon: isDir ? 'bi-folder2-open' : 'bi-eye',
+                    action: () => {
+                        if (isDir) navigate(path);
+                        else SystemExec.run(path);
                     }
                 });
-                addItem('Rename', 'bi-pencil', false, () => startRename(name));
+                items.push({ label: 'Rename', icon: 'bi-pencil', action: () => startRename(name) });
             }
-            addItem('Delete', 'bi-trash', true, () => {
-                forItems.forEach(name => {
-                    const path = (_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + name;
-                    if (fs.stat(path).type === 'dir') fs.rmdir(path); else fs.rm(path);
-                });
-                _selected = [];
-                renderContent();
+            items.push({
+                label: 'Delete',
+                icon: 'bi-trash',
+                color: 'danger',
+                action: () => {
+                    forItems.forEach(name => {
+                        const path = (_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + name;
+                        if (fs.stat(path).type === 'dir') fs.rmdir(path); else fs.rm(path);
+                    });
+                    _selected = [];
+                    renderContent();
+                }
             });
+
+            if (forItems.length === 1) {
+                items.push({ type: 'sep' });
+                items.push({
+                    label: 'Properties',
+                    icon: 'bi-info-circle',
+                    action: () => {
+                        const path = (_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + forItems[0];
+                        launchPropertiesDialog(path);
+                    }
+                });
+            }
         } else {
-            addItem('New Folder', 'bi-folder-plus', false, createFolder);
-            addItem('New File', 'bi-file-earmark-plus', false, createFile);
-            addItem('Refresh', 'bi-arrow-clockwise', false, () => navigate(_cwd, false));
+            items.push({ label: 'New Folder', icon: 'bi-folder-plus', action: createFolder });
+            items.push({ label: 'New File', icon: 'bi-file-earmark-plus', action: createFile });
+            items.push({ type: 'sep' });
+            items.push({ label: 'Refresh', icon: 'bi-arrow-clockwise', action: () => navigate(_cwd, false) });
         }
 
-        _ctxMenu.classList.add('visible');
-
-        // Auto-adjust position
-        const menuW = _ctxMenu.offsetWidth || 200;
-        const menuH = _ctxMenu.offsetHeight || 150;
-        if (x + menuW > window.innerWidth) x -= menuW;
-        if (y + menuH > window.innerHeight) y -= menuH;
-
-        _ctxMenu.style.left = x + 'px';
-        _ctxMenu.style.top = y + 'px';
+        ldeShowContextMenu(x, y, items);
     }
-
-    window.addEventListener('mousedown', (e) => {
-        if (_ctxMenu && !_ctxMenu.contains(e.target)) _ctxMenu.classList.remove('visible');
-    });
 
     // ── File Operations ──────────────────────────────────────────────────────
     function createFolder() {
@@ -391,7 +405,7 @@ function launchFileManager(startPath) {
                 const path = (_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + entry.name;
                 if (isDir) navigate(path);
                 else {
-                    if (!fs.cat(path).error) launchNotepad(path);
+                    SystemExec.run(path);
                 }
             };
 
@@ -436,8 +450,17 @@ function launchFileManager(startPath) {
     updateStatus();
 
     wm.createWindow('File Explorer', container, {
-        icon: 'bi-folder2-open',
+        icon: 'ri-folder-open-line',
         width: 700,
         height: 480
     });
 }
+
+AppRegistry.register({
+    id: 'filemanager',
+    name: 'File Explorer',
+    exe: 'explorer.exe',
+    icon: 'ri-folder-open-line',
+    launch: (path) => launchFileManager(path),
+    desktopShortcut: true
+});

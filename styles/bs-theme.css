@@ -1,5 +1,5 @@
 .dropdown-menu {
-    box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.5) !important;
+    box-shadow: var(--menu-shadow) !important;
     padding: 2px;
     background-color: #2b2b2b;
     border: 1px solid #444;
@@ -22,7 +22,7 @@
 }
 
 .dropdown-item:active {
-    background-color: #0078d7;
+    background-color: var(--accent-color);
 }
 
 .dropdown-menu .dropdown-divider {

@@ -25,7 +25,11 @@ const fs = (() => {
             },
             {
                 type: 'dir', name: 'Windows', children: [
-                    { type: 'dir', name: 'System32', children: [] },
+                    {
+                        type: 'dir', name: 'System32', children: [
+                            { type: 'file', name: 'edit.exe', content: '[glitterOS System Executable]' },
+                        ]
+                    },
                     { type: 'dir', name: 'Web', children: [] },
                 ]
             },
@@ -228,5 +232,50 @@ const fs = (() => {
             if (!node) return { error: `The system cannot find the path specified.` };
             return { name: node.name, type: node.type };
         },
+
+        getattr(path, key) {
+            const node = _getNode(_resolvePath(path));
+            if (!node) return null;
+            return node[key];
+        },
+
+        setattr(path, key, val) {
+            const node = _getNode(_resolvePath(path));
+            if (!node) return { error: `The system cannot find the path specified.` };
+            node[key] = val;
+            _save();
+            return { ok: true };
+        },
+
+        getattributes(path) {
+            const node = _getNode(_resolvePath(path));
+            if (!node) return null;
+            const attrs = {};
+            const internal = ['name', 'type', 'content', 'children', 'size'];
+            Object.keys(node).forEach(k => {
+                if (!internal.includes(k)) attrs[k] = node[k];
+            });
+            return attrs;
+        }
     };
+})();
+
+// Initialize System32 executables
+(function () {
+    const apps = [
+        { exe: 'notepad.exe', id: 'notepad' },
+        { exe: 'explorer.exe', id: 'filemanager' },
+        { exe: 'taskmgr.exe', id: 'taskmanager' },
+        { exe: 'control.exe', id: 'controlpanel' },
+        { exe: 'regedit.exe', id: 'regedit' },
+        { exe: 'cmd.exe', id: 'cmd' }
+    ];
+
+    apps.forEach(app => {
+        const path = `C:\\Windows\\System32\\${app.exe}`;
+        if (!fs.exists(path)) {
+            fs.write(path, '[glitterOS System Executable]');
+            fs.setattr(path, 'appId', app.id);
+        }
+    });
 })();

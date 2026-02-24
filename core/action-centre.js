@@ -23,64 +23,16 @@ function closeActionCentre() {
     document.getElementById('action-centre-btn').classList.remove('lde-mbar-item-highlight');
 }
 
-// ── Tilt / ripple utilities (shared by tiles and icon buttons) ────────────────
-function applyTiltPress(elem, e) {
-    const rect = elem.getBoundingClientRect();
-    const relX = (e.clientX - rect.left) / rect.width;
-    const relY = (e.clientY - rect.top) / rect.height;
-    const rotY = (relX - 0.5) * 30;
-    const rotX = -(relY - 0.5) * 30;
-    elem.style.transform = `perspective(500px) rotateX(${rotX}deg) rotateY(${rotY}deg) scale(0.93)`;
-}
-
-function resetTilt(elem) { elem.style.transform = ''; }
-
-function spawnRipple(elem, e) {
-    const rect = elem.getBoundingClientRect();
-    const ripple = document.createElement('div');
-    ripple.className = 'lde-ac-tile-ripple';
-    ripple.style.left = (e.clientX - rect.left) + 'px';
-    ripple.style.top = (e.clientY - rect.top) + 'px';
-    elem.appendChild(ripple);
-    ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
-}
-
 // ── Tiles: live-tracking tilt + spotlight glow ────────────────────────────────
 _ac.querySelectorAll('.lde-ac-tile').forEach(tile => {
-    let _pressing = false;
-
-    tile.addEventListener('mousedown', (e) => {
-        _pressing = true;
-        applyTiltPress(tile, e);
-        spawnRipple(tile, e);
-    });
-    tile.addEventListener('mouseup', () => { _pressing = false; resetTilt(tile); });
-    tile.addEventListener('mouseleave', () => { _pressing = false; resetTilt(tile); });
-
-    tile.addEventListener('mousemove', (e) => {
-        const r = tile.getBoundingClientRect();
-        tile.style.setProperty('--glow-x', (e.clientX - r.left) + 'px');
-        tile.style.setProperty('--glow-y', (e.clientY - r.top) + 'px');
-        if (_pressing) applyTiltPress(tile, e); // live tilt tracking
-    });
-
+    registerTileEffect(tile);
     tile.addEventListener('click', () => tile.classList.toggle('active'));
 });
 
 // ── Icon tile buttons: live tilt + glow ──────────────────────────────────
 _ac.querySelectorAll('.lde-ac-icon-tile').forEach(btn => {
-    let _pressing = false;
-
-    btn.addEventListener('mousedown', (e) => { _pressing = true; applyTiltPress(btn, e); });
-    btn.addEventListener('mouseup', () => { _pressing = false; resetTilt(btn); });
-    btn.addEventListener('mouseleave', () => { _pressing = false; resetTilt(btn); });
-
-    btn.addEventListener('mousemove', (e) => {
-        const r = btn.getBoundingClientRect();
-        btn.style.setProperty('--glow-x', (e.clientX - r.left) + 'px');
-        btn.style.setProperty('--glow-y', (e.clientY - r.top) + 'px');
-        if (_pressing) applyTiltPress(btn, e);
-    });
+    // Only tilt and glow for sliders, no ripple usually (but registerTileEffect handles it)
+    registerTileEffect(btn, { tilt: true, ripple: false, glow: true, liveTilt: true });
 });
 
 // ── Slider fill sync ──────────────────────────────────────────────────────────

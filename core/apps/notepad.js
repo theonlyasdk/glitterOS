@@ -62,56 +62,7 @@ function launchNotepad(filePath = null) {
     updateLineNumbers();
 
     // ── Menu Bar Logic ────────────────────────────────────────────────────────
-    const menubar = document.createElement('div');
-    menubar.className = 'lde-notepad-menubar';
-
-    function createMenu(label, items) {
-        const menu = document.createElement('div');
-        menu.className = 'lde-notepad-menu-item';
-        menu.textContent = label;
-
-        const dropdown = document.createElement('div');
-        dropdown.className = 'lde-notepad-dropdown';
-
-        items.forEach(item => {
-            if (item.type === 'sep') {
-                const sep = document.createElement('div');
-                sep.className = 'lde-notepad-dropdown-sep';
-                dropdown.appendChild(sep);
-            } else {
-                const el = document.createElement('div');
-                el.className = 'lde-notepad-dropdown-item';
-                el.innerHTML = `<span>${item.label}</span>${item.shortcut ? `<span class="shortcut">${item.shortcut}</span>` : ''}`;
-                el.onclick = (e) => {
-                    e.stopPropagation();
-                    menu.classList.remove('active');
-                    item.action();
-                };
-                dropdown.appendChild(el);
-            }
-        });
-
-        menu.appendChild(dropdown);
-
-        // Click to toggle
-        menu.onclick = (e) => {
-            e.stopPropagation();
-            const wasActive = menu.classList.contains('active');
-            container.querySelectorAll('.lde-notepad-menu-item').forEach(m => m.classList.remove('active'));
-            if (!wasActive) menu.classList.add('active');
-        };
-
-        // Hover to switch if one is already open
-        menu.onmouseenter = () => {
-            const anyActive = container.querySelector('.lde-notepad-menu-item.active');
-            if (anyActive && anyActive !== menu) {
-                anyActive.classList.remove('active');
-                menu.classList.add('active');
-            }
-        };
-
-        return menu;
-    }
+    const menubar = buildAppMenuBar();
 
     // ── Actions ───────────────────────────────────────────────────────────────
     function saveFile(callback) {
@@ -149,7 +100,7 @@ function launchNotepad(filePath = null) {
         }
     }
 
-    const fileMenu = createMenu('File', [
+    menubar.createMenu('File', [
         {
             label: 'New', shortcut: 'Ctrl+N', action: () => {
                 checkSave(() => {
@@ -197,7 +148,7 @@ function launchNotepad(filePath = null) {
         }
     ]);
 
-    const editMenu = createMenu('Edit', [
+    menubar.createMenu('Edit', [
         { label: 'Undo', shortcut: 'Ctrl+Z', action: () => document.execCommand('undo') },
         { type: 'sep' },
         { label: 'Cut', shortcut: 'Ctrl+X', action: () => { textarea.focus(); document.execCommand('cut'); } },
@@ -207,29 +158,20 @@ function launchNotepad(filePath = null) {
         { label: 'Select All', shortcut: 'Ctrl+A', action: () => { textarea.focus(); textarea.select(); } }
     ]);
 
-    const helpMenu = createMenu('Help', [
+    menubar.createMenu('Help', [
         { label: 'About Notepad', action: () => aboutGlitterOS('Notepad') }
     ]);
-
-    menubar.append(fileMenu, editMenu, helpMenu);
-
-    const onMouseDown = (e) => {
-        if (!menubar.contains(e.target)) {
-            container.querySelectorAll('.lde-notepad-menu-item').forEach(m => m.classList.remove('active'));
-        }
-    };
-    window.addEventListener('mousedown', onMouseDown);
 
     container.append(menubar, editor);
 
     // ── Window Creation ───────────────────────────────────────────────────────
     const winTitle = _currentPath ? _currentPath.split('\\').pop() : 'Untitled';
     const winObj = wm.createWindow(`${winTitle} - Notepad`, container, {
-        icon: 'bi-file-earmark-text',
+        icon: 'ri-file-text-line',
         width: 600,
         height: 400,
         onClose: () => {
-            window.removeEventListener('mousedown', onMouseDown);
+            menubar._cleanup();
         }
     });
 
@@ -252,3 +194,12 @@ function launchNotepad(filePath = null) {
     // Auto-focus textarea
     setTimeout(() => textarea.focus(), 100);
 }
+
+AppRegistry.register({
+    id: 'notepad',
+    name: 'Notepad',
+    exe: 'notepad.exe',
+    icon: 'ri-file-text-line',
+    launch: (path) => launchNotepad(path),
+    desktopShortcut: true
+});

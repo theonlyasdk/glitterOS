@@ -15,11 +15,12 @@
 .lde-fm-toolbar {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 8px 10px;
+    gap: 2px;
+    padding: 4px 4px;
     background: #1f1f1f;
     border-bottom: 1px solid #2b2b2b;
     flex-shrink: 0;
+    height: 40px;
 }
 
 /* Tile-style buttons */
@@ -57,13 +58,13 @@
     flex: 1;
     background: #2b2b2b;
     border: 1px solid #3d3d3d;
-    padding: 4px 12px;
+    padding: 4px 8px;
     color: #ffffff;
     font-size: 0.82rem;
     outline: none;
     font-family: inherit;
     transition: border-color 0.2s, background 0.2s;
-    margin-left: 8px;
+    margin-left: 6px;
 }
 
 .lde-fm-addressbar:hover {
@@ -73,7 +74,7 @@
 
 .lde-fm-addressbar:focus {
     background: #191919;
-    border-color: #0078d7;
+    border-color: var(--accent-color);
 }
 
 /* Body: sidebar + content */
@@ -88,37 +89,35 @@
 .lde-fm-sidebar {
     width: 180px;
     flex-shrink: 0;
-    border-right: 1px solid #2b2b2b;
+    border-right: 1px solid #333;
     overflow-y: auto;
     padding: 8px 0;
-    background: #191919;
+    background: #252525;
 }
 
 .lde-fm-sidebar-item {
+    padding: 4px 12px;
+    font-size: 0.8rem;
+    cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 6px 16px;
-    cursor: pointer;
-    color: #cccccc;
-    font-size: 0.82rem;
-    transition: background 0.1s, color 0.1s;
+    gap: 8px;
+    color: #bbb;
+    transition: none;
 }
 
 .lde-fm-sidebar-item:hover {
     background: rgba(255, 255, 255, 0.05);
-    color: #ffffff;
 }
 
 .lde-fm-sidebar-item.active {
-    background: rgba(0, 120, 215, 0.2);
-    color: #ffffff;
-    font-weight: 500;
+    background: var(--accent-muted);
+    color: #fff;
 }
 
 .lde-fm-sidebar-item i {
-    font-size: 1rem;
-    color: #0078d7;
+    font-size: 0.9rem;
+    color: var(--accent-color);
 }
 
 /* Content area */
@@ -152,8 +151,8 @@
 }
 
 .lde-fm-item.selected {
-    background: rgba(0, 120, 215, 0.3);
-    border-color: rgba(0, 120, 215, 0.6);
+    background: var(--accent-muted);
+    border-color: var(--accent-glow);
 }
 
 .lde-fm-item-icon {
@@ -188,16 +187,24 @@
 }
 
 /* Rename input */
-.lde-fm-item input {
+/* Rename input (Windows 10 Style) */
+.lde-fm-item input,
+.lde-fd-item input {
     width: 90%;
     font-size: 0.72rem;
     text-align: center;
-    background: #191919;
-    border: 1px solid #0078d7;
+    background: #ffffff;
+    border: 1px solid var(--accent-color);
     outline: none;
-    color: #ffffff;
-    padding: 2px;
+    color: #000000;
+    padding: 2px 4px;
     font-family: inherit;
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    box-shadow: 0 0 4px var(--accent-glow);
+    z-index: 10;
 }
 
 /* Status bar */
@@ -220,8 +227,8 @@
     z-index: 10000;
     background: #2b2b2b;
     border: 1px solid #454545;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-    padding: 4px;
+    box-shadow: var(--menu-shadow);
+    padding: 2px;
     min-width: 200px;
     opacity: 0;
     transform: scale(0.98);
@@ -243,7 +250,6 @@
     align-items: center;
     gap: 10px;
     font-size: 0.82rem;
-    border-radius: 2px;
 }
 
 .lde-fm-ctx-item:hover {

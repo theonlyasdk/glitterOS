@@ -41,28 +41,36 @@
             const preview = document.createElement('div');
             preview.className = 'lde-switcher-preview';
 
-            // Clone the window body scaled down
-            const body = winObj.element.querySelector('.lde-win-body');
-            if (body) {
-                const clone = body.cloneNode(true);
-                const bodyW = body.offsetWidth || 400;
-                const bodyH = body.offsetHeight || 300;
-                const scaleX = 178 / bodyW;
-                const scaleY = 108 / bodyH;
+            // Clone the window for preview
+            const winEl = winObj.element;
+            if (winEl) {
+                const clone = winEl.cloneNode(true);
+                // Remove some stuff from clone to make it look like a static preview
+                const controls = clone.querySelector('.lde-win-controls');
+                if (controls) controls.style.display = 'none';
+
+                const winW = winEl.offsetWidth || 400;
+                const winH = winEl.offsetHeight || 300;
+                const scaleX = 178 / winW;
+                const scaleY = 108 / winH;
                 const scale = Math.min(scaleX, scaleY);
+
                 clone.style.transform = `scale(${scale})`;
-                clone.style.width = bodyW + 'px';
-                clone.style.height = bodyH + 'px';
-                clone.style.overflow = 'hidden';
-                clone.style.position = 'relative';
+                clone.style.width = winW + 'px';
+                clone.style.height = winH + 'px';
+                clone.style.left = '0';
+                clone.style.top = '0';
+                clone.style.position = 'absolute';
                 clone.style.pointerEvents = 'none';
+                clone.classList.remove('active');
                 preview.appendChild(clone);
             }
 
             // Label
             const label = document.createElement('div');
             label.className = 'lde-switcher-label';
-            label.innerHTML = `<i class="bi ${winObj.icon || 'bi-window'}"></i><span>${winObj.title}</span>`;
+            const iconClass = winObj.icon.startsWith('ri-') ? winObj.icon : (winObj.icon.startsWith('bi-') ? 'bi ' + winObj.icon : 'ri-' + winObj.icon);
+            label.innerHTML = `<i class="${iconClass}"></i><span>${winObj.title}</span>`;
 
             card.appendChild(preview);
             card.appendChild(label);

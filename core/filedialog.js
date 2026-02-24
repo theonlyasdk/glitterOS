@@ -9,15 +9,89 @@ const filedialog = {
         let _selectedFile = '';
         let win = null;
 
+        // ── Interaction Logic ──────────────────────────────────────────────
+        function startRename(name) {
+            const el = content.querySelector(`[data-name="${CSS.escape(name)}"]`);
+            if (!el) return;
+            const nameEl = el.querySelector('.lde-fd-item-name');
+            const input = document.createElement('input');
+            input.value = name;
+            nameEl.replaceWith(input);
+            input.focus();
+            input.select();
+
+            function commitRename() {
+                const newName = input.value.trim();
+                if (newName && newName !== name) {
+                    const oldP = (_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + name;
+                    const newP = (_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + newName;
+                    const stat = fs.stat(oldP);
+                    if (stat.type === 'file') {
+                        const cat = fs.cat(oldP);
+                        fs.write(newP, cat.content);
+                        fs.rm(oldP);
+                    } else {
+                        fs.mkdir(newP);
+                        fs.rmdir(oldP);
+                    }
+                }
+                renderContent();
+            }
+            input.onblur = commitRename;
+            input.onkeydown = (e) => {
+                if (e.key === 'Enter') input.blur();
+                if (e.key === 'Escape') renderContent();
+            };
+        }
+
+        function showCtxMenu(x, y, entryName = null) {
+            const items = [];
+
+            if (entryName) {
+                items.push({
+                    label: 'Open',
+                    icon: 'bi-folder2-open',
+                    action: () => {
+                        const full = (_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + entryName;
+                        if (fs.stat(full).type === 'dir') navigate(full);
+                        else { _selectedFile = entryName; filenameInput.value = entryName; commit(); }
+                    }
+                });
+                items.push({ label: 'Rename', icon: 'bi-pencil', action: () => startRename(entryName) });
+                items.push({
+                    label: 'Delete',
+                    icon: 'bi-trash',
+                    color: 'danger',
+                    action: () => {
+                        const full = (_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + entryName;
+                        if (fs.stat(full).type === 'dir') fs.rmdir(full); else fs.rm(full);
+                        renderContent();
+                    }
+                });
+            } else {
+                items.push({ label: 'New Folder', icon: 'bi-folder-plus', action: createFolder });
+                items.push({ type: 'sep' });
+                items.push({ label: 'Refresh', icon: 'bi-arrow-clockwise', action: () => renderContent() });
+            }
+
+            ldeShowContextMenu(x, y, items);
+        }
+
+        function createFolder() {
+            let n = 'New folder', i = 1;
+            while (fs.exists((_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + n)) n = `New folder (${++i})`;
+            fs.mkdir((_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + n);
+            renderContent();
+            setTimeout(() => startRename(n), 50);
+        }
+
         // ── Navigation ────────────────────────────────────────────────────────
         function navigate(path) {
-            const res = fs.ls(path);
-            if (res.error) return;
+            if (!fs.exists(path) || fs.stat(path).type !== 'dir') return;
             _cwd = path;
-            _selectedFile = '';
             addressBar.value = _cwd;
-            renderContent();
             renderSidebar();
+            renderContent();
         }
 
         // ── Toolbar ───────────────────────────────────────────────────────────
@@ -45,13 +119,7 @@ const filedialog = {
         newFolderBtn.className = 'lde-fd-nav-btn';
         newFolderBtn.innerHTML = '<i class="bi bi-folder-plus"></i>';
         newFolderBtn.title = 'New Folder';
-        newFolderBtn.onclick = () => {
-            let n = 'New folder', i = 1;
-            while (fs.exists((_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + n)) n = `New folder (${++i})`;
-            fs.mkdir((_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + n);
-            renderContent();
-            // Optional: select it
-        };
+        newFolderBtn.onclick = createFolder;
 
         toolbar.append(upBtn, newFolderBtn, addressBar);
 
@@ -64,6 +132,10 @@ const filedialog = {
 
         const content = document.createElement('div');
         content.className = 'lde-fd-content';
+        content.oncontextmenu = (e) => {
+            e.preventDefault();
+            showCtxMenu(e.clientX, e.clientY);
+        };
 
         body.append(sidebar, content);
 
@@ -123,6 +195,12 @@ const filedialog = {
                     }
                 };
 
+                item.oncontextmenu = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    showCtxMenu(e.clientX, e.clientY, entry.name);
+                };
+
                 content.appendChild(item);
             });
         }
@@ -141,7 +219,7 @@ const filedialog = {
 
         const row2 = document.createElement('div');
         row2.className = 'lde-fd-footer-row';
-        row2.innerHTML = `<div class="lde-fd-label">Save as type:</div>`;
+        row2.innerHTML = `<div class="lde-fd-label">Save as:</div>`;
         const typeSelect = document.createElement('select');
         typeSelect.className = 'lde-fd-select';
         typeSelect.innerHTML = `<option>Text Documents (*.txt)</option><option>All Files (*.*)</option>`;
