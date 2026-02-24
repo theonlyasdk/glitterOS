@@ -56,6 +56,17 @@ _lockScreen.addEventListener('click', (e) => {
 let startY = 0;
 let isDraggingLock = false;
 
+const finishUnlock = () => {
+    _lockScreen.style.transition = 'transform 0.4s ease-out';
+    _lockScreen.style.transform = 'translateY(-100%)';
+    setTimeout(() => {
+        _lockScreen.classList.remove('active');
+        _lockScreen.style.transform = '';
+        _lockScreen.style.transition = '';
+        isDraggingLock = false;
+    }, 400);
+};
+
 _lockScreen.addEventListener('mousedown', (e) => {
     startY = e.clientY;
     isDraggingLock = false;
@@ -70,6 +81,8 @@ _lockScreen.addEventListener('mousedown', (e) => {
 
         if (delta > window.innerHeight / 3) {
             finishUnlock();
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
         }
     };
 
@@ -83,20 +96,7 @@ _lockScreen.addEventListener('mousedown', (e) => {
         }
         document.removeEventListener('mousemove', onMouseMove);
         document.removeEventListener('mouseup', onMouseUp);
-        // Delay resetting isDraggingLock so click event doesn't trigger immediately
         setTimeout(() => { isDraggingLock = false; }, 100);
-    };
-
-    const finishUnlock = () => {
-        _lockScreen.style.transition = 'transform 0.4s ease-out';
-        _lockScreen.style.transform = 'translateY(-100%)';
-        setTimeout(() => {
-            _lockScreen.classList.remove('active');
-            _lockScreen.style.transform = '';
-            _lockScreen.style.transition = '';
-        }, 400);
-        document.removeEventListener('mousemove', onMouseMove);
-        document.removeEventListener('mouseup', onMouseUp);
     };
 
     document.addEventListener('mousemove', onMouseMove);
@@ -118,14 +118,15 @@ _lockScreen.addEventListener('touchstart', (e) => {
     };
 
     const onTouchEnd = (ev) => {
-        _lockScreen.style.transition = '';
         const delta = startY - ev.changedTouches[0].clientY;
         if (delta > window.innerHeight / 4) {
-            _lockScreen.style.transform = 'translateY(-100%)';
-            setTimeout(() => _lockScreen.classList.remove('active'), 300);
+            finishUnlock();
         } else {
             _lockScreen.style.transform = '';
+            _lockScreen.style.transition = '';
         }
+        _lockScreen.removeEventListener('touchmove', onTouchMove);
+        _lockScreen.removeEventListener('touchend', onTouchEnd);
     };
 
     _lockScreen.addEventListener('touchmove', onTouchMove);
