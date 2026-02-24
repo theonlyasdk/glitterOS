@@ -110,7 +110,7 @@ function launchAssistant() {
     sendBtn.disabled = true;
     sendBtn.style.padding = '8px';
     sendBtn.innerHTML = '<i class="bi bi-send-fill"></i>';
-    sendBtn.onclick = handleSend;
+    sendBtn.onclick = () => handleSend();
 
     inputWrap.append(inputArea, sendBtn);
     main.append(messagesContainer, inputWrap);
@@ -220,8 +220,20 @@ function launchAssistant() {
             .replace(/^## (.*$)/gim, '<h4>$1</h4>')
             .replace(/^# (.*$)/gim, '<h3>$1</h3>')
             .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
-            .replace(/\*(.*?)\*/g, '<i>$1</i>')
-            .replace(/\n/g, '<br>');
+            .replace(/\*(.*?)\*/g, '<i>$1</i>');
+
+        // 4a. Lists (Bullet and Ordered)
+        // Group consecutive lines starting with * or - into <ul>
+        html = html.replace(/^[\s]*[\*\-][\s]+(.*)$/gim, '<li>$1</li>');
+        html = html.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>');
+
+        // Group consecutive lines starting with number into <ol>
+        html = html.replace(/^[\s]*[0-9]+\.[\s]+(.*)$/gim, '<li>$1</li>');
+        // Note: This simple regex might wrap adjacent <ul> and <ol> items together. 
+        // A more robust approach would be better but let's try to be smart.
+        // We'll just stick to a basic one for now that is better than nothing.
+
+        html = html.replace(/\n/g, '<br>');
 
         // 5. Restore Code
         codeBlocks.forEach((code, i) => {
@@ -234,9 +246,13 @@ function launchAssistant() {
         // 6. Wrap non-block elements in paragraphs
         const blockSplit = html.split('<pre>');
         html = blockSplit.map((p, i) => {
-            if (i === 0) return `<p>${p}</p>`;
+            if (i === 0) {
+                if (!p.trim()) return '';
+                return `<p>${p}</p>`;
+            }
             const [code, rest] = p.split('</pre>');
-            return `<pre>${code}</pre><p>${rest}</p>`;
+            let wrappedRest = rest.trim() ? `<p>${rest}</p>` : '';
+            return `<pre>${code}</pre>${wrappedRest}`;
         }).join('');
 
         return html;
@@ -338,6 +354,15 @@ function launchAssistant() {
                     contents: thread.messages.map(m => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.text }] }))
                 })
             });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                const errMsg = errorData.error?.message || response.statusText;
+                if (response.status === 429) {
+                    throw new Error("Quota Exceeded (429). You've reached your API rate limit. Please wait a moment or check your Google AI Studio quota.");
+                }
+                throw new Error(`API Error (${response.status}): ${errMsg}`);
+            }
 
             const reader = response.body.getReader();
             const decoder = new TextDecoder();

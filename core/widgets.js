@@ -36,32 +36,38 @@ const Widgets = (() => {
     function registerTileEffect(elem, options = { tilt: true, ripple: true, glow: true, liveTilt: true }) {
         let _pressing = false;
 
-        elem.addEventListener('mousedown', (e) => {
+        const onStart = (e, clientX, clientY) => {
             _pressing = true;
-            if (options.tilt) applyTiltPress(elem, e);
-            if (options.ripple) spawnRipple(elem, e);
-        });
+            if (options.tilt) applyTiltPress(elem, { clientX, clientY });
+            if (options.ripple) spawnRipple(elem, { clientX, clientY });
+        };
 
-        elem.addEventListener('mouseup', () => {
+        const onEnd = () => {
             _pressing = false;
             if (options.tilt) resetTilt(elem);
-        });
+        };
 
-        elem.addEventListener('mouseleave', () => {
-            _pressing = false;
-            if (options.tilt) resetTilt(elem);
-        });
-
-        elem.addEventListener('mousemove', (e) => {
+        const onMove = (clientX, clientY) => {
             if (options.glow) {
                 const r = elem.getBoundingClientRect();
-                elem.style.setProperty('--glow-x', (e.clientX - r.left) + 'px');
-                elem.style.setProperty('--glow-y', (e.clientY - r.top) + 'px');
+                elem.style.setProperty('--glow-x', (clientX - r.left) + 'px');
+                elem.style.setProperty('--glow-y', (clientY - r.top) + 'px');
             }
             if (_pressing && options.liveTilt) {
-                applyTiltPress(elem, e);
+                applyTiltPress(elem, { clientX, clientY });
             }
-        });
+        };
+
+        elem.addEventListener('mousedown', (e) => onStart(e, e.clientX, e.clientY));
+        elem.addEventListener('touchstart', (e) => onStart(e, e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+
+        elem.addEventListener('mouseup', onEnd);
+        elem.addEventListener('touchend', onEnd);
+
+        elem.addEventListener('mouseleave', onEnd);
+
+        elem.addEventListener('mousemove', (e) => onMove(e.clientX, e.clientY));
+        elem.addEventListener('touchmove', (e) => onMove(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
 
         // Ensure element has necessary CSS for these effects
         if (options.ripple || options.glow) {

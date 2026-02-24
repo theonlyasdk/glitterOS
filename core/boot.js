@@ -230,70 +230,89 @@ function gosInitDesktopSelection() {
     marquee.className = 'gos-selection-marquee';
     document.body.appendChild(marquee);
 
-    desktop.addEventListener('mousedown', (e) => {
-        if (e.button !== 0) return; // Left click only
-        if (e.target !== desktop && !e.target.classList.contains('gos-desktop-icons')) return;
-
-        e.preventDefault(); // Prevent browser text selection
-
+    const activateMarquee = (clientX, clientY) => {
         // Clear selection if not modified
-        if (!e.ctrlKey && !e.shiftKey) {
-            document.querySelectorAll('.gos-desktop-shortcut').forEach(el => el.classList.remove('selected'));
-        }
+        document.querySelectorAll('.gos-desktop-shortcut').forEach(el => el.classList.remove('selected'));
 
         const dRect = desktop.getBoundingClientRect();
-        startX = Math.max(dRect.left, Math.min(e.clientX, dRect.right));
-        startY = Math.max(dRect.top, Math.min(e.clientY, dRect.bottom));
+        startX = Math.max(dRect.left, Math.min(clientX, dRect.right));
+        startY = Math.max(dRect.top, Math.min(clientY, dRect.bottom));
 
         marquee.style.left = startX + 'px';
         marquee.style.top = startY + 'px';
         marquee.style.width = '0px';
         marquee.style.height = '0px';
         marquee.style.display = 'block';
+    };
 
-        const onMouseMove = (ev) => {
-            ev.preventDefault();
-            const dRect = desktop.getBoundingClientRect();
+    const moveMarquee = (clientX, clientY, ctrlKey = false, shiftKey = false) => {
+        const dRect = desktop.getBoundingClientRect();
 
-            // Constrain mouse coordinates to desktop viewport
-            const curX = Math.max(dRect.left, Math.min(ev.clientX, dRect.right));
-            const curY = Math.max(dRect.top, Math.min(ev.clientY, dRect.bottom));
+        // Constrain mouse coordinates to desktop viewport
+        const curX = Math.max(dRect.left, Math.min(clientX, dRect.right));
+        const curY = Math.max(dRect.top, Math.min(clientY, dRect.bottom));
 
-            const x = Math.min(startX, curX);
-            const y = Math.min(startY, curY);
-            const w = Math.abs(startX - curX);
-            const h = Math.abs(startY - curY);
+        const x = Math.min(startX, curX);
+        const y = Math.min(startY, curY);
+        const w = Math.abs(startX - curX);
+        const h = Math.abs(startY - curY);
 
-            marquee.style.left = x + 'px';
-            marquee.style.top = y + 'px';
-            marquee.style.width = w + 'px';
-            marquee.style.height = h + 'px';
+        marquee.style.left = x + 'px';
+        marquee.style.top = y + 'px';
+        marquee.style.width = w + 'px';
+        marquee.style.height = h + 'px';
 
-            const mRect = marquee.getBoundingClientRect();
-            document.querySelectorAll('.gos-desktop-shortcut').forEach(icon => {
-                const iRect = icon.getBoundingClientRect();
-                const intersect = !(mRect.left > iRect.right ||
-                    mRect.right < iRect.left ||
-                    mRect.top > iRect.bottom ||
-                    mRect.bottom < iRect.top);
+        const mRect = marquee.getBoundingClientRect();
+        document.querySelectorAll('.gos-desktop-shortcut').forEach(icon => {
+            const iRect = icon.getBoundingClientRect();
+            const intersect = !(mRect.left > iRect.right ||
+                mRect.right < iRect.left ||
+                mRect.top > iRect.bottom ||
+                mRect.bottom < iRect.top);
 
-                if (intersect) {
-                    icon.classList.add('selected');
-                } else if (!ev.ctrlKey && !ev.shiftKey) {
-                    icon.classList.remove('selected');
-                }
-            });
-        };
+            if (intersect) {
+                icon.classList.add('selected');
+            } else if (!ctrlKey && !shiftKey) {
+                icon.classList.remove('selected');
+            }
+        });
+    };
 
-        const onMouseUp = () => {
-            marquee.style.display = 'none';
-            document.removeEventListener('mousemove', onMouseMove);
-            document.removeEventListener('mouseup', onMouseUp);
-        };
+    const deactivateMarquee = () => {
+        marquee.style.display = 'none';
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+        document.removeEventListener('touchmove', onTouchMove);
+        document.removeEventListener('touchend', onMouseUp);
+    };
 
+    const onMouseMove = (ev) => {
+        ev.preventDefault();
+        moveMarquee(ev.clientX, ev.clientY, ev.ctrlKey, ev.shiftKey);
+    };
+
+    const onTouchMove = (ev) => {
+        moveMarquee(ev.touches[0].clientX, ev.touches[0].clientY);
+    };
+
+    const onMouseUp = () => deactivateMarquee();
+
+    desktop.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return; // Left click only
+        if (e.target !== desktop && !e.target.classList.contains('gos-desktop-icons')) return;
+        e.preventDefault();
+        activateMarquee(e.clientX, e.clientY);
         document.addEventListener('mousemove', onMouseMove);
         document.addEventListener('mouseup', onMouseUp);
     });
+
+    desktop.addEventListener('touchstart', (e) => {
+        if (e.target !== desktop && !e.target.classList.contains('gos-desktop-icons')) return;
+        // Don't preventDefault here to allow tap actions (launching icons)
+        activateMarquee(e.touches[0].clientX, e.touches[0].clientY);
+        document.addEventListener('touchmove', onTouchMove);
+        document.addEventListener('touchend', onMouseUp);
+    }, { passive: true });
 }
 
 gosInit();

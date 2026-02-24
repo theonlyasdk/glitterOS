@@ -29,6 +29,24 @@ class WindowManager {
                 this.unfocusActive();
             }
         });
+
+        // Phone/Touch slide support for taskbar
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+
+        this.taskbar.addEventListener('touchstart', (e) => {
+            isDown = true;
+            startX = e.touches[0].pageX - this.taskbar.offsetLeft;
+            scrollLeft = this.taskbar.scrollLeft;
+        }, { passive: true });
+        this.taskbar.addEventListener('touchend', () => isDown = false);
+        this.taskbar.addEventListener('touchmove', (e) => {
+            if (!isDown) return;
+            const x = e.touches[0].pageX - this.taskbar.offsetLeft;
+            const walk = (x - startX) * 2;
+            this.taskbar.scrollLeft = scrollLeft - walk;
+        }, { passive: true });
     }
 
     unfocusActive() {
@@ -39,21 +57,30 @@ class WindowManager {
         }
     }
 
-    /**
-     * Create a new window
-     * @param {string} title 
-     * @param {string|HTMLElement} content 
-     * @param {object} options { x, y, width, height, icon }
-     */
     createWindow(title, content, options = {}) {
+        const isPhone = window.innerWidth < 600;
+        const mbarHeight = document.getElementById('menubar').offsetHeight;
+        const taskbarHeight = document.getElementById('taskbar').offsetHeight;
+        const availableH = window.innerHeight - mbarHeight - taskbarHeight;
+
         const id = 'win-' + Math.random().toString(36).substr(2, 9);
         const win = document.createElement('div');
         win.className = 'gos-window';
         win.id = id;
-        win.style.left = (options.x || 100 + (this.windows.length * 20)) + 'px';
-        win.style.top = (options.y || 50 + (this.windows.length * 20)) + 'px';
-        win.style.width = (options.width || 400) + 'px';
-        win.style.height = (options.height || 300) + 'px';
+
+        if (isPhone) {
+            // Full screen on phone unless it's a messageBox (which is handled later via class)
+            win.style.width = '100%';
+            win.style.height = availableH + 'px';
+            win.style.left = '0';
+            win.style.top = mbarHeight + 'px';
+            if (!options.noControls) win.dataset.maximized = 'true';
+        } else {
+            win.style.left = (options.x || 100 + (this.windows.length * 20)) + 'px';
+            win.style.top = (options.y || 50 + (this.windows.length * 20)) + 'px';
+            win.style.width = (options.width || 400) + 'px';
+            win.style.height = (options.height || 300) + 'px';
+        }
         win.style.zIndex = ++this.zIndexCounter;
 
         const header = document.createElement('div');
@@ -476,6 +503,17 @@ class WindowManager {
             icon: options.icon || 'ri-information-line'
         });
         win.element.classList.add('gos-window-messagebox');
+
+        // Center on phone
+        if (window.innerWidth < 600) {
+            const mbarHeight = document.getElementById('menubar').offsetHeight;
+            const taskbarHeight = document.getElementById('taskbar').offsetHeight;
+            const availableH = window.innerHeight - mbarHeight - taskbarHeight;
+            win.element.style.width = '90%';
+            win.element.style.left = '5%';
+            win.element.style.top = (mbarHeight + (availableH - 190) / 2) + 'px';
+            win.element.style.height = 'auto';
+        }
     }
 
     updateTaskbar() {
@@ -539,67 +577,86 @@ class WindowManager {
         let isDragging = false;
         let draggingMaximized = false;
 
-        header.onmousedown = (e) => {
-            if (e.button !== 0) return; // Left click only for dragging
-            if (e.target.closest('.gos-win-btn') || e.target.closest('.gos-win-icon')) return;
-
-            e.preventDefault();
-            startX = e.clientX;
-            startY = e.clientY;
+        const startDragging = (clientX, clientY) => {
+            startX = clientX;
+            startY = clientY;
             isDragging = false;
             draggingMaximized = win.dataset.maximized === 'true';
+            pos3 = clientX;
+            pos4 = clientY;
+        };
 
-            pos3 = e.clientX;
-            pos4 = e.clientY;
+        const moveDragging = (clientX, clientY) => {
+            // Threshold check before starting actual drag logic
+            if (!isDragging) {
+                const dx = clientX - startX;
+                const dy = clientY - startY;
+                if (dx * dx + dy * dy < 25) return; // 5px threshold squared
 
-            document.onmousemove = (e) => {
-                e.preventDefault();
+                isDragging = true;
+                if (draggingMaximized) {
+                    const oldW = parseFloat(win.dataset.oldWidth);
+                    const mouseXRatio = clientX / window.innerWidth;
+                    const newLeft = clientX - (oldW * mouseXRatio);
 
-                // Threshold check before starting actual drag logic
-                if (!isDragging) {
-                    const dx = e.clientX - startX;
-                    const dy = e.clientY - startY;
-                    if (dx * dx + dy * dy < 25) return; // 5px threshold squared
+                    this.toggleMaximize(win);
+                    win.style.left = newLeft + 'px';
+                    win.style.top = clientY + 'px';
 
-                    isDragging = true;
-                    if (draggingMaximized) {
-                        // Restore but keep under mouse
-                        const oldW = parseFloat(win.dataset.oldWidth);
-                        const mouseXRatio = e.clientX / window.innerWidth;
-                        const newLeft = e.clientX - (oldW * mouseXRatio);
-
-                        this.toggleMaximize(win);
-                        win.style.left = newLeft + 'px';
-                        win.style.top = e.clientY + 'px';
-
-                        // Recalculate positions after restore
-                        pos3 = e.clientX;
-                        pos4 = e.clientY;
-                    }
-                    win.classList.add('dragging');
+                    pos3 = clientX;
+                    pos4 = clientY;
                 }
+                win.classList.add('dragging');
+            }
 
-                pos1 = pos3 - e.clientX;
-                pos2 = pos4 - e.clientY;
-                pos3 = e.clientX;
-                pos4 = e.clientY;
-                win.style.top = (win.offsetTop - pos2) + "px";
-                win.style.left = (win.offsetLeft - pos1) + "px";
+            pos1 = pos3 - clientX;
+            pos2 = pos4 - clientY;
+            pos3 = clientX;
+            pos4 = clientY;
+            win.style.top = (win.offsetTop - pos2) + "px";
+            win.style.left = (win.offsetLeft - pos1) + "px";
 
-                // Check for snapping
-                this.updateSnapPreview(e.clientX, e.clientY);
-            };
+            this.updateSnapPreview(clientX, clientY);
+        };
 
+        const endDragging = () => {
+            if (isDragging) {
+                win.classList.remove('dragging');
+                this.handleSnap(win, pos3, pos4);
+                this.snapPreview.classList.remove('visible');
+            }
+        };
+
+        header.onmousedown = (e) => {
+            if (e.button !== 0) return;
+            if (e.target.closest('.gos-win-btn') || e.target.closest('.gos-win-icon')) return;
+            e.preventDefault();
+            startDragging(e.clientX, e.clientY);
+            document.onmousemove = (e) => moveDragging(e.clientX, e.clientY);
             document.onmouseup = () => {
-                if (isDragging) {
-                    win.classList.remove('dragging');
-                    this.handleSnap(win, pos3, pos4);
-                    this.snapPreview.classList.remove('visible');
-                }
+                endDragging();
                 document.onmouseup = null;
                 document.onmousemove = null;
             };
             this.focusWindow(win.id);
+        };
+
+        header.ontouchstart = (e) => {
+            if (e.target.closest('.gos-win-btn') || e.target.closest('.gos-win-icon')) return;
+            const touch = e.touches[0];
+            startDragging(touch.clientX, touch.clientY);
+            this.focusWindow(win.id);
+        };
+
+        header.ontouchmove = (e) => {
+            if (!startX) return;
+            const touch = e.touches[0];
+            moveDragging(touch.clientX, touch.clientY);
+        };
+
+        header.ontouchend = () => {
+            endDragging();
+            startX = null;
         };
     }
 
@@ -689,32 +746,50 @@ class WindowManager {
     }
 
     makeResizable(win, resizer, type) {
-        resizer.onmousedown = (e) => {
-            if (e.button !== 0) return; // Left click only for resizing
-            e.preventDefault();
+        const startResize = (clientX, clientY) => {
             win.classList.add('resizing');
-            const startWidth = parseFloat(getComputedStyle(win).width);
-            const startHeight = parseFloat(getComputedStyle(win).height);
-            const startX = e.clientX;
-            const startY = e.clientY;
+            const rect = win.getBoundingClientRect();
+            const startWidth = rect.width;
+            const startHeight = rect.height;
+            const startX = clientX;
+            const startY = clientY;
 
-            const doResize = (e) => {
+            const moveResize = (x, y) => {
                 if (type.includes('r')) {
-                    win.style.width = (startWidth + e.clientX - startX) + 'px';
+                    win.style.width = (startWidth + x - startX) + 'px';
                 }
                 if (type.includes('b')) {
-                    win.style.height = (startHeight + e.clientY - startY) + 'px';
+                    win.style.height = (startHeight + y - startY) + 'px';
                 }
             };
 
             const stopResize = () => {
                 win.classList.remove('resizing');
-                document.removeEventListener('mousemove', doResize);
+                document.removeEventListener('mousemove', onMouseMove);
                 document.removeEventListener('mouseup', stopResize);
+                document.removeEventListener('touchmove', onTouchMove);
+                document.removeEventListener('touchend', stopResize);
             };
 
-            document.addEventListener('mousemove', doResize);
+            const onMouseMove = (e) => moveResize(e.clientX, e.clientY);
+            const onTouchMove = (e) => moveResize(e.touches[0].clientX, e.touches[0].clientY);
+
+            document.addEventListener('mousemove', onMouseMove);
             document.addEventListener('mouseup', stopResize);
+            document.addEventListener('touchmove', onTouchMove);
+            document.addEventListener('touchend', stopResize);
+        };
+
+        resizer.onmousedown = (e) => {
+            if (e.button !== 0) return;
+            e.preventDefault();
+            startResize(e.clientX, e.clientY);
+        };
+
+        resizer.ontouchstart = (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            startResize(touch.clientX, touch.clientY);
         };
     }
 }
