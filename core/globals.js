@@ -349,10 +349,10 @@ const SystemExec = {
             }
         }
 
-        // Fallback for .txt or other known extensions
-        if (path.endsWith('.txt')) {
-            const notepad = AppRegistry.get('notepad');
-            if (notepad) notepad.launch(path);
+        // Universal fallback to Notepad for all file types
+        const notepad = AppRegistry.get('notepad');
+        if (notepad) {
+            notepad.launch(path);
             return { ok: true };
         }
 

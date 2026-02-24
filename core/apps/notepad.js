@@ -114,9 +114,7 @@ function launchNotepad(filePath = null) {
                     filedialog.showOpen({
                         onConfirm: (path) => {
                             const res = fs.cat(path);
-                            if (res.error) {
-                                wm.messageBox('Notepad', res.error, { icon: 'bi-x-circle-fill' });
-                            } else {
+                            if (!res.error) {
                                 textarea.value = res.content;
                                 _currentPath = path;
                                 _isDirty = false;

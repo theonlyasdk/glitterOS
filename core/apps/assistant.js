@@ -275,7 +275,7 @@ function launchAssistant() {
                             if (res.func === 'save_to_file' && res.path) {
                                 // Direct string for history/re-render, handle backslashes
                                 const safePath = res.path.replace(/\\/g, '\\\\');
-                                return `<span id="${id}" class="gos-assistant-cmd-feedback completed">File saved to ${res.path}. <span class="gos-assistant-save-link" onclick="if(typeof intelligentOpen === 'function') intelligentOpen('${safePath}')">Click to open.</span></span>`;
+                                return `<span id="${id}" class="gos-assistant-cmd-feedback completed">File saved to ${res.path}. <span class="gos-assistant-save-link" onclick="event.stopPropagation(); if(typeof intelligentOpen === 'function') intelligentOpen('${safePath}')">Click to open.</span></span>`;
                             }
                             return `<span id="${id}" class="gos-assistant-cmd-feedback completed">${getPastTenseFriendlyName(func)}.</span>`;
                         } else {
@@ -376,7 +376,7 @@ function launchAssistant() {
                             // Re-render with real-time friendly command replacements
                             let cmdCount = 0;
                             let streamingHtml = parseMarkdown(aiMsg.text);
-                            streamingHtml = streamingHtml.replace(/gOS_MCPCmd::([a-zA-Z0-9_]+)\(?.*/g, (match, func) => {
+                            streamingHtml = streamingHtml.replace(/gOS_MCPCmd::([a-zA-Z0-9_]+)\(([\s\S]*?)\)/g, (match, func) => {
                                 const id = `cmd-${aiMsg.turnId}-${cmdCount++}`;
                                 return `<span id="${id}" class="gos-assistant-cmd-feedback shimmering">${getFriendlyName(func)}...</span>`;
                             });
@@ -411,21 +411,12 @@ function launchAssistant() {
                 }
             }
 
-            // Final render to ensure everything is stable
-            let cmdCount = 0;
-            let displayHtml = parseMarkdown(aiMsg.text);
-            displayHtml = displayHtml.replace(/gOS_MCPCmd::([a-zA-Z0-9_]+)\(?.*/g, (match, func) => {
-                const id = `cmd-${aiMsg.turnId}-${cmdCount++}`;
-                return `<span id="${id}" class="gos-assistant-cmd-feedback shimmering">${getFriendlyName(func)}...</span>`;
-            });
-            bubble.innerHTML = displayHtml;
-
             if (!hasContent) {
                 aiMsg.text = "Model did not produce any output.";
-                bubble.innerHTML = parseMarkdown(aiMsg.text);
             }
 
             if (!thread.temporary) saveHistory();
+            renderMessages();
         } catch (err) {
             _isThinking = false;
             thread.messages.push({ role: 'ai', isError: true, text: "Error: " + err.message });
@@ -478,10 +469,8 @@ function launchAssistant() {
         if (!path) return;
         const stat = typeof fs !== 'undefined' ? fs.stat(path) : null;
         if (stat && stat.type === 'file') {
-            const ext = path.split('.').pop().toLowerCase();
-            const textExts = ['txt', 'js', 'css', 'html', 'json', 'md', 'xml'];
-            if (textExts.includes(ext)) {
-                if (typeof launchNotepad === 'function') launchNotepad(path);
+            if (typeof launchNotepad === 'function') {
+                launchNotepad(path);
                 return;
             }
         }

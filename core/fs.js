@@ -79,6 +79,13 @@ const fs = (() => {
     _load();
 
     // ── Internal helpers ──────────────────────────────────────────────────────
+    function _error(msg) {
+        if (typeof wm !== 'undefined' && wm.messageBox) {
+            wm.messageBox('File System', msg, { icon: 'bi-x-circle-fill' });
+        }
+        return { error: msg };
+    }
+
     function _getNode(pathSegs) {
         let node = _tree;
         for (const seg of pathSegs) {
@@ -130,8 +137,8 @@ const fs = (() => {
         ls(path = '.') {
             const segs = _resolvePath(path);
             const node = _getNode(segs);
-            if (!node) return { error: `The system cannot find the path specified.` };
-            if (node.type !== 'dir') return { error: `The directory name is invalid.` };
+            if (!node) return _error(`The system cannot find the path specified.`);
+            if (node.type !== 'dir') return _error(`The directory name is invalid.`);
             return {
                 entries: node.children.map(c => ({
                     name: c.name,
@@ -145,8 +152,8 @@ const fs = (() => {
             if (path === '~' || path === '/') { _cwd = ['Users', 'User']; return { ok: true }; }
             const segs = _resolvePath(path);
             const node = _getNode(segs);
-            if (!node) return { error: `The system cannot find the path specified.` };
-            if (node.type !== 'dir') return { error: `The directory name is invalid.` };
+            if (!node) return _error(`The system cannot find the path specified.`);
+            if (node.type !== 'dir') return _error(`The directory name is invalid.`);
             _cwd = segs;
             return { ok: true };
         },
@@ -154,8 +161,8 @@ const fs = (() => {
         cat(path) {
             const segs = _resolvePath(path);
             const node = _getNode(segs);
-            if (!node) return { error: `The system cannot find the file specified.` };
-            if (node.type !== 'file') return { error: `Access is denied.` };
+            if (!node) return _error(`The system cannot find the file specified.`);
+            if (node.type !== 'file') return _error(`Access is denied.`);
             return { content: node.content };
         },
 
@@ -163,8 +170,8 @@ const fs = (() => {
             const segs = _resolvePath(path);
             const name = segs.pop();
             const dirNode = _getNode(segs);
-            if (!dirNode) return { error: `The system cannot find the path specified.` };
-            if (dirNode.type !== 'dir') return { error: `The directory name is invalid.` };
+            if (!dirNode) return _error(`The system cannot find the path specified.`);
+            if (dirNode.type !== 'dir') return _error(`The directory name is invalid.`);
             // Calculate size in bytes
             const size = new TextEncoder().encode(content).length;
             // Case-insensitive check
@@ -184,8 +191,8 @@ const fs = (() => {
             const segs = _resolvePath(path);
             const name = segs.pop();
             const dirNode = _getNode(segs);
-            if (!dirNode) return { error: `The system cannot find the path specified.` };
-            if (dirNode.type !== 'dir') return { error: `The directory name is invalid.` };
+            if (!dirNode) return _error(`The system cannot find the path specified.`);
+            if (dirNode.type !== 'dir') return _error(`The directory name is invalid.`);
             if (!dirNode.children.find(c => c.name.toLowerCase() === name.toLowerCase())) {
                 dirNode.children.push({ type: 'file', name, content: '', size: 0 });
             }
@@ -197,10 +204,10 @@ const fs = (() => {
             const segs = _resolvePath(path);
             const name = segs.pop();
             const dirNode = _getNode(segs);
-            if (!dirNode) return { error: `The system cannot find the path specified.` };
-            if (dirNode.type !== 'dir') return { error: `The directory name is invalid.` };
+            if (!dirNode) return _error(`The system cannot find the path specified.`);
+            if (dirNode.type !== 'dir') return _error(`The directory name is invalid.`);
             if (dirNode.children.find(c => c.name.toLowerCase() === name.toLowerCase()))
-                return { error: `A subdirectory or file already exists.` };
+                return _error(`A subdirectory or file already exists.`);
             dirNode.children.push({ type: 'dir', name, children: [] });
             _save();
             return { ok: true };
@@ -210,9 +217,9 @@ const fs = (() => {
             const segs = _resolvePath(path);
             const name = segs.pop();
             const dirNode = _getNode(segs);
-            if (!dirNode) return { error: `The system cannot find the file specified.` };
+            if (!dirNode) return _error(`The system cannot find the file specified.`);
             const idx = dirNode.children.findIndex(c => c.name.toLowerCase() === name.toLowerCase() && c.type === 'file');
-            if (idx === -1) return { error: `Could Not Find ${name}` };
+            if (idx === -1) return _error(`Could Not Find ${name}`);
             dirNode.children.splice(idx, 1);
             _save();
             return { ok: true };
@@ -222,11 +229,11 @@ const fs = (() => {
             const segs = _resolvePath(path);
             const name = segs.pop();
             const dirNode = _getNode(segs);
-            if (!dirNode) return { error: `The system cannot find the path specified.` };
+            if (!dirNode) return _error(`The system cannot find the path specified.`);
             const idx = dirNode.children.findIndex(c => c.name.toLowerCase() === name.toLowerCase() && c.type === 'dir');
-            if (idx === -1) return { error: `The system cannot find the path specified.` };
+            if (idx === -1) return _error(`The system cannot find the path specified.`);
             if (dirNode.children[idx].children.length)
-                return { error: `The directory is not empty.` };
+                return _error(`The directory is not empty.`);
             dirNode.children.splice(idx, 1);
             _save();
             return { ok: true };
@@ -238,7 +245,7 @@ const fs = (() => {
 
         stat(path) {
             const node = _getNode(_resolvePath(path));
-            if (!node) return { error: `The system cannot find the path specified.` };
+            if (!node) return { error: `The system cannot find the path specified.` }; // stat shouldn't always alert
             // Return N/A size for directories
             const size = node.type === 'dir' ? 'N/A' : (node.size !== undefined ? node.size : (node.content ? new TextEncoder().encode(node.content).length : 0));
             return { name: node.name, type: node.type, size: size };
@@ -252,7 +259,7 @@ const fs = (() => {
 
         setattr(path, key, val) {
             const node = _getNode(_resolvePath(path));
-            if (!node) return { error: `The system cannot find the path specified.` };
+            if (!node) return _error(`The system cannot find the path specified.`);
             node[key] = val;
             _save();
             return { ok: true };
