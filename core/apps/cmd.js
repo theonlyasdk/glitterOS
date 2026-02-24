@@ -20,7 +20,7 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
     container.appendChild(hiddenInput);
 
     // ── State ─────────────────────────────────────────────────────────────────
-    const cmdHistory = [];
+    const cmdHistory = registry.get('cmd.history', []);
     let histIdx = -1;
     let _activeLine = null; // the live editable prompt line at the bottom
 
@@ -204,6 +204,21 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
             const winObj = wm.windows.find(w => w.element === container.closest('.lde-window'));
             if (winObj) wm.closeWindow(winObj.id);
         },
+        history(args) {
+            if (args[0] === 'clear') {
+                cmdHistory.length = 0;
+                registry.set('cmd.history', []);
+                appendLine('Command history cleared.');
+            } else {
+                if (cmdHistory.length === 0) {
+                    appendLine('History is empty.');
+                } else {
+                    [...cmdHistory].reverse().forEach((line, i) => {
+                        appendLine(`  ${i + 1}  ${line}`);
+                    });
+                }
+            }
+        }
     };
 
     // ── Input dispatch ────────────────────────────────────────────────────────
@@ -298,6 +313,9 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
             hiddenInput.value = '';
             if (raw.trim()) {
                 cmdHistory.unshift(raw);
+                // Limit history to 50 items
+                if (cmdHistory.length > 50) cmdHistory.pop();
+                registry.set('cmd.history', cmdHistory);
                 histIdx = -1;
                 dispatch(raw);
             }

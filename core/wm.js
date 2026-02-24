@@ -152,6 +152,12 @@ class WindowManager {
             showSysMenu(e.clientX, e.clientY);
         });
 
+        // Double-click to maximize/restore
+        header.addEventListener('dblclick', (e) => {
+            if (e.target.closest('.lde-win-btn') || e.target.closest('.lde-win-icon')) return;
+            this.toggleMaximize(win);
+        });
+
         // Close sysmenu when clicking elsewhere
         document.addEventListener('mousedown', (e) => {
             if (!sysMenu.contains(e.target) && !iconElem.contains(e.target)) {
