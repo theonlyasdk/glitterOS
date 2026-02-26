@@ -1,7 +1,17 @@
 // ── glitterOS File Dialog (Open/Save) ───────────────────────────────────────
 
 const filedialog = {
+    _activeDialogs: {},
     _createDialog(mode, options) {
+        const dialogToken = options.parentTitle || 'global';
+        if (this._activeDialogs[dialogToken]) {
+            const winObj = typeof wm !== 'undefined' ? wm.windows.find(w => w.id === this._activeDialogs[dialogToken]) : null;
+            if (winObj) {
+                wm.focusWindow(winObj.id);
+                return;
+            }
+        }
+
         const container = document.createElement('div');
         container.className = 'gos-fd-container';
 
@@ -15,6 +25,7 @@ const filedialog = {
             if (!el) return;
             const nameEl = el.querySelector('.gos-fd-item-name');
             const input = document.createElement('input');
+            input.className = 'gos-fd-rename-input';
             input.value = name;
             nameEl.replaceWith(input);
             input.focus();
@@ -44,37 +55,36 @@ const filedialog = {
             };
         }
 
-        function showCtxMenu(x, y, entryName = null) {
-            const items = [];
-
-            if (entryName) {
-                items.push({
-                    label: 'Open',
-                    icon: 'bi-folder2-open',
-                    action: () => {
-                        const full = (_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + entryName;
-                        if (fs.stat(full).type === 'dir') navigate(full);
-                        else { _selectedFile = entryName; filenameInput.value = entryName; commit(); }
-                    }
-                });
-                items.push({ label: 'Rename', icon: 'bi-pencil', action: () => startRename(entryName) });
-                items.push({
-                    label: 'Delete',
-                    icon: 'bi-trash',
-                    color: 'danger',
-                    action: () => {
-                        const full = (_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + entryName;
-                        if (fs.stat(full).type === 'dir') fs.rmdir(full); else fs.rm(full);
-                        renderContent();
-                    }
-                });
-            } else {
-                items.push({ label: 'New Folder', icon: 'bi-folder-plus', action: createFolder });
-                items.push({ type: 'sep' });
-                items.push({ label: 'Refresh', icon: 'bi-arrow-clockwise', action: () => renderContent() });
-            }
-
-            gosShowContextMenu(x, y, items);
+        function showCtxMenu(x, y, entry = null) {
+            const selectedItems = entry ? [entry] : [];
+            gosShowFileContextMenu(x, y, selectedItems, _cwd, {
+                onOpen: (items) => {
+                    const first = items[0];
+                    const full = (_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + first.name;
+                    if (fs.stat(full).type === 'dir') navigate(full);
+                    else { _selectedFile = first.name; filenameInput.value = first.name; commit(); }
+                },
+                onRename: (item) => startRename(item.name),
+                onDelete: (items) => {
+                    const first = items[0];
+                    const full = (_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + first.name;
+                    if (fs.stat(full).type === 'dir') fs.rmdir(full, true); else fs.rm(full);
+                    renderContent();
+                },
+                onNewFolder: createFolder,
+                onNewFile: () => {
+                    let n = 'New file.txt', i = 1;
+                    while (fs.exists((_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + n)) n = `New file (${++i}).txt`;
+                    fs.touch((_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + n);
+                    renderContent();
+                    setTimeout(() => startRename(n), 50);
+                },
+                onRefresh: () => renderContent(),
+                onProperties: (item) => {
+                    const path = item.isCwd ? _cwd : (_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + item.name;
+                    if (typeof launchPropertiesDialog === 'function') launchPropertiesDialog(path);
+                }
+            });
         }
 
         function createFolder() {
@@ -87,7 +97,11 @@ const filedialog = {
 
         // ── Navigation ────────────────────────────────────────────────────────
         function navigate(path) {
-            if (!fs.exists(path) || fs.stat(path).type !== 'dir') return;
+            if (!fs.exists(path)) {
+                wm.messageBox('Error', `The directory ${path} does not exist.`, { icon: 'bi-x-circle-fill' });
+                return;
+            }
+            if (fs.stat(path).type !== 'dir') return;
             _cwd = path;
             addressBar.value = _cwd;
             renderSidebar();
@@ -102,11 +116,11 @@ const filedialog = {
         upBtn.className = 'gos-fd-nav-btn';
         upBtn.innerHTML = '<i class="bi bi-arrow-up"></i>';
         upBtn.onclick = () => {
-            const parts = _cwd.split('\\').filter(Boolean);
-            if (parts.length > 0) {
-                parts.pop();
-                navigate(parts.length === 0 ? 'C:\\' : 'C:\\' + parts.join('\\'));
-            }
+            if (_cwd === 'C:\\') return;
+            const parts = _cwd.replace('C:\\', '').split('\\').filter(Boolean);
+            parts.pop();
+            const parent = (parts.length === 0) ? 'C:\\' : 'C:\\' + parts.join('\\');
+            navigate(parent);
         };
 
         const addressBar = document.createElement('input');
@@ -142,6 +156,7 @@ const filedialog = {
         function renderSidebar() {
             sidebar.innerHTML = '';
             const QC = [
+                { name: 'Users', path: 'C:\\Users', icon: 'bi-people' },
                 { name: 'Desktop', path: 'C:\\Users\\User\\Desktop', icon: 'bi-display' },
                 { name: 'Documents', path: 'C:\\Users\\User\\Documents', icon: 'bi-file-earmark-text' },
                 { name: 'Downloads', path: 'C:\\Users\\User\\Downloads', icon: 'bi-download' },
@@ -198,43 +213,56 @@ const filedialog = {
                 item.oncontextmenu = (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    showCtxMenu(e.clientX, e.clientY, entry.name);
+                    showCtxMenu(e.clientX, e.clientY, entry);
                 };
 
                 content.appendChild(item);
             });
         }
 
-        // ── Footer ───────────────────────────────────────────────────────────
         const footer = document.createElement('div');
         footer.className = 'gos-fd-footer';
+        footer.style.cssText = 'padding: 12px; background: #2b2b2b; border-top: 1px solid #333; display: flex; align-items: flex-end; justify-content: space-between; gap: 20px;';
+
+        // Left side inputs
+        const inputsCol = document.createElement('div');
+        inputsCol.style.cssText = 'flex: 1; display: flex; flex-direction: column; gap: 8px;';
 
         const row1 = document.createElement('div');
-        row1.className = 'gos-fd-footer-row';
-        row1.innerHTML = `<div class="gos-fd-label">File name:</div>`;
+        row1.style.cssText = 'display: flex; align-items: center; gap: 10px;';
+        row1.innerHTML = `<div class="gos-fd-label" style="width: 70px; text-align: right; font-size: 0.85rem; color: #888;">File name:</div>`;
         const filenameInput = document.createElement('input');
         filenameInput.className = 'gos-fd-input';
         filenameInput.value = options.defaultName || '';
+        filenameInput.style.cssText = 'flex: 1; background: #1a1a1a; border: 1px solid #444; color: #fff; padding: 4px 8px; font-size: 0.85rem;';
         row1.appendChild(filenameInput);
 
         const row2 = document.createElement('div');
-        row2.className = 'gos-fd-footer-row';
-        row2.innerHTML = `<div class="gos-fd-label">Save as:</div>`;
+        row2.style.cssText = 'display: flex; align-items: center; gap: 10px;';
+        row2.innerHTML = `<div class="gos-fd-label" style="width: 70px; text-align: right; font-size: 0.85rem; color: #888;">Save as:</div>`;
         const typeSelect = document.createElement('select');
         typeSelect.className = 'gos-fd-select';
         typeSelect.innerHTML = `<option>Text Documents (*.txt)</option><option>All Files (*.*)</option>`;
+        typeSelect.style.cssText = 'flex: 1; background: #1a1a1a; border: 1px solid #444; color: #fff; padding: 4px 8px; font-size: 0.85rem;';
         row2.appendChild(typeSelect);
 
-        const row3 = document.createElement('div');
-        row3.className = 'gos-fd-footer-row';
-        const cancelBtn = document.createElement('button');
-        cancelBtn.className = 'gos-fd-btn me-2';
-        cancelBtn.textContent = 'Cancel';
-        cancelBtn.onclick = () => wm.closeWindow(win.id);
+        inputsCol.append(row1, row2);
+
+        // Right side buttons
+        const btnsCol = document.createElement('div');
+        btnsCol.style.cssText = 'display: flex; flex-direction: column; gap: 8px; width: 85px;';
 
         const commitBtn = document.createElement('button');
         commitBtn.className = 'gos-fd-btn primary';
         commitBtn.textContent = mode === 'save' ? 'Save' : 'Open';
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'gos-fd-btn';
+        cancelBtn.textContent = 'Cancel';
+        cancelBtn.onclick = () => wm.closeWindow(win.id);
+
+        btnsCol.append(commitBtn, cancelBtn);
+        footer.append(inputsCol, btnsCol);
 
         function commit() {
             const name = filenameInput.value.trim();
@@ -257,10 +285,6 @@ const filedialog = {
         }
         commitBtn.onclick = commit;
 
-        row3.append(commitBtn, cancelBtn);
-
-        footer.append(row1, row2, row3);
-
         container.append(toolbar, body, footer);
 
         win = wm.createWindow(mode === 'save' ? 'Save As' : 'Open', container, {
@@ -268,8 +292,15 @@ const filedialog = {
             height: 420,
             noResize: true,
             noControls: true, // Typically dialogs have fewer controls
-            icon: mode === 'save' ? 'bi-save' : 'bi-folder2-open'
+            icon: mode === 'save' ? 'bi-save' : 'bi-folder2-open',
+            modal: true,
+            parentTitle: options.parentTitle
         });
+
+        this._activeDialogs[dialogToken] = win.id;
+        win.onClose = () => {
+            delete this._activeDialogs[dialogToken];
+        };
 
         renderSidebar();
         renderContent();

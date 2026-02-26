@@ -15,8 +15,11 @@ function gosInit() {
     gosInitDesktopIcons();
     gosInitDesktopSelection();
 
+    if (typeof SysLog !== 'undefined') SysLog.info("glitterOS: Core UI elements initialized.");
+
     // Fade in the desktop
     document.body.classList.add('loaded');
+    if (typeof SysLog !== 'undefined') SysLog.info("glitterOS: Desktop loaded.");
 
     // Disable browser right-click menu globally and show custom desktop menu
     document.addEventListener('contextmenu', (e) => {
@@ -28,15 +31,18 @@ function gosInit() {
                 { label: 'Refresh', icon: 'bi-arrow-clockwise', action: () => gosInitDesktopIcons() },
                 { type: 'sep' },
                 {
-                    label: 'New', icon: 'bi-plus-circle', action: () => {
-                        gosShowContextMenu(e.clientX + 160, e.clientY, [
+                    label: 'New', icon: 'bi-plus-circle', hasSubmenu: true,
+                    onMouseEnter: (e, el) => {
+                        const rect = el.getBoundingClientRect();
+                        gosShowContextMenu(rect.right, rect.top, [
                             { label: 'Folder', icon: 'bi-folder-plus', action: () => { } },
                             { label: 'Text Document', icon: 'bi-file-earmark-plus', action: () => { } }
-                        ]);
-                    }
+                        ], true);
+                    },
+                    action: () => { }
                 },
                 { type: 'sep' },
-                { label: 'Display settings', icon: 'bi-monitor', action: () => AppRegistry.get('controlpanel')?.launch() },
+                { label: 'Display settings', icon: 'bi-display', action: () => AppRegistry.get('controlpanel')?.launch() },
                 { label: 'Personalize', icon: 'bi-palette', action: () => AppRegistry.get('controlpanel')?.launch() }
             ]);
         }

@@ -125,16 +125,115 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
             }
         };
 
+        menu.onmouseenter = () => {
+            const anyActive = menubar.querySelector('.gos-edit-menu-item.active');
+            if (anyActive && anyActive !== menu) {
+                const idx = menuElements.indexOf(menu);
+                closeAllMenus();
+                menu.classList.add('active');
+                _activeMenuIdx = idx;
+            }
+        };
+
         menuElements.push(menu);
         menuItemsData.push(myItems);
         return menu;
     }
 
     function exitEditor() {
-        if (_isDirty && !confirm('File not saved. Exit anyway?')) {
+        if (_isDirty) {
+            // Display an inline ncurses style dialogue within the editor area itself
+            closeAllMenus();
+
+            // Build the overlay wrapper manually to capture all events
+            const overlay = document.createElement('div');
+            overlay.className = 'gos-edit-ncurses-overlay';
+
+            // Build the retro text UI popup
+            const dialog = document.createElement('div');
+            dialog.className = 'gos-edit-ncurses-dialog';
+
+            // Replicate classic DOS edit 'File not saved.' style frame
+            dialog.innerHTML = `
+                <div class="gos-edit-ncurses-title">Warning</div>
+                <div class="gos-edit-ncurses-body">
+                    <div style="text-align:center; margin-bottom:15px;">
+                        File has not been saved.<br>
+                        Save now?
+                    </div>
+                </div>
+            `;
+
+            // Button zone
+            const btnZone = document.createElement('div');
+            btnZone.className = 'gos-edit-ncurses-buttons';
+
+            const btnYes = document.createElement('div');
+            btnYes.className = 'gos-edit-ncurses-btn active'; // focus default
+            btnYes.textContent = 'Yes';
+
+            const btnNo = document.createElement('div');
+            btnNo.className = 'gos-edit-ncurses-btn';
+            btnNo.textContent = 'No';
+
+            const btnCancel = document.createElement('div');
+            btnCancel.className = 'gos-edit-ncurses-btn';
+            btnCancel.textContent = 'Cancel';
+
+            btnZone.append(btnYes, btnNo, btnCancel);
+            dialog.querySelector('.gos-edit-ncurses-body').appendChild(btnZone);
+            overlay.appendChild(dialog);
+
+            // Selection mechanics logic
+            const btns = [btnYes, btnNo, btnCancel];
+            let activeIdx = 0;
+
+            function updateBtns() {
+                btns.forEach((b, i) => b.classList.toggle('active', i === activeIdx));
+            }
+
+            function performAction(index) {
+                overlay.remove();
+                if (index === 0) {
+                    saveFile(() => performExit()); // YES
+                } else if (index === 1) {
+                    performExit(); // NO
+                }
+                // CANCEL (index 2) does nothing, just closes dialog
+                setTimeout(() => textarea.focus(), 10);
+            }
+
+            btns.forEach((btn, i) => {
+                btn.onclick = () => performAction(i);
+                btn.onmouseenter = () => { activeIdx = i; updateBtns(); };
+            });
+
+            overlay.tabIndex = 0; // force focusable
+            overlay.onkeydown = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (e.key === 'ArrowRight' || e.key === 'Tab') {
+                    activeIdx = (activeIdx + 1) % btns.length;
+                    updateBtns();
+                } else if (e.key === 'ArrowLeft') {
+                    activeIdx = (activeIdx - 1 + btns.length) % btns.length;
+                    updateBtns();
+                } else if (e.key === 'Enter') {
+                    performAction(activeIdx);
+                } else if (e.key === 'Escape') {
+                    performAction(2); // Cancel
+                }
+            };
+
+            container.appendChild(overlay);
+            overlay.focus();
             return;
         }
 
+        performExit();
+    }
+
+    function performExit() {
         if (parentContainer) {
             // Restore CMD
             parentContainer.innerHTML = '';
@@ -144,7 +243,11 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
             }
             if (onExit) onExit();
         } else {
-            wm.closeWindow(winObj.id);
+            // Need a hard force skip past the onClose hook we injected, so unbind it locally first.
+            if (winObj) {
+                winObj.onClose = null;
+                wm.closeWindow(winObj.id);
+            }
         }
     }
 
@@ -153,6 +256,7 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
         {
             label: 'Open...', action: () => {
                 filedialog.showOpen({
+                    parentTitle: 'edit.exe',
                     onConfirm: (path) => {
                         const res = fs.cat(path);
                         if (!res.error) {
@@ -170,6 +274,7 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
         {
             label: 'Save As...', action: () => {
                 filedialog.showSave({
+                    parentTitle: 'edit.exe',
                     defaultName: _currentPath ? _currentPath.split('\\').pop() : 'UNTITLED.TXT',
                     onConfirm: (path) => {
                         _currentPath = path;
@@ -181,20 +286,64 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
         { label: 'Exit', action: exitEditor }
     ]);
 
-    menubar.append(fileMenu);
+    const editMenu = createMenu('Edit', [
+        { label: 'Cut', action: () => document.execCommand('cut') },
+        { label: 'Copy', action: () => document.execCommand('copy') },
+        {
+            label: 'Paste', action: () => {
+                navigator.clipboard.readText().then(text => {
+                    const start = textarea.selectionStart;
+                    const end = textarea.selectionEnd;
+                    textarea.value = textarea.value.substring(0, start) + text + textarea.value.substring(end);
+                    textarea.selectionStart = textarea.selectionEnd = start + text.length;
+                    _isDirty = true;
+                    updateLineNumbers();
+                    updateCursorInfo();
+                }).catch(err => {
+                    console.error('Failed to read clipboard contents: ', err);
+                });
+            }
+        },
+        {
+            label: 'Select All', action: () => {
+                textarea.select();
+            }
+        }
+    ]);
+    const viewMenu = createMenu('View', [
+        {
+            label: 'Toggle Status Bar', action: () => {
+                statusbar.style.display = statusbar.style.display === 'none' ? 'flex' : 'none';
+            }
+        }
+    ]);
+    const helpMenu = createMenu('Help', [
+        {
+            label: 'About', action: () => {
+                if (typeof wm !== 'undefined') {
+                    wm.messageBox('edit.exe', 'glitterOS MS-DOS Style Editor<br>Version 1.0', { icon: 'bi-info-circle' });
+                }
+            }
+        }
+    ]);
+
+    menubar.append(fileMenu, editMenu, viewMenu, helpMenu);
 
     // ── Logic ───────────────────────────────────────────────────────────────
-    function saveFile() {
+    function saveFile(callback) {
         if (!_currentPath) {
             filedialog.showSave({
+                parentTitle: 'edit.exe',
                 defaultName: 'UNTITLED.TXT',
                 onConfirm: (path) => {
                     _currentPath = path;
                     performSave();
+                    if (callback) callback();
                 }
             });
         } else {
             performSave();
+            if (callback) callback();
         }
     }
 
@@ -230,9 +379,8 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
         cursorPos.innerHTML = `Line:${line}  Col:${col}`;
 
         // Update highlight
-        const style = window.getComputedStyle(textarea);
-        const lineHeight = parseFloat(style.lineHeight) || 19.2;
-        const paddingTop = parseFloat(style.paddingTop) || 5;
+        const lineHeight = 20;
+        const paddingTop = 10;
 
         highlight.style.top = (paddingTop + (line - 1) * lineHeight - textarea.scrollTop) + 'px';
         highlight.style.display = 'block';
@@ -250,7 +398,20 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
         updateCursorInfo();
     });
 
+    // Disable smooth scrolling and force TTY-style line step scrolling
+    textarea.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const direction = Math.sign(e.deltaY);
+        // Assuming line-height is 20px based on our CSS variables
+        const lineHeight = 20;
+        const lineCount = 3; // jump 3 lines per standard wheel tick like many terminal emulators
+        textarea.scrollTop += direction * (lineHeight * lineCount);
+    }, { passive: false });
+
     container.addEventListener('keydown', (e) => {
+        // If an overlay dialogue is visible, ignore generic container hotkeys
+        if (container.querySelector('.gos-edit-ncurses-overlay')) return;
+
         if (e.key === 'Alt') {
             e.preventDefault();
             if (_activeMenuIdx === -1) {
@@ -340,8 +501,9 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
 
     if (winObj) {
         winObj.onClose = () => {
-            if (_isDirty && !confirm('File not saved. Exit anyway?')) {
-                return false; // Prevent closing
+            if (_isDirty) {
+                exitEditor(); // launches the interactive box instead!
+                return false; // Prevent immediate UI closing
             }
             window.removeEventListener('mousedown', onMouseDown);
             return true; // Allow closing
@@ -350,8 +512,9 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
         // If inline, we need to clean up when the parent window closes
         const originalOnClose = _targetWin.onClose;
         _targetWin.onClose = () => {
-            if (_isDirty && !confirm('File not saved. Exit anyway?')) {
-                return false; // Prevent closing
+            if (_isDirty) {
+                exitEditor();
+                return false; // Prevent closing immediately
             }
             window.removeEventListener('mousedown', onMouseDown);
             if (originalOnClose) return originalOnClose();
@@ -368,5 +531,7 @@ AppRegistry.register({
     exe: 'edit.exe',
     icon: 'bi-pencil-square',
     launch: (path) => launchEdit(path),
-    desktopShortcut: false
+    desktopShortcut: false,
+    acceptsFiles: true,
+    supportedExtensions: ['txt', 'md', 'js', 'css', 'json', 'bat']
 });

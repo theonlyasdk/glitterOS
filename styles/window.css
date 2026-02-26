@@ -325,3 +325,22 @@
 .gos-snap-preview.visible {
 	opacity: 1;
 }
+
+@keyframes modal-flash {
+	0% {
+		filter: brightness(1);
+	}
+
+	50% {
+		filter: brightness(1.2);
+		transform: scale(1.005);
+	}
+
+	100% {
+		filter: brightness(1);
+	}
+}
+
+.gos-window.modal-flash {
+	animation: modal-flash 0.15s ease-in-out;
+}

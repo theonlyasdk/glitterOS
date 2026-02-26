@@ -67,17 +67,14 @@
 }
 
 .gos-mbar-item:hover {
-    color: white;
-    background-color: rgba(255, 255, 255, 0.3);
-    border-radius: 0;
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
 }
 
-.gos-mbar-item:focus {
-    background-color: rgba(255, 255, 255, 0.15);
-}
-
-.gos-mbar-item:active {
-    background-color: rgba(255, 255, 255, 0.2);
+.gos-mbar-item:active,
+.gos-mbar-item.show {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
 }
 
 .gos-mbar-item-highlight {

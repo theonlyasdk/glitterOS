@@ -117,7 +117,7 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         },
         ver() {
             appendLine('glitterOS [Version 4.2.0.6969]');
-            appendHTML('(c) glitterOS Corporation. All rights reserved. Type <span style="color:#e8c84a">HELP</span> for help.');
+            appendHTML('(c) theonlyasdk 2026. All rights reserved. Type <span style="color:#e8c84a">HELP</span> for help.');
             appendLine('glitterOS Command Prompt v1.0');
         },
         cd(args) {
@@ -232,13 +232,43 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         }
     };
 
+    function tokenize(line) {
+        const tokens = [];
+        let current = "";
+        let inQuotes = false;
+        let quoteChar = "";
+
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if ((char === '"' || char === "'") && (i === 0 || line[i - 1] !== '\\')) {
+                if (inQuotes && char === quoteChar) {
+                    inQuotes = false;
+                } else if (!inQuotes) {
+                    inQuotes = true;
+                    quoteChar = char;
+                } else {
+                    current += char;
+                }
+            } else if (char === ' ' && !inQuotes) {
+                if (current) {
+                    tokens.push(current);
+                    current = "";
+                }
+            } else {
+                current += char;
+            }
+        }
+        if (current) tokens.push(current);
+        return tokens;
+    }
+
     // ── Input dispatch ────────────────────────────────────────────────────────
     function dispatch(raw) {
         const line = raw.trim();
         if (!line) return;
 
-        // Try built-in commands first
-        const tokens = line.split(/\s+/);
+        const tokens = tokenize(line);
+        if (tokens.length === 0) return;
         const cmd = tokens[0].toLowerCase();
         const args = tokens.slice(1);
 
@@ -356,13 +386,89 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         }
     });
 
-    // Clicking anywhere in the terminal focuses the hidden input
-    terminal.addEventListener('click', () => hiddenInput.focus());
-    container.addEventListener('click', () => hiddenInput.focus());
+    const focusIfNoSelection = () => {
+        if (!window.getSelection().toString()) hiddenInput.focus();
+    };
+    terminal.addEventListener('click', focusIfNoSelection);
+    container.addEventListener('click', (e) => {
+        if (e.target === container) focusIfNoSelection();
+    });
+
+    let isBlockSelecting = false;
+    let blockStart = null;
+    let blockRect = null;
+
+    terminal.addEventListener('mousedown', (e) => {
+        if (e.ctrlKey && e.button === 0) {
+            e.preventDefault();
+            window.getSelection().removeAllRanges();
+            isBlockSelecting = true;
+            terminal.style.position = 'relative';
+            const rect = terminal.getBoundingClientRect();
+            blockStart = {
+                x: e.clientX - rect.left + terminal.scrollLeft,
+                y: e.clientY - rect.top + terminal.scrollTop
+            };
+            if (blockRect) blockRect.remove();
+            blockRect = document.createElement('div');
+            blockRect.style.position = 'absolute';
+            blockRect.style.backgroundColor = '#ccc';
+            blockRect.style.mixBlendMode = 'difference';
+            blockRect.style.pointerEvents = 'none';
+            blockRect.style.zIndex = '9999';
+            terminal.appendChild(blockRect);
+
+            const onMove = (me) => {
+                if (!isBlockSelecting) return;
+                const r = terminal.getBoundingClientRect();
+                const curX = me.clientX - r.left + terminal.scrollLeft;
+                const curY = me.clientY - r.top + terminal.scrollTop;
+                const left = Math.min(blockStart.x, curX);
+                const top = Math.min(blockStart.y, curY);
+                const width = Math.abs(curX - blockStart.x);
+                const height = Math.abs(curY - blockStart.y);
+                blockRect.style.left = left + 'px';
+                blockRect.style.top = top + 'px';
+                blockRect.style.width = width + 'px';
+                blockRect.style.height = height + 'px';
+            };
+
+            const onUp = () => {
+                isBlockSelecting = false;
+                window.removeEventListener('mousemove', onMove);
+                window.removeEventListener('mouseup', onUp);
+            };
+
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('mouseup', onUp);
+        } else {
+            if (blockRect) {
+                blockRect.remove();
+                blockRect = null;
+            }
+        }
+    });
+
+    hiddenInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const selTxt = window.getSelection().toString();
+            if (selTxt || blockRect) {
+                e.preventDefault();
+                if (selTxt) {
+                    navigator.clipboard.writeText(selTxt).catch(() => { });
+                    window.getSelection().removeAllRanges();
+                } else if (blockRect) {
+                    blockRect.remove();
+                    blockRect = null;
+                }
+                return;
+            }
+        }
+    }, { capture: true });
 
     // ── Welcome banner (Windows CMD style) ───────────────────────────────────
     appendLine('glitterOS [Version 4.2.0.6969]');
-    appendHTML('(c) glitterOS Corporation. All rights reserved. Type <span style="color:#e8c84a">HELP</span> for help.');
+    appendHTML('(c) theonlyasdk 2026. All rights reserved. Type <span style="color:#e8c84a">HELP</span> for help.');
     appendLine('');
 
     // Create the first active input line
@@ -381,7 +487,7 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         winOptions.y = 60;
     }
 
-    const winObj = wm.createWindow('Command Prompt', container, winOptions);
+    const winObj = wm.createWindow('    Command Prompt', container, winOptions);
 
     // Watch for window focus/blur via MutationObserver on the window element
     const focusObserver = new MutationObserver((mutations) => {

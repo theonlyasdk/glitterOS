@@ -134,6 +134,10 @@
     animation: menu-pop 0.1s ease-out;
 }
 
+.gos-context-menu.fade-out {
+    animation: menu-fade-out 200ms forwards;
+}
+
 .gos-context-menu.item-clicked {
     background: transparent !important;
     border-color: transparent !important;
@@ -148,12 +152,18 @@
 @keyframes menu-pop {
     from {
         opacity: 0;
-        transform: scale(0.95);
     }
-
     to {
         opacity: 1;
-        transform: scale(1);
+    }
+}
+
+@keyframes menu-fade-out {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
     }
 }
 

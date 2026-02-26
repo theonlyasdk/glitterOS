@@ -32,13 +32,14 @@
 .gos-w32-btn,
 .gos-msg-btn,
 button:not(.gos-win-btn):not(.gos-mbar-item):not(.gos-app-menu-item):not(.gos-edit-menu-item) {
-    background: #333;
-    border: 1px solid #555;
-    color: #eee;
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-button);
+    color: var(--color-text-primary);
     padding: 6px 16px;
     font-size: 0.85rem;
     cursor: pointer;
-    transition: background 0.1s, border-color 0.1s;
+    transition: background var(--transition-fast), border-color var(--transition-fast);
     user-select: none;
 }
 
@@ -140,9 +141,10 @@ input[type="text"]:not(.gos-search-input):not(.gos-fm-addressbar):not(.gos-fd-ad
 input[type="password"],
 input[type="number"],
 textarea {
-    background: #111;
-    border: 1px solid #444;
-    color: #fff;
+    background: var(--color-bg-input);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-input);
+    color: var(--color-text-primary);
     padding: 3px 6px;
     font-size: 0.85rem;
     width: 100%;

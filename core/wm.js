@@ -47,6 +47,18 @@ class WindowManager {
             const walk = (x - startX) * 2;
             this.taskbar.scrollLeft = scrollLeft - walk;
         }, { passive: true });
+
+        // Menubar app menu handlers
+        const closeAppBtn = document.getElementById('mbar-close-app');
+        if (closeAppBtn) closeAppBtn.onclick = () => {
+            if (this.activeWindow) this.closeWindow(this.activeWindow.id);
+        };
+        const prefsBtn = document.getElementById('mbar-app-prefs');
+        if (prefsBtn) prefsBtn.onclick = () => {
+            if (this.activeWindow && this.activeWindow.preferencesProvider) {
+                this.activeWindow.preferencesProvider();
+            }
+        };
     }
 
     unfocusActive() {
@@ -54,6 +66,7 @@ class WindowManager {
             this.activeWindow.element.classList.remove('active');
             this.activeWindow = null;
             this.updateTaskbar();
+            this.updateMenubarLabel();
         }
     }
 
@@ -266,8 +279,35 @@ class WindowManager {
         this.makeDraggable(win, header);
 
         if (options.onClose) winObj.onClose = options.onClose;
+        if (options.modal) {
+            winObj.modal = true;
+            if (options.parentTitle) {
+                winObj.parentTitle = options.parentTitle;
+                const parentWin = this.windows.find(w => w.title.includes(options.parentTitle) || (w.parentTitle && w.parentTitle.includes(options.parentTitle)) || (w.id === options.parentId));
+                if (parentWin) {
+                    winObj.parentId = parentWin.id;
+                    const overlay = document.createElement('div');
+                    overlay.className = 'gos-modal-shim';
+                    overlay.style.cssText = 'position:absolute;inset:0;background:transparent;z-index:9999;';
+                    overlay.onmousedown = (e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        this.focusWindow(winObj.id);
+                        win.classList.add('modal-flash');
+                        setTimeout(() => win.classList.remove('modal-flash'), 100);
+                    };
+                    parentWin.element.appendChild(overlay);
+                    winObj.modalShim = overlay;
+                }
+            }
+        }
 
-        win.onmousedown = () => this.focusWindow(id);
+        if (typeof SysLog !== 'undefined') SysLog.debug(`WindowManager: Created window "${title}" (${id})`);
+
+        win.onmousedown = (e) => {
+            e.stopPropagation();
+            this.focusWindow(id);
+        };
 
         this.focusWindow(id);
         this.updateTaskbar();
@@ -315,9 +355,18 @@ class WindowManager {
 
         win.offsetHeight; // Force reflow
         win.classList.remove('no-transition');
+        if (typeof SysLog !== 'undefined') SysLog.debug(`WindowManager: Window "${win.id}" ${isMax ? 'restored' : 'maximized'}`);
     }
 
     focusWindow(id) {
+        const modalWin = this.windows.find(w => w.modal && !w.element.classList.contains('minimized') && !w.element.classList.contains('closing'));
+        if (modalWin && modalWin.id !== id) {
+            // Flash the modal window
+            modalWin.element.classList.add('modal-flash');
+            setTimeout(() => modalWin.element.classList.remove('modal-flash'), 100);
+            return;
+        }
+
         const winObj = this.windows.find(w => w.id === id);
         if (!winObj) return;
 
@@ -339,6 +388,7 @@ class WindowManager {
         this.activeWindow = winObj;
 
         this.updateTaskbar();
+        this.updateMenubarLabel();
     }
 
     minimizeWindow(id) {
@@ -376,10 +426,10 @@ class WindowManager {
             const visibleWindows = this.windows.filter(w => !w.element.classList.contains('minimized'));
             if (visibleWindows.length > 0) {
                 const topWin = visibleWindows.sort((a, b) => b.element.style.zIndex - a.element.style.zIndex)[0];
-                this.focusWindow(topWin.id);
             }
         }
         this.updateTaskbar();
+        if (typeof SysLog !== 'undefined') SysLog.debug(`WindowManager: Window "${id}" minimized`);
     }
 
     restoreWindow(id) {
@@ -403,6 +453,7 @@ class WindowManager {
         win.style.zIndex = ++this.zIndexCounter;
         this.activeWindow = winObj;
         this.updateTaskbar();
+        if (typeof SysLog !== 'undefined') SysLog.debug(`WindowManager: Window "${id}" restored`);
     }
 
     closeWindow(id) {
@@ -411,6 +462,16 @@ class WindowManager {
 
         const winObj = this.windows[index];
         const win = winObj.element;
+
+        if (winObj.onClose && winObj.onClose() === false) {
+            return;
+        }
+
+        if (winObj.modalShim) {
+            winObj.modalShim.remove();
+        }
+
+        if (typeof SysLog !== 'undefined') SysLog.debug(`WindowManager: Closed window "${winObj.title}" (${id})`);
 
         // Trigger window close animation
         win.classList.add('closing');
@@ -431,6 +492,7 @@ class WindowManager {
                 this.windows.splice(finalIndex, 1);
             }
             this.updateTaskbar();
+            this.updateMenubarLabel();
             window.dispatchEvent(new CustomEvent('gos-window-changed'));
         }, 300);
 
@@ -443,8 +505,6 @@ class WindowManager {
                 if (topWin) this.focusWindow(topWin.id);
             }
         }
-
-        if (winObj.onClose) winObj.onClose();
     }
 
     /**
@@ -500,7 +560,8 @@ class WindowManager {
             noResize: true,
             width: 380,
             height: 190,
-            icon: options.icon || 'ri-information-line'
+            icon: options.icon || 'ri-information-line',
+            modal: options.modal || false
         });
         win.element.classList.add('gos-window-messagebox');
 
@@ -513,6 +574,39 @@ class WindowManager {
             win.element.style.left = '5%';
             win.element.style.top = (mbarHeight + (availableH - 190) / 2) + 'px';
             win.element.style.height = 'auto';
+        }
+
+        return win;
+    }
+
+    updateMenubarLabel() {
+        const deskLabel = document.getElementById('desktop-name');
+        const deskBtn = document.getElementById('desktop-name-btn');
+        const appMenu = document.getElementById('mbar-app-menu');
+        const closeAppBtn = document.getElementById('mbar-close-app');
+        const prefsBtn = document.getElementById('mbar-app-prefs');
+
+        if (!deskLabel) return;
+
+        if (this.activeWindow) {
+            const title = this.activeWindow.parentTitle || this.activeWindow.title;
+            deskLabel.textContent = title;
+            if (deskBtn) deskBtn.style.pointerEvents = 'auto';
+            if (appMenu) appMenu.style.display = '';
+            if (closeAppBtn) closeAppBtn.textContent = `Quit ${title}`;
+            if (prefsBtn) {
+                if (this.activeWindow.preferencesProvider) {
+                    prefsBtn.parentElement.style.display = '';
+                } else {
+                    prefsBtn.parentElement.style.display = 'none';
+                }
+            }
+        } else {
+            deskLabel.textContent = 'Desktop';
+            if (deskBtn) deskBtn.style.pointerEvents = 'none';
+            if (appMenu) appMenu.style.display = 'none';
+            if (closeAppBtn) closeAppBtn.textContent = 'Quit';
+            if (prefsBtn) prefsBtn.parentElement.style.display = 'none';
         }
     }
 

@@ -380,10 +380,11 @@ function launchControlPanel() {
     let _appCtxMenu = null;
     function showAppContextMenu(x, y, app, parent) {
         gosShowContextMenu(x, y, [
-            { label: 'Open', action: () => app.launch() },
+            { label: 'Open', icon: 'bi-box-arrow-up-right', action: () => app.launch() },
             { type: 'sep' },
             {
                 label: 'Uninstall',
+                icon: 'bi-trash',
                 color: 'danger',
                 action: () => {
                     wm.messageBox('Uninstall Application', `"${app.name}" will be uninstalled. Continue?`, {

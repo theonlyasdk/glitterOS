@@ -137,6 +137,7 @@ function launchFileManager(startPath) {
             if (!qaItems) {
                 // Default Quick Access
                 qaItems = [
+                    { name: 'Users', path: 'C:\\Users', icon: 'bi-people' },
                     { name: 'Desktop', path: 'C:\\Users\\User\\Desktop', icon: 'bi-display' },
                     { name: 'Documents', path: 'C:\\Users\\User\\Documents', icon: 'bi-file-earmark-text' },
                     { name: 'Downloads', path: 'C:\\Users\\User\\Downloads', icon: 'bi-download' },
@@ -257,52 +258,30 @@ function launchFileManager(startPath) {
 
     // ── Context Menu ──────────────────────────────────────────────────────────
     function showCtxMenu(x, y, forItems) {
-        const items = [];
+        const selectedItems = (forItems || []).map(name => {
+            const path = (_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + name;
+            return { name: name, type: fs.stat(path).type };
+        });
 
-        if (forItems && forItems.length > 0) {
-            items.push({
-                label: forItems.length > 1 ? `Open (${forItems.length})` : 'Open',
-                icon: forItems.length === 1 && fs.stat((_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + forItems[0]).type === 'dir' ? 'bi-folder2-open' : 'bi-eye',
-                action: () => openSelected()
-            });
-
-            if (forItems.length === 1) {
-                items.push({ label: 'Rename', icon: 'bi-pencil', action: () => startRename(forItems[0]) });
-            }
-
-            items.push({
-                label: 'Delete',
-                icon: 'bi-trash',
-                color: 'danger',
-                action: () => {
-                    forItems.forEach(name => {
-                        const path = (_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + name;
-                        if (fs.stat(path).type === 'dir') fs.rmdir(path); else fs.rm(path);
-                    });
-                    _selected = [];
-                    renderContent();
-                }
-            });
-
-            if (forItems.length === 1) {
-                items.push({ type: 'sep' });
-                items.push({
-                    label: 'Properties',
-                    icon: 'bi-info-circle',
-                    action: () => {
-                        const path = (_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + forItems[0];
-                        launchPropertiesDialog(path);
-                    }
+        gosShowFileContextMenu(x, y, selectedItems, _cwd, {
+            onOpen: () => openSelected(),
+            onRename: (item) => startRename(item.name),
+            onDelete: (items) => {
+                items.forEach(item => {
+                    const path = (_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + item.name;
+                    if (item.type === 'dir') fs.rmdir(path, true); else fs.rm(path);
                 });
+                _selected = [];
+                renderContent();
+            },
+            onNewFolder: createFolder,
+            onNewFile: createFile,
+            onRefresh: () => navigate(_cwd, false),
+            onProperties: (item) => {
+                const path = item.isCwd ? _cwd : (_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + item.name;
+                launchPropertiesDialog(path);
             }
-        } else {
-            items.push({ label: 'New Folder', icon: 'bi-folder-plus', action: createFolder });
-            items.push({ label: 'New File', icon: 'bi-file-earmark-plus', action: createFile });
-            items.push({ type: 'sep' });
-            items.push({ label: 'Refresh', icon: 'bi-arrow-clockwise', action: () => navigate(_cwd, false) });
-        }
-
-        gosShowContextMenu(x, y, items);
+        });
     }
 
     // ── File Operations ──────────────────────────────────────────────────────
@@ -435,7 +414,8 @@ function launchFileManager(startPath) {
     let selectionRect = null;
 
     content.addEventListener('mousedown', (e) => {
-        if (e.target !== content && !e.target.classList.contains('gos-fm-icons-view')) return;
+        const isTableEmptySpace = e.target.classList.contains('gos-w32-table-container') || e.target.tagName === 'TBODY' || e.target.tagName === 'TABLE' || e.target === content;
+        if (!isTableEmptySpace && !e.target.classList.contains('gos-fm-icons-view')) return;
         if (e.button !== 0) return; // Left click only
 
         isSelecting = true;
@@ -485,19 +465,37 @@ function launchFileManager(startPath) {
                 // Check intersection with items
                 const selBounds = { left, top, right: left + width, bottom: top + height };
                 const newSelection = [];
-                content.querySelectorAll('.gos-fm-item').forEach(item => {
-                    const itemRect = {
-                        left: item.offsetLeft,
-                        top: item.offsetTop,
-                        right: item.offsetLeft + item.offsetWidth,
-                        bottom: item.offsetTop + item.offsetHeight
-                    };
 
-                    if (selBounds.left < itemRect.right && selBounds.right > itemRect.left &&
-                        selBounds.top < itemRect.bottom && selBounds.bottom > itemRect.top) {
-                        newSelection.push(item.dataset.name);
-                    }
-                });
+                if (_viewMode === 'details' && _tableWidget) {
+                    const tbody = _tableWidget.element.querySelector('tbody');
+                    Array.from(tbody.children).forEach(tr => {
+                        const itemRect = {
+                            left: tr.offsetLeft,
+                            top: tr.offsetTop,
+                            right: tr.offsetLeft + tr.offsetWidth,
+                            bottom: tr.offsetTop + tr.offsetHeight
+                        };
+                        if (selBounds.left < itemRect.right && selBounds.right > itemRect.left &&
+                            selBounds.top < itemRect.bottom && selBounds.bottom > itemRect.top) {
+                            newSelection.push(tr.dataset.id);
+                        }
+                    });
+                } else {
+                    content.querySelectorAll('.gos-fm-item').forEach(item => {
+                        const itemRect = {
+                            left: item.offsetLeft,
+                            top: item.offsetTop,
+                            right: item.offsetLeft + item.offsetWidth,
+                            bottom: item.offsetTop + item.offsetHeight
+                        };
+
+                        if (selBounds.left < itemRect.right && selBounds.right > itemRect.left &&
+                            selBounds.top < itemRect.bottom && selBounds.bottom > itemRect.top) {
+                            newSelection.push(item.dataset.name);
+                        }
+                    });
+                }
+
                 _selected = newSelection;
                 updateSelectionUI();
             }

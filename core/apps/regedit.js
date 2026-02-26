@@ -29,9 +29,7 @@ function launchRegistryEditor() {
         const input = document.createElement('input');
         input.type = 'text';
         input.value = defaultVal || '';
-        input.classList.add('gos-w32-input'); // Apply the new class
-        input.addEventListener('focus', () => input.style.borderColor = 'var(--accent-color)');
-        input.addEventListener('blur', () => input.style.borderColor = '#555');
+        input.classList.add('gos-w32-input');
 
         main.append(lblEl, input);
 
@@ -54,16 +52,25 @@ function launchRegistryEditor() {
         const dlgWin = wm.createWindow(title, dlgContainer, {
             noControls: true, noResize: true,
             width: 360, height: 180,
-            icon: 'bi-pencil-square'
+            icon: 'bi-pencil-square',
+            modal: true,
+            parentTitle: 'Registry Editor'
         });
         dlgWin.element.classList.add('gos-window-messagebox');
 
         setTimeout(() => { input.focus(); input.select(); }, 100);
 
-        // Enter key submits
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') { e.preventDefault(); okBtn.click(); }
             if (e.key === 'Escape') { e.preventDefault(); cancelBtn.click(); }
+        });
+    }
+
+    function openValueDialog(defaultData) {
+        editValueDialog('New Value', '', defaultData, false, (name, finalData) => {
+            if (!name) return;
+            registry.set(_selectedPath + '.' + name, finalData);
+            renderValues();
         });
     }
 
@@ -238,7 +245,9 @@ function launchRegistryEditor() {
         const dlgWin = wm.createWindow(title, dlgContainer, {
             noResize: false,
             width: 480, height: Array.isArray(dataVal) ? 400 : 250,
-            icon: 'bi-pencil-square'
+            icon: 'bi-pencil-square',
+            modal: true,
+            parentTitle: 'Registry Editor'
         });
         dlgWin.element.classList.add('gos-window-messagebox');
 
@@ -279,7 +288,7 @@ function launchRegistryEditor() {
             const count = _selectedValueKeys.length;
             const msg = count === 1 ? `Are you sure you want to delete the value "${_selectedValueKeys[0]}"?` : `Are you sure you want to delete these ${count} values?`;
             wm.messageBox('Confirm Value Delete', msg, {
-                buttons: 'yesno', icon: 'bi-exclamation-triangle-fill',
+                buttons: 'yesno', icon: 'bi-exclamation-triangle-fill', modal: true,
                 onYes: () => {
                     _selectedValueKeys.forEach(key => {
                         registry.delete(_selectedPath + '.' + (key === '(Default)' ? '' : key));
@@ -294,7 +303,7 @@ function launchRegistryEditor() {
             const msg = count === 1 ? `Are you sure you want to permanently delete the key "${paths[0]}"?` : `Are you sure you want to permanently delete these ${count} keys and all of their subkeys?`;
 
             wm.messageBox('Confirm Key Delete', msg, {
-                buttons: 'yesno', icon: 'bi-exclamation-triangle-fill',
+                buttons: 'yesno', icon: 'bi-exclamation-triangle-fill', modal: true,
                 onYes: () => {
                     paths.forEach(p => {
                         registry.delete(p);
@@ -337,71 +346,38 @@ function launchRegistryEditor() {
     }
 
     // ── Context Menu ──────────────────────────────────────────────────────
-    function showContextMenu(x, y, items) {
-        if (_ctxMenu) _ctxMenu.remove();
-
-        _ctxMenu = document.createElement('div');
-        _ctxMenu.style.cssText = `
-            position:fixed;left:${x}px;top:${y}px;z-index:99999;
-            background:#2b2b2b;border:1px solid #444;min-width:180px;padding:2px;
-            box-shadow:2px 2px 8px rgba(0,0,0,0.45);font-size:0.85rem;
-        `;
-
-        items.forEach(item => {
-            if (item === 'separator') {
-                const hr = document.createElement('hr');
-                hr.style.cssText = 'margin:2px 0;border-color:#444;';
-                _ctxMenu.appendChild(hr);
-                return;
-            }
-            const el = document.createElement('div');
-            el.style.cssText = 'padding:5px 20px;color:' + (item.color || '#eee') + ';cursor:pointer;';
-            if (item.disabled) { el.style.opacity = '0.4'; el.style.pointerEvents = 'none'; }
-            el.textContent = item.label;
-            el.onmouseenter = () => el.style.backgroundColor = '#3f3f3f';
-            el.onmouseleave = () => el.style.backgroundColor = '';
-            el.onclick = () => { _ctxMenu.remove(); _ctxMenu = null; if (item.action) item.action(); };
-            _ctxMenu.appendChild(el);
-        });
-
-        document.body.appendChild(_ctxMenu);
-
-        // Ensure menu stays within viewport
-        const rect = _ctxMenu.getBoundingClientRect();
-        if (rect.right > window.innerWidth) _ctxMenu.style.left = (window.innerWidth - rect.width - 4) + 'px';
-        if (rect.bottom > window.innerHeight) _ctxMenu.style.top = (window.innerHeight - rect.height - 4) + 'px';
-
-        const closeCtx = (ev) => {
-            if (_ctxMenu && !_ctxMenu.contains(ev.target)) {
-                _ctxMenu.remove(); _ctxMenu = null;
-                document.removeEventListener('mousedown', closeCtx);
-            }
-        };
-        setTimeout(() => document.addEventListener('mousedown', closeCtx), 10);
-    }
-
     function showTreeContextMenu(e, path) {
         e.preventDefault();
         e.stopPropagation();
-        // Select the node
         _selectedPath = path;
         _selectedValueKeys = [];
         updatePathDisplay();
         renderValues();
         treePanel.querySelectorAll('.gos-regedit-node-row').forEach(r => r.classList.remove('selected'));
-        // Find the clicked row
         const rows = treePanel.querySelectorAll('.gos-regedit-node-row');
         rows.forEach(r => { if (r._regPath === path) r.classList.add('selected'); });
 
-        const isRoot = !path; // Computer root
-        showContextMenu(e.clientX, e.clientY, [
-            { label: 'New Key', action: doAddKey },
-            { label: 'New Value', action: doAddValue, disabled: isRoot },
-            'separator',
-            { label: 'Rename', action: doRenameKey, disabled: isRoot || !path },
-            { label: 'Delete', action: doDeleteSelected, disabled: isRoot || !path, color: '#f44336' },
-            'separator',
-            { label: 'Refresh', action: rebuildTree }
+        const isRoot = !path;
+        gosShowContextMenu(e.clientX, e.clientY, [
+            {
+                label: 'New', icon: 'bi-plus-lg', hasSubmenu: true,
+                onMouseEnter: (ev, el) => {
+                    const rect = el.getBoundingClientRect();
+                    gosShowContextMenu(rect.right, rect.top, [
+                        { label: 'Key', icon: 'bi-folder-plus', action: doAddKey },
+                        { type: 'sep' },
+                        { label: 'String Value', icon: 'bi-file-earmark-text', action: () => openValueDialog('') },
+                        { label: 'Binary Value', icon: 'bi-file-earmark-binary', action: () => openValueDialog(0) },
+                        { label: 'DWORD (32-bit) Value', icon: 'bi-file-earmark-binary', action: () => openValueDialog(0) },
+                        { label: 'Multi-String Value', icon: 'bi-file-earmark-medical', action: () => openValueDialog([]) }
+                    ], true);
+                }
+            },
+            { type: 'sep' },
+            { label: 'Rename', icon: 'bi-pencil', action: doRenameKey, disabled: isRoot || !path },
+            { label: 'Delete', icon: 'bi-trash', action: doDeleteSelected, disabled: isRoot || !path, color: 'danger' },
+            { type: 'sep' },
+            { label: 'Refresh', icon: 'bi-arrow-clockwise', action: rebuildTree }
         ]);
     }
 
@@ -413,31 +389,30 @@ function launchRegistryEditor() {
             if (_valuesTbl) _valuesTbl.setSelectedIds(_selectedValueKeys);
         }
 
-        showContextMenu(e.clientX, e.clientY, [
+        gosShowContextMenu(e.clientX, e.clientY, [
             {
-                label: 'Modify...', action: () => {
+                label: 'Modify...', icon: 'bi-pencil-square', action: () => {
                     editValueDialog('Edit Value', key, value, true, (name, finalData) => {
                         registry.set(_selectedPath + '.' + key, finalData);
                         renderValues();
                     });
                 }
             },
-            'separator',
+            { type: 'sep' },
             {
-                label: 'Delete', action: () => {
+                label: 'Delete', icon: 'bi-trash', action: () => {
                     wm.messageBox('Confirm Value Delete', `Are you sure you want to delete the value "${key}"?`, {
-                        buttons: 'yesno', icon: 'bi-exclamation-triangle-fill',
+                        buttons: 'yesno', icon: 'bi-exclamation-triangle-fill', modal: true,
                         onYes: () => {
                             registry.delete(_selectedPath + '.' + key);
                             _selectedValueKeys = [];
                             renderValues();
                         }
                     });
-                }, color: '#f44336'
+                }, color: 'danger'
             },
-            'separator',
             {
-                label: 'Rename', action: () => {
+                label: 'Rename', icon: 'bi-pencil', action: () => {
                     inputDialog('Rename Value', 'Enter new name:', key, (newName) => {
                         if (!newName || newName === key) return;
                         const val = registry.get(_selectedPath + '.' + key);
@@ -696,10 +671,19 @@ function launchRegistryEditor() {
             updatePathDisplay();
             treePanel.querySelectorAll('.gos-regedit-node-row').forEach(r => r.classList.remove('selected'));
             rootRow.classList.add('selected');
-            showContextMenu(e.clientX, e.clientY, [
-                { label: 'New Key', action: doAddKey },
-                'separator',
-                { label: 'Refresh', action: rebuildTree }
+            rootRow.classList.add('selected');
+            gosShowContextMenu(e.clientX, e.clientY, [
+                {
+                    label: 'New', icon: 'bi-plus-lg', hasSubmenu: true,
+                    onMouseEnter: (ev, el) => {
+                        const rect = el.getBoundingClientRect();
+                        gosShowContextMenu(rect.right, rect.top, [
+                            { label: 'Key', icon: 'bi-folder-plus', action: doAddKey }
+                        ], true);
+                    }
+                },
+                { type: 'sep' },
+                { label: 'Refresh', icon: 'bi-arrow-clockwise', action: rebuildTree }
             ]);
         });
 

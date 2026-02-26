@@ -184,6 +184,7 @@ const fs = (() => {
                 dirNode.children.push({ type: 'file', name, content, size });
             }
             _save();
+            if (typeof SysLog !== 'undefined') SysLog.info(`FS: Wrote to file "${path}"`);
             return { ok: true };
         },
 
@@ -197,6 +198,7 @@ const fs = (() => {
                 dirNode.children.push({ type: 'file', name, content: '', size: 0 });
             }
             _save();
+            if (typeof SysLog !== 'undefined') SysLog.info(`FS: Created file "${path}"`);
             return { ok: true };
         },
 
@@ -210,6 +212,7 @@ const fs = (() => {
                 return _error(`A subdirectory or file already exists.`);
             dirNode.children.push({ type: 'dir', name, children: [] });
             _save();
+            if (typeof SysLog !== 'undefined') SysLog.info(`FS: Created directory "${path}"`);
             return { ok: true };
         },
 
@@ -222,6 +225,7 @@ const fs = (() => {
             if (idx === -1) return _error(`Could Not Find ${name}`);
             dirNode.children.splice(idx, 1);
             _save();
+            if (typeof SysLog !== 'undefined') SysLog.info(`FS: Removed file "${path}"`);
             return { ok: true };
         },
 
@@ -236,6 +240,7 @@ const fs = (() => {
                 return _error(`The directory is not empty.`);
             dirNode.children.splice(idx, 1);
             _save();
+            if (typeof SysLog !== 'undefined') SysLog.info(`FS: Removed directory "${path}"`);
             return { ok: true };
         },
 

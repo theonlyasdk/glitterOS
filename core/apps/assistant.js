@@ -799,6 +799,7 @@ function launchAssistant() {
     inputArea.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } };
 
     const win = wm.createWindow('Assistant', container, { icon: 'ri-sparkling-fill', width: 800, height: 600 });
+    win.preferencesProvider = openPreferences;
 
     if (_threads.length > 0) {
         _activeThreadId = _threads[0].id;

@@ -5,10 +5,16 @@
     height: 100%;
     background-color: #0c0c0c;
     color: #cccccc;
-    font-family: 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+    font-family: var(--font-family-mono);
     font-size: 0.82rem;
     overflow: hidden;
     cursor: text;
+}
+
+.gos-cmd-terminal::selection,
+.gos-cmd-terminal *::selection {
+    background-color: #eee;
+    color: #000;
 }
 
 /* Hidden real input — captures keystrokes, invisible */

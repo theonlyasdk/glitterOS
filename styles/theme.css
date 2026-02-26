@@ -4,8 +4,28 @@
     --accent-hover: #1b2938;
     --accent-active: #233446;
     --font-family: 'Open Sans', sans-serif;
+    --font-family-mono: 'Chivo Mono', 'Cascadia Code', 'Consolas', monospace;
     --accent-muted: rgba(0, 120, 215, 0.2);
     --accent-glow: rgba(0, 120, 215, 0.4);
+
+    /* System Component Metrics */
+    --border-radius-window: 4px;
+    --border-radius-menu: 4px;
+    --border-radius-button: 2px;
+    --border-radius-input: 2px;
+
+    /* Animation Timing */
+    --transition-fast: 0.1s ease-in-out;
+    --transition-normal: 0.2s ease-in-out;
+    --transition-slow: 0.3s ease-in-out;
+
+    /* System Foreground/Background Colors */
+    --color-bg-main: #1e1e1e;
+    --color-bg-elevated: #2b2b2b;
+    --color-bg-input: #333333;
+    --color-text-primary: #ffffff;
+    --color-text-secondary: #cccccc;
+    --color-border: #444444;
 
     /* System UI Metrics */
     --menubar-height: 36px;

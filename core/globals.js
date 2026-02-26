@@ -9,6 +9,54 @@ const desktopNameLbl = fromId("desktop-name");
 const currentDesktopIdx = 0;
 const desktops = [{ name: "Desktop" }];
 
+// ── gliterOS System Logger ────────────────────────────────────────────────────
+const SysLog = (() => {
+    const logs = [];
+    const listeners = [];
+    return {
+        logs,
+        log: (severity, message) => {
+            const entry = { timestamp: new Date().toLocaleTimeString(), severity, message };
+            logs.push(entry);
+            listeners.forEach(cb => cb(entry));
+        },
+        info: (msg) => SysLog.log('info', msg),
+        warn: (msg) => SysLog.log('warn', msg),
+        error: (msg) => SysLog.log('error', msg),
+        debug: (msg) => SysLog.log('debug', msg),
+        subscribe: (cb) => listeners.push(cb),
+        unsubscribe: (cb) => {
+            const idx = listeners.indexOf(cb);
+            if (idx > -1) listeners.splice(idx, 1);
+        }
+    };
+})();
+window.SysLog = SysLog;
+SysLog.info("glitterOS System Logger initialized.");
+
+// ── gliterOS D-Bus (EventBus) ───────────────────────────────────────────────
+const glidBus = (() => {
+    const listeners = {};
+    return {
+        publish(event, data) {
+            SysLog.debug(`DBus: Published event "${event}"`);
+            if (!listeners[event]) return;
+            listeners[event].forEach(cb => cb(data));
+        },
+        subscribe(event, callback) {
+            SysLog.debug(`DBus: Subscription added to "${event}"`);
+            if (!listeners[event]) listeners[event] = [];
+            listeners[event].push(callback);
+            return () => this.unsubscribe(event, callback);
+        },
+        unsubscribe(event, callback) {
+            if (!listeners[event]) return;
+            listeners[event] = listeners[event].filter(cb => cb !== callback);
+        }
+    };
+})();
+window.glidBus = glidBus;
+
 /**
  * Application Registry — single source of truth for installed applications.
  * Each app self-registers via AppRegistry.register() at the end of its file.
@@ -24,9 +72,11 @@ const AppRegistry = (() => {
         register(app) {
             if (!app.id || !app.name || !app.launch) {
                 console.warn('AppRegistry: invalid registration', app);
+                SysLog.warn(`AppRegistry: invalid registration attempted.`);
                 return;
             }
             _apps.push(app);
+            SysLog.info(`AppRegistry: Registered app "${app.name}" (${app.id})`);
 
             // If it has an exe name, ensure it exists in System
             if (app.exe && typeof fs !== 'undefined') {
@@ -47,7 +97,16 @@ const AppRegistry = (() => {
         /** Get app by id */
         get(id) { return _apps.find(a => a.id === id); },
         /** Get all apps that want a desktop shortcut */
-        getDesktopApps() { return _apps.filter(a => a.desktopShortcut); }
+        getDesktopApps() { return _apps.filter(a => a.desktopShortcut); },
+        /** Get apps supporting an extension */
+        getAppsForExt(ext) {
+            const lowerExt = ext.toLowerCase();
+            return _apps.filter(a => {
+                if (!a.acceptsFiles) return false;
+                if (!a.supportedExtensions || a.supportedExtensions.length === 0) return true; // accepts all
+                return a.supportedExtensions.map(e => e.toLowerCase()).includes(lowerExt);
+            });
+        }
     };
 })();
 
@@ -262,9 +321,9 @@ function buildAppMenuBar() {
     const onMouseDown = (e) => {
         if (!bar.contains(e.target)) closeAll();
     };
-    window.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousedown', onMouseDown, true);
 
-    bar._cleanup = () => window.removeEventListener('mousedown', onMouseDown);
+    bar._cleanup = () => window.removeEventListener('mousedown', onMouseDown, true);
     bar.createMenu = createMenu;
 
     return bar;
@@ -276,12 +335,15 @@ function buildAppMenuBar() {
  * @param {number} y Screen Y
  * @param {Array} items [{ label, icon?, action, color?, disabled?, type? }]
  */
-function gosShowContextMenu(x, y, items) {
-    const existing = document.querySelector('.gos-context-menu');
-    if (existing) existing.remove();
+function gosShowContextMenu(x, y, items, isSubmenu = false) {
+    if (!isSubmenu) {
+        document.querySelectorAll('.gos-context-menu').forEach(e => e.remove());
+    } else {
+        document.querySelectorAll('.gos-context-menu.submenu').forEach(e => e.remove());
+    }
 
     const menu = document.createElement('div');
-    menu.className = 'gos-context-menu';
+    menu.className = 'gos-context-menu' + (isSubmenu ? ' submenu' : '');
     menu.style.left = x + 'px';
     menu.style.top = y + 'px';
 
@@ -293,18 +355,32 @@ function gosShowContextMenu(x, y, items) {
         } else {
             const el = document.createElement('div');
             el.className = 'gos-context-menu-item' + (item.color === 'danger' ? ' danger' : '') + (item.disabled ? ' disabled' : '');
-            el.innerHTML = `${item.icon ? `<i class="${getFullIcon(item.icon)}"></i>` : ''} <span>${item.label}</span>`;
+            el.innerHTML = `${item.icon ? `<i class="${getFullIcon(item.icon)}"></i>` : ''} <span>${item.label}</span>${item.hasSubmenu ? '<i class="bi-chevron-right ms-auto"></i>' : ''}`;
+
+            if (item.onMouseEnter) {
+                el.onmouseenter = (e) => item.onMouseEnter(e, el);
+            } else {
+                el.onmouseenter = () => {
+                    if (!isSubmenu) {
+                        document.querySelectorAll('.gos-context-menu.submenu').forEach(m => m.remove());
+                    }
+                };
+            }
+
             el.onclick = (e) => {
                 e.stopPropagation();
+                if (item.hasSubmenu) return; // Don't close on clicking submenu parent
+
                 // Perform action instantly
                 if (item.action) item.action();
 
                 // Ghosting effect
                 el.classList.add('gos-dropdown-item-ghost');
-                menu.classList.add('item-clicked');
+                const allMenus = document.querySelectorAll('.gos-context-menu');
+                allMenus.forEach(m => m.classList.add('item-clicked'));
 
                 setTimeout(() => {
-                    menu.remove();
+                    allMenus.forEach(m => m.remove());
                 }, 300);
             };
             menu.appendChild(el);
@@ -318,13 +394,18 @@ function gosShowContextMenu(x, y, items) {
     if (rect.right > window.innerWidth) menu.style.left = (window.innerWidth - rect.width - 5) + 'px';
     if (rect.bottom > window.innerHeight) menu.style.top = (window.innerHeight - rect.height - 5) + 'px';
 
-    const onOuterClick = (e) => {
-        if (!menu.contains(e.target)) {
-            menu.remove();
-            window.removeEventListener('mousedown', onOuterClick);
-        }
-    };
-    setTimeout(() => window.addEventListener('mousedown', onOuterClick), 10);
+    if (!isSubmenu) {
+        const onOuterClick = (e) => {
+            if (!e.target.closest('.gos-context-menu')) {
+                document.querySelectorAll('.gos-context-menu').forEach(m => {
+                    m.classList.add('fade-out');
+                    setTimeout(() => m.remove(), 200);
+                });
+                window.removeEventListener('mousedown', onOuterClick, true);
+            }
+        };
+        setTimeout(() => window.addEventListener('mousedown', onOuterClick, true), 10);
+    }
 }
 
 /**
@@ -349,16 +430,145 @@ const SystemExec = {
             }
         }
 
-        // Universal fallback to Notepad for all file types
-        const notepad = AppRegistry.get('notepad');
-        if (notepad) {
-            notepad.launch(path);
+        // Find app by extension
+        const extMatch = path.match(/\.([^.]+)$/);
+        const ext = extMatch ? extMatch[1] : '';
+        const possibleApps = AppRegistry.getAppsForExt(ext);
+
+        if (possibleApps.length > 0) {
+            // Pick first supported app
+            possibleApps[0].launch(path);
+            return { ok: true };
+        }
+
+        // Universal fallback to Notepad for all text-like files, OR just launch edit.exe
+        const editApp = AppRegistry.get('edit');
+        if (editApp) {
+            editApp.launch(path);
             return { ok: true };
         }
 
         return { error: 'No application associated with this file.' };
     }
 };
+
+/**
+ * Windows 10 Style "Open With" Dialog
+ */
+function showOpenWithDialog(path) {
+    const extMatch = path.match(/\.([^.]+)$/);
+    const ext = extMatch ? extMatch[1] : '';
+    const apps = AppRegistry.getAppsForExt(ext);
+
+    const container = document.createElement('div');
+    container.className = 'gos-openwith-page';
+    container.style.cssText = 'padding: 20px; background: #1e1e1e; height: 100%; display: flex; flex-direction: column; color: #fff; box-sizing: border-box;';
+    container.innerHTML = `
+        <h3 style="margin: 0 0 15px 0; font-size: 1.1rem; font-weight: normal; color: #fff;">How do you want to open this file?</h3>
+    `;
+
+    const list = document.createElement('div');
+    list.className = 'gos-app-list';
+    list.style.cssText = 'background: rgba(28, 28, 32, 0.4); border: 1px solid rgba(255,255,255,0.07); overflow-y: auto; flex: 1; margin: 0 -8px;';
+
+    if (apps.length === 0) {
+        list.innerHTML = `<div class="gos-search-no-results visible">No supported applications</div>`;
+    } else {
+        apps.forEach(app => {
+            const item = document.createElement('div');
+            item.className = 'gos-app-item';
+            item.innerHTML = `
+                <div class="gos-app-item-icon"><i class="${getFullIcon(app.icon)}"></i></div>
+                <div class="gos-app-item-name">${app.name}</div>
+            `;
+            if (typeof Widgets !== 'undefined') Widgets.registerTileEffect(item);
+            item.onclick = () => {
+                wm.closeWindow(win.id);
+                app.launch(path);
+            };
+            list.appendChild(item);
+        });
+    }
+
+    container.appendChild(list);
+
+    const win = wm.createWindow('Open with...', container, {
+        width: 400,
+        height: 350,
+        noResize: true,
+        modal: true
+    });
+}
+
+/**
+ * Shared File Explorer & Dialog Context Menu Builder
+ * @param {Array} selectedItems - [{name, type}] (type is 'file' | 'dir')
+ * @param {string} cwd - current working directory
+ * @param {object} callbacks - actions like onOpen, onRename, etc.
+ */
+function gosShowFileContextMenu(x, y, selectedItems, cwd, callbacks) {
+    const items = [];
+
+    if (selectedItems.length > 0) {
+        items.push({
+            label: selectedItems.length > 1 ? `Open (${selectedItems.length})` : 'Open',
+            icon: selectedItems.length === 1 && selectedItems[0].type === 'dir' ? 'bi-folder2-open' : 'bi-eye',
+            action: () => callbacks.onOpen(selectedItems)
+        });
+
+        // Add "Open with..." if 1 file is selected
+        if (selectedItems.length === 1 && selectedItems[0].type === 'file') {
+            items.push({
+                label: 'Open with...',
+                icon: 'bi-box-arrow-up-right',
+                action: () => showOpenWithDialog((cwd.endsWith('\\') ? cwd : cwd + '\\') + selectedItems[0].name)
+            });
+        }
+
+        if (selectedItems.length === 1 && callbacks.onRename) {
+            items.push({ label: 'Rename', icon: 'bi-pencil', action: () => callbacks.onRename(selectedItems[0]) });
+        }
+
+        if (callbacks.onDelete) {
+            items.push({
+                label: 'Delete',
+                icon: 'bi-trash',
+                color: 'danger',
+                action: () => callbacks.onDelete(selectedItems)
+            });
+        }
+
+        if (selectedItems.length === 1 && callbacks.onProperties) {
+            items.push({ type: 'sep' });
+            items.push({
+                label: 'Properties',
+                icon: 'bi-info-circle',
+                action: () => callbacks.onProperties(selectedItems[0])
+            });
+        }
+    } else {
+        items.push({
+            label: 'New', icon: 'bi-plus-circle', hasSubmenu: true,
+            onMouseEnter: (e, el) => {
+                const rect = el.getBoundingClientRect();
+                gosShowContextMenu(rect.right, rect.top, [
+                    { label: 'Folder', icon: 'bi-folder-plus', action: () => callbacks.onNewFolder && callbacks.onNewFolder() },
+                    { label: 'Text Document', icon: 'bi-file-earmark-plus', action: () => callbacks.onNewFile && callbacks.onNewFile() }
+                ], true);
+            },
+            action: () => { }
+        });
+        items.push({ type: 'sep' });
+        items.push({ label: 'Refresh', icon: 'bi-arrow-clockwise', action: () => callbacks.onRefresh && callbacks.onRefresh() });
+
+        if (callbacks.onProperties) {
+            items.push({ type: 'sep' });
+            items.push({ label: 'Properties', icon: 'bi-info-circle', action: () => callbacks.onProperties({ name: cwd, type: 'dir', isCwd: true }) });
+        }
+    }
+
+    gosShowContextMenu(x, y, items);
+}
 
 // ── Misc utils ───────────────────────────────────────────────────────────────
 function gosMbarItemClicked(item_index, sender) { alert(sender); }
@@ -377,25 +587,44 @@ function kaboom() {
 }
 
 function aboutGlitterOS(app_name) {
-    const sub_text = app_name ? `<div class="mb-3 text-secondary" style="font-size: 0.85rem;">This product is licensed under the glitterOS License to:<br><b>${app_name} User</b></div>` : '';
-    const msg = `
-		<div class="gos-app-padded">
-			<div class="d-flex flex-column align-items-center text-center">
-				<i class="ri-sparkling-2-fill display-1 mb-3"></i>
-				<h1 class="mb-0"><b>glitterOS</b></h1>
-				<p class="text-secondary mb-4">Version 4.2.0.6969</p>
-				<div class="text-start w-100 px-3">
-					<p><b>glitterOS</b> is an experimental web-based desktop environment designed for speed and simplicity.</p>
-					<p>Built with vanilla JS and Bootstrap, it brings a familiar multitasking experience to your browser.</p>
-                    ${sub_text}
-				</div>
-				<hr class="w-100">
-				<i class="mb-2">"It's like a balloon, but digital."</i>
-				<small class="text-secondary">(c) glitterOS Corporation 2025-26. All rights reserved.</small>
-			</div>
-		</div>
-	`;
-    wm.createWindow("About glitterOS", msg, { width: 350, height: 480 });
+    const container = document.createElement('div');
+    container.className = 'gos-about-page';
+
+    const html = `
+        <div class="gos-about-header">
+            <div class="gos-about-logo">
+                <i class="bi-balloon-fill"></i>
+            </div>
+            <div class="gos-about-title">
+                <h1>glitterOS Beta</h1>
+            </div>
+        </div>
+        <div class="gos-about-body">
+            <section>
+                <h3>System Information</h3>
+                <div class="gos-about-grid">
+                    <div class="gos-about-label">Version:</div> <div class="gos-about-value">Beta</div>
+                    <div class="gos-about-label">Kernel:</div> <div class="gos-about-value">glintKernel 1.28-perf-beta</div>
+                </div>
+            </section>
+            <section>
+                <h3>Legal Information</h3>
+                View source code on - <a href="https://github.com/theonlyasdk/glitterOS" target="_blank" style="color:var(--accent-color);text-decoration:none;"><i class="bi-github"></i> https://github.com/theonlyasdk/glitterOS</a>
+                <p class="text-secondary" style="font-size: 0.8rem; margin-top: 10px;">(c) 2026 theonlyasdk</p>
+            </section>
+        </div>
+    `;
+
+    container.innerHTML = html;
+
+    wm.createWindow("About glitterOS", container, {
+        width: 400,
+        height: 300,
+        noResize: false,
+        icon: 'bi-info-circle',
+        modal: true,
+        parentTitle: app_name
+    });
 }
 
 /**

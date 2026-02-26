@@ -53,6 +53,7 @@ function refreshSearchAppList() {
 
         item.addEventListener('click', () => {
             closeSearch();
+            if (typeof SysLog !== 'undefined') SysLog.info(`Search: Launching app "${app.name}"`);
             if (app.action) {
                 app.action();
             } else {

@@ -1,0 +1,80 @@
+.gos-about-page {
+    display: block;
+    height: 100%;
+    background: #1e1e1e;
+    color: #fff;
+    font-family: var(--font-family);
+    overflow-y: auto;
+}
+
+.gos-about-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    gap: 12px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), transparent);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    flex-shrink: 0;
+}
+
+.gos-about-logo {
+    font-size: 4rem;
+    color: var(--accent-color);
+    filter: drop-shadow(0 0 10px rgba(var(--accent-rgb), 0.3));
+}
+
+.gos-about-title h1 {
+    margin: 0;
+    font-size: 1.8rem;
+    font-weight: 700;
+}
+
+.gos-about-title p {
+    margin: 4px 0 0 0;
+    color: var(--accent-color);
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.gos-about-body {
+    flex: 1;
+    padding: 30px;
+    overflow-y: visible;
+}
+
+.gos-about-body section {
+    margin-bottom: 30px;
+}
+
+.gos-about-body h3 {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    color: #888;
+    margin-bottom: 15px;
+    letter-spacing: 0.5px;
+}
+
+.gos-about-grid {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 8px 16px;
+    font-size: 0.9rem;
+}
+
+.gos-about-label {
+    color: #aaa;
+}
+
+.gos-about-value {
+    color: #eee;
+}
+
+.gos-about-footer {
+    padding: 16px 30px;
+    background: #2b2b2b;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    justify-content: flex-end;
+}

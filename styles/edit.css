@@ -6,7 +6,7 @@
     background-color: #0000aa;
     /* Classic DOS blue */
     color: #aaaaaa;
-    font-family: 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+    font-family: var(--font-family-mono);
     font-size: 1rem;
     overflow: hidden;
     position: relative;
@@ -77,9 +77,9 @@
     background-color: #aaaaaa;
     color: #0000aa;
     text-align: right;
-    padding: 5px 8px 5px 0;
+    padding: 10px 8px 10px 0;
     font-size: 0.9rem;
-    line-height: 1.2;
+    line-height: 20px;
     overflow: hidden;
     user-select: none;
     flex-shrink: 0;
@@ -96,7 +96,7 @@
     position: absolute;
     left: 0;
     right: 0;
-    height: 1.2em;
+    height: 20px;
     background-color: rgba(255, 255, 255, 0.15);
     pointer-events: none;
     z-index: 0;
@@ -113,13 +113,18 @@
     font-size: inherit;
     resize: none;
     outline: none;
-    padding: 5px 10px;
+    padding: 10px;
     margin: 0;
-    line-height: 1.2;
+    line-height: 20px;
     overflow: auto;
     position: relative;
     z-index: 1;
     white-space: pre;
+}
+
+.gos-edit-content::selection {
+    background-color: #aaaaaa;
+    color: #000000;
 }
 
 /* Custom scrollbars for DOS look */
@@ -139,14 +144,77 @@
 .gos-edit-statusbar {
     background-color: #aaaaaa;
     color: #000000;
-    height: 1.2em;
+    height: 20px;
+    line-height: 20px;
     display: flex;
     justify-content: space-between;
     padding: 0 10px;
-    font-size: 0.85em;
+    font-size: 1rem;
 }
 
 .gos-edit-cursor-pos {
     display: flex;
     gap: 15px;
+}
+
+/* ── Inline Ncurses Dialog ── */
+.gos-edit-ncurses-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* faint darken to focus dialog but pretend it's old hardware logic */
+    background: rgba(0, 0, 170, 0.5);
+    outline: none;
+}
+
+.gos-edit-ncurses-dialog {
+    background-color: #aaaaaa;
+    color: #000;
+    padding: 2px;
+    width: 320px;
+    box-shadow: 10px 10px 0 rgba(0, 0, 0, 0.5);
+    /* stark DOS drop shadow */
+    border: 1px solid #000;
+    display: flex;
+    flex-direction: column;
+}
+
+.gos-edit-ncurses-title {
+    text-align: center;
+    padding: 2px 0;
+    font-weight: bold;
+}
+
+.gos-edit-ncurses-body {
+    background-color: #0000aa;
+    color: #fff;
+    padding: 15px;
+    font-size: 1.1rem;
+    position: relative;
+    border: 1px solid #aaaaaa;
+    margin: 2px;
+}
+
+.gos-edit-ncurses-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.gos-edit-ncurses-btn {
+    padding: 2px 8px;
+    cursor: pointer;
+    color: #fff;
+}
+
+.gos-edit-ncurses-btn.active,
+.gos-edit-ncurses-btn:hover {
+    background-color: #aaaaaa;
+    color: #000;
 }

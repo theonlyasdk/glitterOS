@@ -335,6 +335,7 @@ const Widgets = (() => {
                 currentData.forEach((row, index) => {
                     const tr = document.createElement('tr');
                     const rowKey = row[keyField];
+                    tr.dataset.id = rowKey;
 
                     if (selectedIds.includes(rowKey)) {
                         tr.classList.add('selected');

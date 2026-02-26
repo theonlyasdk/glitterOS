@@ -68,6 +68,7 @@ function launchNotepad(filePath = null) {
     function saveFile(callback) {
         if (!_currentPath) {
             filedialog.showSave({
+                parentTitle: 'Notepad',
                 defaultName: 'Untitled.txt',
                 onConfirm: (path) => {
                     _currentPath = path;
@@ -112,6 +113,7 @@ function launchNotepad(filePath = null) {
             label: 'Open...', shortcut: 'Ctrl+O', action: () => {
                 checkSave(() => {
                     filedialog.showOpen({
+                        parentTitle: 'Notepad',
                         onConfirm: (path) => {
                             const res = fs.cat(path);
                             if (!res.error) {
@@ -129,6 +131,7 @@ function launchNotepad(filePath = null) {
         {
             label: 'Save As...', action: () => {
                 filedialog.showSave({
+                    parentTitle: 'Notepad',
                     defaultName: _currentPath ? _currentPath.split('\\').pop() : 'Untitled.txt',
                     onConfirm: (path) => {
                         _currentPath = path;
@@ -206,5 +209,7 @@ AppRegistry.register({
     exe: 'notepad.exe',
     icon: 'ri-file-text-line',
     launch: (path) => launchNotepad(path),
-    desktopShortcut: true
+    desktopShortcut: true,
+    acceptsFiles: true,
+    supportedExtensions: ['txt', 'md', 'json', 'csv', 'log', 'ini']
 });
