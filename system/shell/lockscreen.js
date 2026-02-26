@@ -25,7 +25,10 @@ function lockScreen() {
     if (typeof closeActionCentre === 'function') closeActionCentre();
 
     // Set background to current wallpaper
-    const wall = registry.get('personalization.wallpaper', 'res/wall.png');
+    let wall = registry.get('personalization.lockscreenWallpaper', null);
+    if (!wall) {
+        wall = registry.get('personalization.wallpaper', 'res/wall.png');
+    }
     _lockScreen.style.backgroundImage = `url("${wall}")`;
 
     _lockScreen.classList.add('active');

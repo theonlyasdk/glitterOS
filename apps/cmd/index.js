@@ -449,6 +449,44 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         }
     });
 
+    // ── Drag & Drop ───────────────────────────────────────────────────────────
+    terminal.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        terminal.classList.add('gos-cmd-dragover');
+    });
+
+    terminal.addEventListener('dragleave', () => {
+        terminal.classList.remove('gos-cmd-dragover');
+    });
+
+    terminal.addEventListener('drop', (e) => {
+        e.preventDefault();
+        terminal.classList.remove('gos-cmd-dragover');
+        const data = e.dataTransfer.getData('text/plain');
+        if (data) {
+            try {
+                const paths = JSON.parse(data);
+                if (Array.isArray(paths)) {
+                    const quotedPaths = paths.map(p => `"${p}"`).join(' ');
+                    const currentVal = hiddenInput.value;
+                    if (currentVal && !currentVal.endsWith(' ')) {
+                        hiddenInput.value += ' ' + quotedPaths;
+                    } else {
+                        hiddenInput.value += quotedPaths;
+                    }
+                    hiddenInput.focus();
+                    refreshActiveLine();
+                }
+            } catch (err) {
+                // If not JSON, just append raw text
+                hiddenInput.value += data;
+                hiddenInput.focus();
+                refreshActiveLine();
+            }
+        }
+    });
+
     hiddenInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
             const selTxt = window.getSelection().toString();

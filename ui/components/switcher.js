@@ -66,11 +66,18 @@
                 preview.appendChild(clone);
             }
 
+            // Central Icon Overlay
+            const iconOverlay = document.createElement('div');
+            iconOverlay.className = 'gos-switcher-preview-icon';
+            const iconClass = winObj.icon.startsWith('ri-') ? winObj.icon : (winObj.icon.startsWith('bi-') ? 'bi ' + winObj.icon : 'ri-' + winObj.icon);
+            iconOverlay.innerHTML = `<i class="${iconClass}"></i>`;
+            preview.appendChild(iconOverlay);
+
             // Label
             const label = document.createElement('div');
             label.className = 'gos-switcher-label';
-            const iconClass = winObj.icon.startsWith('ri-') ? winObj.icon : (winObj.icon.startsWith('bi-') ? 'bi ' + winObj.icon : 'ri-' + winObj.icon);
-            label.innerHTML = `<i class="${iconClass}"></i><span>${winObj.title}</span>`;
+            const fullIconClass = winObj.icon.startsWith('ri-') ? winObj.icon : (winObj.icon.startsWith('bi-') ? 'bi ' + winObj.icon : 'ri-' + winObj.icon);
+            label.innerHTML = `<i class="${fullIconClass}"></i><span>${winObj.title}</span>`;
 
             card.appendChild(preview);
             card.appendChild(label);

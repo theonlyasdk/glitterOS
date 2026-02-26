@@ -712,7 +712,10 @@ function launchAssistant() {
             const cur = registry.get('Software.GlitterOS.Assistant.Model', 'gemini-2.0-flash');
 
             const updateVisibility = () => {
-                hint.style.display = keyInput.value.length > 10 ? 'none' : 'block';
+                const hasKey = keyInput.value.trim().length >= 10;
+                hint.style.display = hasKey ? 'none' : 'block';
+                modelLbl.style.display = hasKey ? 'block' : 'none';
+                modelInputWrap.style.display = hasKey ? 'flex' : 'none';
             };
 
             async function updateModels(key) {
@@ -738,6 +741,7 @@ function launchAssistant() {
 
             keyInput.oninput = () => updateModels(keyInput.value.trim());
             updateModels(keyInput.value.trim());
+            updateVisibility();
 
             // Save values closure
             dlgContainer._save = () => {

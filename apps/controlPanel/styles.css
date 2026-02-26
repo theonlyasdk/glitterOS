@@ -132,3 +132,128 @@
 .gos-cp-content.animate-in {
     animation: cp-section-in 0.35s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
 }
+
+/* ── Tabbed Interface ── */
+.gos-cp-tabs {
+    display: flex;
+    gap: 30px;
+    border-bottom: 1px solid #333;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.gos-cp-tab {
+    padding: 8px 0;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: #888;
+    transition: color 0.2s;
+    user-select: none;
+    position: relative;
+    z-index: 2;
+}
+
+.gos-cp-tab:hover {
+    color: #ccc;
+}
+
+.gos-cp-tab.active {
+    color: #fff;
+}
+
+.gos-cp-tab-indicator {
+    position: absolute;
+    bottom: 0;
+    height: 2px;
+    background: var(--accent-color);
+    transition: left 0.3s cubic-bezier(0.1, 0.9, 0.2, 1), width 0.3s cubic-bezier(0.1, 0.9, 0.2, 1);
+    z-index: 1;
+}
+
+.gos-cp-content-zoom {
+    animation: cp-tab-zoom 0.3s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+}
+
+@keyframes cp-tab-zoom {
+    from {
+        opacity: 0;
+        transform: scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* ── Metro Dialog ── */
+.gos-cp-dialog-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(2px);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.gos-cp-dialog-overlay.visible {
+    opacity: 1;
+}
+
+.gos-cp-dialog {
+    background: #252525;
+    border: 1px solid #3a3a3a;
+    width: 280px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    transform: scale(1.1);
+    opacity: 0;
+    transition: transform 0.4s cubic-bezier(0.1, 0.9, 0.2, 1), opacity 0.4s cubic-bezier(0.1, 0.9, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+}
+
+.gos-cp-dialog-overlay.visible .gos-cp-dialog {
+    transform: scale(1);
+    opacity: 1;
+}
+
+.gos-cp-dialog-title {
+    padding: 16px 20px;
+    font-size: 1.1rem;
+    font-weight: 300;
+    color: #fff;
+    border-bottom: 1px solid #333;
+}
+
+.gos-cp-dialog-list {
+    padding: 8px 0;
+}
+
+.gos-cp-dialog-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 20px;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.9rem;
+    transition: background 0.1s, border-color 0.1s;
+    border: 1px solid transparent;
+    margin: 1px 8px;
+}
+
+.gos-cp-dialog-item:hover {
+    border-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.gos-cp-dialog-item i {
+    width: 20px;
+    text-align: center;
+    font-size: 1.1rem;
+    color: var(--accent-color);
+}

@@ -179,6 +179,10 @@ const filedialog = {
 
             const sorted = [...res.entries].sort((a, b) => (a.type === b.type) ? a.name.localeCompare(b.name) : (a.type === 'dir' ? -1 : 1));
 
+            if (sorted.length === 0) {
+                content.innerHTML = `<div class="w-100 h-100 d-flex align-items-center justify-content-center text-secondary opacity-50" style="font-size:0.9rem;">This folder is empty.</div>`;
+            }
+
             sorted.forEach(entry => {
                 const isDir = entry.type === 'dir';
                 const item = document.createElement('div');
@@ -287,11 +291,20 @@ const filedialog = {
 
         container.append(toolbar, body, footer);
 
+        container.tabIndex = 0;
+        container.onkeydown = (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+            if (e.key === 'Backspace') {
+                e.preventDefault();
+                upBtn.click();
+            }
+        };
+
         win = wm.createWindow(mode === 'save' ? 'Save As' : 'Open', container, {
             width: 560,
             height: 420,
-            noResize: true,
-            noControls: true, // Typically dialogs have fewer controls
+            noResize: false,
+            noControls: false,
             icon: mode === 'save' ? 'bi-save' : 'bi-folder2-open',
             modal: true,
             parentTitle: options.parentTitle

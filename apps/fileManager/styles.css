@@ -120,6 +120,45 @@
     color: var(--accent-color);
 }
 
+.gos-fm-sidebar-pin-indicator {
+    padding: 12px;
+    margin: 8px 12px;
+    background: rgba(0, 120, 215, 0.1);
+    border: 1px dashed var(--accent-color);
+    border-radius: 4px;
+    text-align: center;
+    color: var(--accent-color);
+    font-size: 0.75rem;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    display: none;
+    animation: gos-pulse 2s infinite;
+}
+
+.gos-fm-sidebar-pin-indicator.visible {
+    opacity: 1;
+    display: block;
+}
+
+.gos-fm-sidebar.drag-active .gos-fm-sidebar-header {
+    color: var(--accent-color) !important;
+}
+
+@keyframes gos-pulse {
+    0% {
+        border-color: var(--accent-color);
+    }
+
+    50% {
+        border-color: var(--accent-glow);
+    }
+
+    100% {
+        border-color: var(--accent-color);
+    }
+}
+
 /* Content area */
 .gos-fm-content {
     flex: 1;
@@ -152,6 +191,7 @@
     border: 1px solid transparent;
     position: relative;
     overflow: hidden;
+    -webkit-user-drag: element !important;
 }
 
 .gos-fm-item:hover {
@@ -282,4 +322,9 @@
     border: 1px solid rgba(0, 120, 215, 0.6);
     pointer-events: none;
     z-index: 50;
+}
+
+/* Override global drag inhibition for details view rows */
+.gos-fm .gos-w32-table tr {
+    -webkit-user-drag: element !important;
 }

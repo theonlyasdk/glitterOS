@@ -7,6 +7,8 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
     container.className = 'gos-edit';
 
     let _currentPath = filePath;
+    let _cwd = _currentPath ? _currentPath.substring(0, _currentPath.lastIndexOf('\\')) : 'C:\\Users\\User\\Documents';
+    if (!_cwd) _cwd = 'C:\\';
     let _isDirty = false;
     let _oldContent = null;
     let _targetWin = null;
@@ -55,6 +57,48 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
     const menuItemsData = [];
     let _activeMenuIdx = -1;
     let _activeItemIdx = -1;
+
+    function showAboutDialog() {
+        const overlay = document.createElement('div');
+        overlay.className = 'gos-edit-ncurses-overlay';
+        overlay.tabIndex = 0;
+
+        const dialog = document.createElement('div');
+        dialog.className = 'gos-edit-ncurses-dialog';
+        dialog.style.width = '380px';
+        dialog.innerHTML = `
+            <div class="gos-edit-ncurses-title">About</div>
+            <div class="gos-edit-ncurses-body">
+                <div style="text-align:center; margin-bottom:15px; font-size: 0.95rem;">
+                    glitterOS Editor (edit.exe)<br>
+                    Version 1.0.64 (Alpha)<br><br>
+                    (C) 2026 glitterOS Project<br>
+                    Classic DOS Interface Emulation
+                </div>
+                <div class="gos-edit-ncurses-buttons">
+                    <div class="gos-edit-ncurses-btn active">OK</div>
+                </div>
+            </div>
+        `;
+
+        const okBtn = dialog.querySelector('.gos-edit-ncurses-btn');
+        const commit = () => {
+            overlay.remove();
+            setTimeout(() => textarea.focus(), 10);
+        };
+
+        okBtn.onclick = commit;
+        overlay.onkeydown = (e) => {
+            if (e.key === 'Enter' || e.key === 'Escape' || e.key === ' ') {
+                e.preventDefault();
+                commit();
+            }
+        };
+
+        overlay.appendChild(dialog);
+        container.appendChild(overlay);
+        overlay.focus();
+    }
 
     function closeAllMenus() {
         container.querySelectorAll('.gos-edit-menu-item').forEach(m => {
@@ -138,6 +182,272 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
         menuElements.push(menu);
         menuItemsData.push(myItems);
         return menu;
+    }
+
+    function showDOSFileDialog(mode, callback, defaultName = '') {
+        closeAllMenus();
+        const overlay = document.createElement('div');
+        overlay.className = 'gos-edit-ncurses-overlay';
+        overlay.tabIndex = 0;
+
+        const dialog = document.createElement('div');
+        dialog.className = 'gos-edit-ncurses-dialog file-dialog';
+        dialog.innerHTML = `
+            <div class="gos-edit-ncurses-title">${mode === 'open' ? 'Open' : 'Save As'}</div>
+            <div class="gos-edit-ncurses-body">
+                <div class="gos-edit-file-list-label">File Name:</div>
+                <input type="text" class="gos-edit-file-input">
+                
+                <div class="gos-edit-file-dialog-grid">
+                    <div class="gos-edit-file-list-wrap">
+                        <div class="gos-edit-file-list-label">Files:</div>
+                        <div class="gos-edit-file-list files"></div>
+                    </div>
+                    <div class="gos-edit-file-list-wrap">
+                        <div class="gos-edit-file-list-label">Directories:</div>
+                        <div class="gos-edit-file-list dirs"></div>
+                    </div>
+                </div>
+
+                <div class="gos-edit-ncurses-buttons" style="margin-top: 15px;">
+                    <div class="gos-edit-ncurses-btn ok">OK</div>
+                    <div class="gos-edit-ncurses-btn cancel">Cancel</div>
+                </div>
+            </div>
+        `;
+
+        const input = dialog.querySelector('.gos-edit-file-input');
+        const fileList = dialog.querySelector('.files');
+        const dirList = dialog.querySelector('.dirs');
+        const okBtn = dialog.querySelector('.ok');
+        const cancelBtn = dialog.querySelector('.cancel');
+
+        let browsePath = _cwd;
+        let selectedFileIdx = -1;
+        let selectedDirIdx = -1;
+        let currentFiles = [];
+        let currentDirs = [];
+        let activePanel = 'input'; // 'input', 'files', 'dirs', 'buttons'
+        let btnIdx = 0;
+
+        input.value = defaultName;
+
+        function refreshLists() {
+            fileList.innerHTML = '';
+            dirList.innerHTML = '';
+            const res = fs.ls(browsePath);
+            if (res.error) return;
+
+            currentFiles = res.entries.filter(e => e.type === 'file').map(e => e.name);
+            currentDirs = res.entries.filter(e => e.type === 'dir').map(e => e.name);
+            if (browsePath !== 'C:\\') currentDirs.unshift('..');
+
+            currentFiles.forEach((f, i) => {
+                const el = document.createElement('div');
+                el.className = 'gos-edit-file-item';
+                el.textContent = f;
+                el.onclick = () => { selectFile(i); };
+                fileList.appendChild(el);
+            });
+
+            currentDirs.forEach((d, i) => {
+                const el = document.createElement('div');
+                el.className = 'gos-edit-file-item';
+                el.textContent = d === '..' ? ' [-..-]' : ` [${d}]`;
+                el.onclick = () => { selectDir(i); };
+                dirList.appendChild(el);
+            });
+        }
+
+        function selectFile(idx) {
+            selectedFileIdx = idx;
+            selectedDirIdx = -1;
+            activePanel = 'files';
+            input.value = currentFiles[idx];
+            updateSelection();
+        }
+
+        function selectDir(idx) {
+            selectedDirIdx = idx;
+            selectedFileIdx = -1;
+            activePanel = 'dirs';
+            updateSelection();
+        }
+
+        function updateSelection() {
+            if (activePanel === 'files' && selectedFileIdx === -1 && currentFiles.length > 0) {
+                selectedFileIdx = 0;
+                input.value = currentFiles[0];
+            }
+            if (activePanel === 'dirs' && selectedDirIdx === -1 && currentDirs.length > 0) {
+                selectedDirIdx = 0;
+            }
+
+            Array.from(fileList.children).forEach((el, i) => {
+                const isActive = i === selectedFileIdx && activePanel === 'files';
+                el.classList.toggle('active', isActive);
+                if (isActive) el.scrollIntoView({ block: 'nearest' });
+            });
+            Array.from(dirList.children).forEach((el, i) => {
+                const isActive = i === selectedDirIdx && activePanel === 'dirs';
+                el.classList.toggle('active', isActive);
+                if (isActive) el.scrollIntoView({ block: 'nearest' });
+            });
+
+            okBtn.classList.toggle('active', activePanel === 'buttons' && btnIdx === 0);
+            cancelBtn.classList.toggle('active', activePanel === 'buttons' && btnIdx === 1);
+
+            if (activePanel === 'input') input.focus();
+            else overlay.focus();
+        }
+
+        function commit() {
+            if (activePanel === 'dirs' && selectedDirIdx !== -1) {
+                const dir = currentDirs[selectedDirIdx];
+                if (dir === '..') {
+                    const parts = browsePath.replace('C:\\', '').split('\\').filter(Boolean);
+                    parts.pop();
+                    browsePath = parts.length === 0 ? 'C:\\' : 'C:\\' + parts.join('\\');
+                } else {
+                    browsePath = (browsePath.endsWith('\\') ? browsePath : browsePath + '\\') + dir;
+                }
+                selectedDirIdx = -1;
+                refreshLists();
+                updateSelection();
+                return;
+            }
+
+            const name = input.value.trim();
+            if (!name) return;
+            const fullPath = (browsePath.endsWith('\\') ? browsePath : browsePath + '\\') + name;
+
+            overlay.remove();
+            callback(fullPath);
+            setTimeout(() => textarea.focus(), 10);
+        }
+
+        overlay.onkeydown = (e) => {
+            if (activePanel === 'input') return; // let input handle it
+
+            e.preventDefault();
+            if (e.key === 'Tab') {
+                const panels = ['input', 'files', 'dirs', 'buttons'];
+                activePanel = panels[(panels.indexOf(activePanel) + 1) % panels.length];
+                updateSelection();
+            } else if (e.key === 'ArrowDown') {
+                if (activePanel === 'files') {
+                    if (selectedFileIdx < currentFiles.length - 1) {
+                        selectedFileIdx++;
+                        input.value = currentFiles[selectedFileIdx];
+                    } else {
+                        activePanel = 'buttons';
+                        btnIdx = 0;
+                    }
+                } else if (activePanel === 'dirs') {
+                    if (selectedDirIdx < currentDirs.length - 1) {
+                        selectedDirIdx++;
+                    } else {
+                        activePanel = 'buttons';
+                        btnIdx = 0;
+                    }
+                }
+                updateSelection();
+            } else if (e.key === 'ArrowUp') {
+                if (activePanel === 'files') {
+                    if (selectedFileIdx > 0) {
+                        selectedFileIdx--;
+                        input.value = currentFiles[selectedFileIdx];
+                    } else {
+                        activePanel = 'input';
+                        input.focus();
+                    }
+                } else if (activePanel === 'dirs') {
+                    if (selectedDirIdx > 0) {
+                        selectedDirIdx--;
+                    } else {
+                        activePanel = 'input';
+                        input.focus();
+                    }
+                } else if (activePanel === 'buttons') {
+                    if (currentFiles.length > 0) {
+                        activePanel = 'files';
+                        selectedFileIdx = currentFiles.length - 1;
+                        input.value = currentFiles[selectedFileIdx];
+                    } else if (currentDirs.length > 0) {
+                        activePanel = 'dirs';
+                        selectedDirIdx = currentDirs.length - 1;
+                    } else {
+                        activePanel = 'input';
+                    }
+                }
+                updateSelection();
+            } else if (e.key === 'ArrowRight') {
+                if (activePanel === 'buttons') {
+                    btnIdx = (btnIdx + 1) % 2;
+                } else if (activePanel === 'files') {
+                    if (currentDirs.length > 0) {
+                        activePanel = 'dirs';
+                        if (selectedDirIdx === -1) selectedDirIdx = 0;
+                    }
+                }
+                updateSelection();
+            } else if (e.key === 'ArrowLeft') {
+                if (activePanel === 'buttons') {
+                    btnIdx = (btnIdx - 1 + 2) % 2;
+                } else if (activePanel === 'dirs') {
+                    if (currentFiles.length > 0) {
+                        activePanel = 'files';
+                        if (selectedFileIdx === -1) selectedFileIdx = 0;
+                    }
+                }
+                updateSelection();
+            } else if (e.key === 'Enter') {
+                if (activePanel === 'buttons' && btnIdx === 1) {
+                    overlay.remove();
+                    setTimeout(() => textarea.focus(), 10);
+                } else {
+                    commit();
+                }
+            } else if (e.key === 'Escape') {
+                overlay.remove();
+                setTimeout(() => textarea.focus(), 10);
+            }
+        };
+
+        input.onkeydown = (e) => {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                activePanel = 'files';
+                updateSelection();
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (currentFiles.length > 0) {
+                    activePanel = 'files';
+                    selectedFileIdx = 0;
+                    input.value = currentFiles[0];
+                } else if (currentDirs.length > 0) {
+                    activePanel = 'dirs';
+                    selectedDirIdx = 0;
+                } else {
+                    activePanel = 'buttons';
+                }
+                updateSelection();
+            } else if (e.key === 'Enter') {
+                commit();
+            } else if (e.key === 'Escape') {
+                overlay.remove();
+                setTimeout(() => textarea.focus(), 10);
+            }
+        };
+
+        okBtn.onclick = commit;
+        cancelBtn.onclick = () => { overlay.remove(); setTimeout(() => textarea.focus(), 10); };
+
+        overlay.appendChild(dialog);
+        container.appendChild(overlay);
+        refreshLists();
+        updateSelection();
+        input.focus();
     }
 
     function exitEditor() {
@@ -239,7 +549,8 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
             parentContainer.innerHTML = '';
             _oldContent.forEach(node => parentContainer.appendChild(node));
             if (_targetWin) {
-                _targetWin.element.querySelector('.gos-win-title').textContent = _targetWin.title;
+                const titleText = _targetWin.title;
+                _targetWin.element.querySelector('.gos-win-title').textContent = titleText;
             }
             if (onExit) onExit();
         } else {
@@ -255,17 +566,18 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
         { label: 'New', action: () => { textarea.value = ''; _currentPath = null; _isDirty = false; updateTitle(); updateLineNumbers(); } },
         {
             label: 'Open...', action: () => {
-                filedialog.showOpen({
-                    parentTitle: 'edit.exe',
-                    onConfirm: (path) => {
-                        const res = fs.cat(path);
-                        if (!res.error) {
-                            textarea.value = res.content;
-                            _currentPath = path;
-                            _isDirty = false;
-                            updateTitle();
-                            updateLineNumbers();
-                        }
+                showDOSFileDialog('open', (path) => {
+                    const res = fs.cat(path);
+                    if (!res.error) {
+                        textarea.value = res.content;
+                        _currentPath = path;
+                        _cwd = path.substring(0, path.lastIndexOf('\\')) || 'C:\\';
+                        _isDirty = false;
+                        updateTitle();
+                        updateLineNumbers();
+                        setTimeout(() => textarea.focus(), 10);
+                    } else {
+                        if (typeof wm !== 'undefined') wm.messageBox('Error', 'File not found.', { icon: 'bi-x-circle' });
                     }
                 });
             }
@@ -273,14 +585,11 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
         { label: 'Save', action: () => saveFile() },
         {
             label: 'Save As...', action: () => {
-                filedialog.showSave({
-                    parentTitle: 'edit.exe',
-                    defaultName: _currentPath ? _currentPath.split('\\').pop() : 'UNTITLED.TXT',
-                    onConfirm: (path) => {
-                        _currentPath = path;
-                        performSave();
-                    }
-                });
+                showDOSFileDialog('save', (path) => {
+                    _currentPath = path;
+                    performSave();
+                    setTimeout(() => textarea.focus(), 10);
+                }, _currentPath ? _currentPath.split('\\').pop() : 'UNTITLED.TXT');
             }
         },
         { label: 'Exit', action: exitEditor }
@@ -320,9 +629,7 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
     const helpMenu = createMenu('Help', [
         {
             label: 'About', action: () => {
-                if (typeof wm !== 'undefined') {
-                    wm.messageBox('edit.exe', 'glitterOS MS-DOS Style Editor<br>Version 1.0', { icon: 'bi-info-circle' });
-                }
+                showAboutDialog();
             }
         }
     ]);
@@ -332,15 +639,13 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
     // ── Logic ───────────────────────────────────────────────────────────────
     function saveFile(callback) {
         if (!_currentPath) {
-            filedialog.showSave({
-                parentTitle: 'edit.exe',
-                defaultName: 'UNTITLED.TXT',
-                onConfirm: (path) => {
-                    _currentPath = path;
-                    performSave();
-                    if (callback) callback();
-                }
-            });
+            showDOSFileDialog('save', (path) => {
+                _currentPath = path;
+                _cwd = path.substring(0, path.lastIndexOf('\\')) || 'C:\\';
+                performSave();
+                if (callback) callback();
+                setTimeout(() => textarea.focus(), 10);
+            }, 'UNTITLED.TXT');
         } else {
             performSave();
             if (callback) callback();
@@ -430,12 +735,14 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
             if (e.key === 'Escape') {
                 closeAllMenus();
             } else if (e.key === 'ArrowRight') {
+                const wasOpen = menuElements[_activeMenuIdx].classList.contains('active');
                 _activeMenuIdx = (_activeMenuIdx + 1) % menuElements.length;
-                _activeItemIdx = -1;
+                _activeItemIdx = wasOpen ? 0 : -1;
                 highlightMenu();
             } else if (e.key === 'ArrowLeft') {
+                const wasOpen = menuElements[_activeMenuIdx].classList.contains('active');
                 _activeMenuIdx = (_activeMenuIdx - 1 + menuElements.length) % menuElements.length;
-                _activeItemIdx = -1;
+                _activeItemIdx = wasOpen ? 0 : -1;
                 highlightMenu();
             } else if (e.key === 'ArrowDown') {
                 const items = menuItemsData[_activeMenuIdx];

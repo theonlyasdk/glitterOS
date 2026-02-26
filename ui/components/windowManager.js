@@ -359,8 +359,19 @@ class WindowManager {
     }
 
     focusWindow(id) {
-        const modalWin = this.windows.find(w => w.modal && !w.element.classList.contains('minimized') && !w.element.classList.contains('closing'));
-        if (modalWin && modalWin.id !== id) {
+        const modalWin = this.windows.find(w => {
+            if (!w.modal || w.element.classList.contains('minimized') || w.element.classList.contains('closing')) return false;
+
+            // If it's a system modal (no parent), it blocks EVERYTHING except itself
+            if (!w.parentId) {
+                return w.id !== id;
+            }
+
+            // If it's an application modal, it ONLY blocks its parent
+            return w.parentId === id;
+        });
+
+        if (modalWin) {
             // Flash the modal window
             modalWin.element.classList.add('modal-flash');
             setTimeout(() => modalWin.element.classList.remove('modal-flash'), 100);

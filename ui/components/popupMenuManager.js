@@ -92,10 +92,34 @@ const PopupMenuManager = (() => {
                 });
 
                 if (selectedItems.length === 1 && selectedItems[0].type === 'file') {
+                    const name = selectedItems[0].name;
+                    const ext = name.split('.').pop();
+                    const apps = typeof AppRegistry !== 'undefined' ? AppRegistry.getAppsForExt(ext) : [];
+
                     items.push({
-                        label: 'Open with...',
+                        label: 'Open with',
                         icon: 'bi-box-arrow-up-right',
-                        action: () => typeof showOpenWithDialog === 'function' && showOpenWithDialog((cwd.endsWith('\\') ? cwd : cwd + '\\') + selectedItems[0].name)
+                        hasSubmenu: apps.length > 0,
+                        onMouseEnter: (e, el) => {
+                            if (apps.length === 0) return;
+                            const rect = el.getBoundingClientRect();
+                            const subItems = apps.map(app => ({
+                                label: app.name,
+                                icon: app.icon,
+                                action: () => app.launch((cwd.endsWith('\\') ? cwd : cwd + '\\') + name)
+                            }));
+                            subItems.push({ type: 'sep' });
+                            subItems.push({
+                                label: 'Choose another app...',
+                                action: () => typeof showOpenWithDialog === 'function' ? showOpenWithDialog((cwd.endsWith('\\') ? cwd : cwd + '\\') + name) : wm.messageBox('Open With', 'Feature not available.')
+                            });
+                            this.show(rect.right, rect.top, subItems, true);
+                        },
+                        action: () => {
+                            if (typeof showOpenWithDialog === 'function') {
+                                showOpenWithDialog((cwd.endsWith('\\') ? cwd : cwd + '\\') + name);
+                            }
+                        }
                     });
                 }
 

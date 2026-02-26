@@ -53,7 +53,7 @@
 /* Resize handles */
 .gos-win-resizer {
 	position: absolute;
-	z-index: 10;
+	z-index: 10001;
 }
 
 .gos-win-resizer-r {

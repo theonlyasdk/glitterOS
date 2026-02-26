@@ -42,6 +42,63 @@ function launchFileManager(startPath) {
         navigate(parent);
     }
 
+    function deleteSelected() {
+        if (_selected.length === 0) return;
+        _selected.forEach(name => {
+            const path = (_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + name;
+            const stat = fs.stat(path);
+            if (stat.type === 'dir') fs.rmdir(path, true); else fs.rm(path);
+        });
+        _selected = [];
+        renderContent();
+    }
+
+    function copySelected() {
+        if (_selected.length === 0) return;
+        window._gosFileClipboard = {
+            mode: 'copy',
+            paths: _selected.map(n => (_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + n)
+        };
+    }
+
+    function cutSelected() {
+        if (_selected.length === 0) return;
+        window._gosFileClipboard = {
+            mode: 'cut',
+            paths: _selected.map(n => (_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + n)
+        };
+    }
+
+    function pasteFiles() {
+        const clip = window._gosFileClipboard;
+        if (!clip || !clip.paths || clip.paths.length === 0) return;
+
+        clip.paths.forEach(oldPath => {
+            const name = oldPath.split('\\').pop();
+            const newPath = (_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + name;
+
+            if (oldPath.toLowerCase() === newPath.toLowerCase()) return;
+
+            const stat = fs.stat(oldPath);
+            if (stat.type === 'file') {
+                const res = fs.cat(oldPath);
+                if (!res.error) {
+                    fs.write(newPath, res.content);
+                    if (clip.mode === 'cut') fs.rm(oldPath);
+                }
+            } else {
+                // Simplified recursive copy/move for directories
+                // In a real OS we'd walk the tree, here we'll just mkdir
+                // which is limited but better than nothing for this simulation
+                fs.mkdir(newPath);
+                if (clip.mode === 'cut') fs.rmdir(oldPath, true);
+            }
+        });
+
+        if (clip.mode === 'cut') window._gosFileClipboard = null;
+        renderContent();
+    }
+
     function goBack() {
         if (_histIdx <= 0) return;
         _histIdx--;
@@ -180,45 +237,57 @@ function launchFileManager(startPath) {
             qaContainer.appendChild(item);
         });
 
+        const pinIndicator = document.createElement('div');
+        pinIndicator.className = 'gos-fm-sidebar-pin-indicator';
+        pinIndicator.innerHTML = '<i class="bi bi-pin-angle" style="display:block; font-size: 1.2rem; margin-bottom: 4px;"></i> Drop here to pin';
+
         // Drop handling for Quick Access
         if (!sidebar.dataset.hasListeners) {
+            container.addEventListener('dragstart', (e) => {
+                pinIndicator.classList.add('visible');
+            });
+
+            container.addEventListener('dragend', () => {
+                pinIndicator.classList.remove('visible');
+                sidebar.classList.remove('drag-active');
+            });
+
             sidebar.addEventListener('dragover', (e) => {
                 e.preventDefault();
-                sidebar.querySelector('.gos-fm-sidebar-header').style.display = 'flex';
-                sidebar.querySelector('.gos-fm-sidebar-header').nextSibling.style.display = 'block';
-                sidebar.querySelector('.gos-fm-sidebar-header').style.color = 'var(--accent-color)';
+                sidebar.classList.add('drag-active');
             });
+
             sidebar.addEventListener('dragleave', (e) => {
-                const head = sidebar.querySelector('.gos-fm-sidebar-header');
-                const items = registry.get('Software.GlitterOS.Explorer.QuickAccess') || [];
-                if (items.length === 0) {
-                    head.style.display = 'none';
-                    head.nextSibling.style.display = 'none';
+                // Only remove if we're not over a child
+                if (!sidebar.contains(e.relatedTarget)) {
+                    sidebar.classList.remove('drag-active');
                 }
-                head.style.color = '#888';
             });
+
             sidebar.addEventListener('drop', (e) => {
                 e.preventDefault();
-                const head = sidebar.querySelector('.gos-fm-sidebar-header');
-                head.style.color = '#888';
+                sidebar.classList.remove('drag-active');
+                pinIndicator.classList.remove('visible');
                 const data = e.dataTransfer.getData('text/plain');
                 if (data) {
-                    const paths = JSON.parse(data);
-                    let currentQA = registry.get('Software.GlitterOS.Explorer.QuickAccess') || [];
-                    paths.forEach(p => {
-                        const stat = fs.stat(p);
-                        if (!currentQA.find(x => x.path === p)) {
-                            currentQA.push({ name: stat.name, path: p, icon: stat.type === 'dir' ? 'bi-folder' : 'bi-file-earmark' });
-                        }
-                    });
-                    registry.set('Software.GlitterOS.Explorer.QuickAccess', currentQA);
-                    updateSidebar();
+                    try {
+                        const paths = JSON.parse(data);
+                        let currentQA = registry.get('Software.GlitterOS.Explorer.QuickAccess') || [];
+                        paths.forEach(p => {
+                            const stat = fs.stat(p);
+                            if (!currentQA.find(x => x.path === p)) {
+                                currentQA.push({ name: stat.name, path: p, icon: stat.type === 'dir' ? 'bi-folder' : 'bi-file-earmark' });
+                            }
+                        });
+                        registry.set('Software.GlitterOS.Explorer.QuickAccess', currentQA);
+                        updateSidebar();
+                    } catch (err) { }
                 }
             });
             sidebar.dataset.hasListeners = 'true';
         }
 
-        sidebar.append(qaHeader, qaContainer);
+        sidebar.append(qaHeader, pinIndicator, qaContainer);
 
         // 2. Drives
         const driveHeader = document.createElement('div');
@@ -267,13 +336,11 @@ function launchFileManager(startPath) {
             onOpen: () => openSelected(),
             onRename: (item) => startRename(item.name),
             onDelete: (items) => {
-                items.forEach(item => {
-                    const path = (_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + item.name;
-                    if (item.type === 'dir') fs.rmdir(path, true); else fs.rm(path);
-                });
-                _selected = [];
-                renderContent();
+                deleteSelected();
             },
+            onCopy: () => copySelected(),
+            onCut: () => cutSelected(),
+            onPaste: () => pasteFiles(),
             onNewFolder: createFolder,
             onNewFile: createFile,
             onRefresh: () => navigate(_cwd, false),
@@ -377,6 +444,18 @@ function launchFileManager(startPath) {
             e.preventDefault();
             _selected = sorted.map(s => s.name);
             updateSelectionUI();
+        } else if (e.ctrlKey && e.key === 'x') {
+            e.preventDefault();
+            cutSelected();
+        } else if (e.ctrlKey && e.key === 'c') {
+            e.preventDefault();
+            copySelected();
+        } else if (e.ctrlKey && e.key === 'v') {
+            e.preventDefault();
+            pasteFiles();
+        } else if (e.key === 'Delete') {
+            e.preventDefault();
+            deleteSelected();
         } else if (e.key === 'Enter') {
             openSelected();
         } else if (e.key === 'Backspace') {
@@ -688,10 +767,12 @@ function launchFileManager(startPath) {
     });
 
     content.oncontextmenu = (e) => {
-        if (e.target === content || e.target.classList.contains('gos-fm-icons-view') || e.target.classList.contains('gos-w32-table-container') || e.target.tagName === 'TBODY' || e.target.tagName === 'TABLE') {
-            e.preventDefault();
-            showCtxMenu(e.clientX, e.clientY, []);
-        }
+        // Find if we clicked on an item
+        if (e.target.closest('.gos-fm-item')) return;
+        if (e.target.closest('tr')) return;
+
+        e.preventDefault();
+        showCtxMenu(e.clientX, e.clientY, []);
     };
 
     updateButtons();

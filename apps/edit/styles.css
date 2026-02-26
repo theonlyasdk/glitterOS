@@ -218,3 +218,62 @@
     background-color: #aaaaaa;
     color: #000;
 }
+
+/* ── DOS File Dialog Additions ── */
+.gos-edit-file-dialog-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.gos-edit-file-list-wrap {
+    display: flex;
+    flex-direction: column;
+}
+
+.gos-edit-file-list-label {
+    font-size: 0.8rem;
+    color: #aaaaaa;
+    margin-bottom: 2px;
+}
+
+.gos-edit-file-list {
+    height: 120px;
+    background: #000;
+    border: 1px solid #aaaaaa;
+    overflow-y: scroll;
+    padding: 2px;
+}
+
+.gos-edit-file-item {
+    padding: 0 4px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.gos-edit-file-item.active {
+    background-color: #aaaaaa;
+    color: #000;
+}
+
+.gos-edit-file-input {
+    width: 100%;
+    background: #000;
+    border: 1px solid #aaaaaa;
+    color: #fff;
+    font-family: inherit;
+    font-size: 1rem;
+    padding: 2px 6px;
+    outline: none;
+    margin-bottom: 10px;
+}
+
+.gos-edit-file-input:focus {
+    border-color: #fff;
+}
+
+.gos-edit-ncurses-dialog.file-dialog {
+    width: 480px;
+}

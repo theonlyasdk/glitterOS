@@ -63,6 +63,52 @@ function launchControlPanel() {
         title.textContent = navItems.find(n => n.id === id).label;
         mainContent.appendChild(title);
 
+        function showWallpaperDialog(url, thumb) {
+            const overlay = document.createElement('div');
+            overlay.className = 'gos-cp-dialog-overlay';
+
+            const dialog = document.createElement('div');
+            dialog.className = 'gos-cp-dialog';
+
+            const dialogTitle = document.createElement('div');
+            dialogTitle.className = 'gos-cp-dialog-title';
+            dialogTitle.textContent = 'Set as wallpaper';
+
+            const list = document.createElement('div');
+            list.className = 'gos-cp-dialog-list';
+
+            const items = [
+                { label: 'Home screen', icon: 'bi-display', action: () => setWallpaper(url) },
+                { label: 'Lock screen', icon: 'bi-lock', action: () => registry.set('personalization.lockscreenWallpaper', url) }
+            ];
+
+            items.forEach(item => {
+                const el = document.createElement('div');
+                el.className = 'gos-cp-dialog-item';
+                el.innerHTML = `<i class="bi ${item.icon}"></i><span>${item.label}</span>`;
+                el.onclick = () => {
+                    item.action();
+                    close();
+                };
+                list.appendChild(el);
+            });
+
+            const close = () => {
+                overlay.classList.remove('visible');
+                setTimeout(() => overlay.remove(), 400);
+            };
+
+            overlay.onclick = (e) => {
+                if (e.target === overlay) close();
+            };
+
+            dialog.append(dialogTitle, list);
+            overlay.appendChild(dialog);
+            container.appendChild(overlay);
+
+            requestAnimationFrame(() => overlay.classList.add('visible'));
+        }
+
         if (id === 'personalization') {
             // ── Wallpaper Provider Selector ──────────────────────────────
             const providerWrap = document.createElement('div');
@@ -103,10 +149,10 @@ function launchControlPanel() {
 
                         Widgets.registerTileEffect(thumb);
 
-                        thumb.onclick = () => {
+                        thumb.onclick = (e) => {
                             grid.querySelectorAll('.gos-cp-wallpaper-thumb').forEach(t => t.classList.remove('active'));
                             thumb.classList.add('active');
-                            setWallpaper(wall.url);
+                            showWallpaperDialog(wall.url, thumb);
                         };
 
                         const img = new Image();
@@ -317,13 +363,119 @@ function launchControlPanel() {
             wrap.append(snappingCheck);
             mainContent.appendChild(wrap);
         } else if (id === 'apps') {
-            renderAppsList(mainContent);
+            const tabsWrap = document.createElement('div');
+            tabsWrap.className = 'gos-cp-tabs';
+
+            const btnInstalled = document.createElement('div');
+            btnInstalled.textContent = 'Installed Apps';
+            btnInstalled.className = 'gos-cp-tab active';
+
+            const btnDefault = document.createElement('div');
+            btnDefault.textContent = 'Default Apps';
+            btnDefault.className = 'gos-cp-tab';
+
+            const indicator = document.createElement('div');
+            indicator.className = 'gos-cp-tab-indicator';
+
+            tabsWrap.append(btnInstalled, btnDefault, indicator);
+            mainContent.appendChild(tabsWrap);
+
+            const contentArea = document.createElement('div');
+            contentArea.className = 'gos-cp-content-zoom';
+            mainContent.appendChild(contentArea);
+
+            const updateIndicator = (target) => {
+                indicator.style.left = target.offsetLeft + 'px';
+                indicator.style.width = target.offsetWidth + 'px';
+            };
+
+            const switchTab = (tab, renderFn) => {
+                tabsWrap.querySelectorAll('.gos-cp-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                updateIndicator(tab);
+
+                contentArea.classList.remove('gos-cp-content-zoom');
+                void contentArea.offsetWidth;
+                contentArea.classList.add('gos-cp-content-zoom');
+
+                contentArea.innerHTML = '';
+                renderFn(contentArea);
+            };
+
+            btnInstalled.onclick = () => switchTab(btnInstalled, renderAppsList);
+            btnDefault.onclick = () => switchTab(btnDefault, renderDefaultApps);
+
+            // Initial state
+            renderAppsList(contentArea);
+            setTimeout(() => updateIndicator(btnInstalled), 10);
         } else {
             const placeholder = document.createElement('div');
             placeholder.className = 'text-center mt-5 text-secondary';
             placeholder.innerHTML = `<i class="ri-tools-line display-1 opacity-25"></i><p class="mt-3">This section is currently under development.</p>`;
             mainContent.appendChild(placeholder);
         }
+    }
+
+    function renderDefaultApps(parent) {
+        const defaultSettings = registry.getAll();
+        const extensionDefaults = Object.keys(defaultSettings)
+            .filter(key => key.startsWith('defaults.ext.'))
+            .map(key => ({ ext: key.replace('defaults.ext.', ''), appId: defaultSettings[key] }));
+
+        // Ensure common extensions are listed even if not customized
+        const commonExts = ['txt', 'md', 'js', 'css', 'json', 'bat', 'jpg', 'png', 'mp3', 'mp4'];
+        commonExts.forEach(ext => {
+            if (!extensionDefaults.find(d => d.ext === ext)) {
+                const apps = AppRegistry.getAppsForExt(ext);
+                if (apps.length > 0) {
+                    extensionDefaults.push({ ext, appId: apps[0].id, isDefault: true });
+                }
+            }
+        });
+
+        const listContainer = document.createElement('div');
+        listContainer.style.cssText = 'border:1px solid #3a3a3a;background:#1a1a1a;';
+
+        const headerRow = document.createElement('div');
+        headerRow.style.cssText = 'display:grid;grid-template-columns:100px 1fr;padding:8px 12px;background:#2b2b2b;border-bottom:1px solid #444;font-size:0.8rem;color:#888;font-weight:500;';
+        headerRow.innerHTML = '<div>Extension</div><div>Default App</div>';
+        listContainer.appendChild(headerRow);
+
+        extensionDefaults.sort((a, b) => a.ext.localeCompare(b.ext)).forEach(def => {
+            const app = AppRegistry.get(def.appId);
+            if (!app) return;
+
+            const row = document.createElement('div');
+            row.style.cssText = 'display:grid;grid-template-columns:100px 1fr;padding:10px 12px;border-bottom:1px solid #2a2a2a;font-size:0.85rem;align-items:center;';
+
+            const extLabel = document.createElement('div');
+            extLabel.textContent = `.${def.ext}`;
+            extLabel.style.color = '#888';
+
+            const appSelector = document.createElement('div');
+            appSelector.style.cssText = 'display:flex;align-items:center;gap:10px;cursor:pointer;';
+            appSelector.innerHTML = `
+                <i class="${getFullIcon(app.icon)}" style="color:var(--accent-color);"></i>
+                <span>${app.name}</span>
+            `;
+
+            appSelector.onclick = (e) => {
+                const possibleApps = AppRegistry.getAppsForExt(def.ext);
+                gosShowContextMenu(e.clientX, e.clientY, possibleApps.map(pa => ({
+                    label: pa.name,
+                    icon: pa.icon,
+                    action: () => {
+                        registry.set(`defaults.ext.${def.ext}`, pa.id);
+                        renderDefaultApps(parent);
+                    }
+                })));
+            };
+
+            row.append(extLabel, appSelector);
+            listContainer.appendChild(row);
+        });
+
+        parent.appendChild(listContainer);
     }
 
     // ── Applications List ─────────────────────────────────────────────────────
