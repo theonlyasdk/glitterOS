@@ -263,7 +263,7 @@ const Widgets = (() => {
             return container;
         },
 
-        createTable({ columns, data, keyField = 'id', onSelectionChange, onAction }) {
+        createTable({ columns, data, keyField = 'id', onSelectionChange, onAction, onContextMenu }) {
             const container = document.createElement('div');
             container.className = 'gos-w32-table-container';
 
@@ -379,6 +379,13 @@ const Widgets = (() => {
 
                     tr.ondblclick = (e) => {
                         if (onAction) onAction(rowKey, row);
+                    };
+
+                    tr.oncontextmenu = (e) => {
+                        if (onContextMenu) {
+                            e.preventDefault();
+                            onContextMenu(rowKey, row, e);
+                        }
                     };
 
                     tbody.appendChild(tr);

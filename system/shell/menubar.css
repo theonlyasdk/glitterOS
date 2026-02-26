@@ -13,7 +13,7 @@
     align-items: center;
     font-size: 0.95rem;
     position: relative;
-    z-index: 1000;
+    z-index: 1000000;
     border-bottom: 1px solid #333;
 }
 
@@ -46,7 +46,7 @@
 
 .gos-mbar-item {
     background-color: transparent;
-    color: #aaaaaa;
+    color: #eeeeee;
     padding: 0 0.5em;
     cursor: pointer;
     user-select: none;

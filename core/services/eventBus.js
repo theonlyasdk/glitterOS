@@ -14,6 +14,7 @@ const glidBus = (() => {
             return () => this.unsubscribe(event, callback);
         },
         unsubscribe(event, callback) {
+            if (typeof SysLog !== 'undefined') SysLog.debug(`DBus: Subscription removed from "${event}"`);
             if (!listeners[event]) return;
             listeners[event] = listeners[event].filter(cb => cb !== callback);
         }

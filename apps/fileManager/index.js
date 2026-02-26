@@ -574,10 +574,17 @@ function launchFileManager(startPath) {
                 },
                 onAction: (id, row) => {
                     openSelected();
+                },
+                onContextMenu: (id, row, e) => {
+                    if (!_selected.includes(id)) {
+                        _selected = [id];
+                        updateSelectionUI();
+                    }
+                    showCtxMenu(e.clientX, e.clientY, _selected);
                 }
             });
 
-            // Context menu hook for table view
+            // Drag support for table view
             _tableWidget.element.querySelectorAll('table tbody tr').forEach((tr, idx) => {
                 tr.draggable = true;
                 tr.ondragstart = (e) => {
@@ -587,23 +594,12 @@ function launchFileManager(startPath) {
                     e.dataTransfer.setData('text/plain', JSON.stringify(fullPaths));
                     e.dataTransfer.effectAllowed = 'copyMove';
                 };
-                tr.addEventListener('contextmenu', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const entryName = data[idx].name;
-                    if (!_selected.includes(entryName)) {
-                        _selected = [entryName];
-                        _tableWidget.updateData(data); // hack to re-render selection visually
-                    }
-                    showCtxMenu(e.clientX, e.clientY, _selected);
-                });
             });
-
             content.appendChild(_tableWidget.element);
 
             // Set initial selection
             if (_selected.length > 0) {
-                _tableWidget.updateData(data);
+                _tableWidget.setSelectedIds(_selected);
             }
         }
         else {
@@ -692,7 +688,7 @@ function launchFileManager(startPath) {
     });
 
     content.oncontextmenu = (e) => {
-        if (e.target === content) {
+        if (e.target === content || e.target.classList.contains('gos-fm-icons-view') || e.target.classList.contains('gos-w32-table-container') || e.target.tagName === 'TBODY' || e.target.tagName === 'TABLE') {
             e.preventDefault();
             showCtxMenu(e.clientX, e.clientY, []);
         }

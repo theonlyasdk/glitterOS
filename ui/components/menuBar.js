@@ -103,41 +103,105 @@ function buildAppMenuBar() {
     const bar = document.createElement('div');
     bar.className = 'gos-app-menubar';
 
-    // Internal tracking for open state
     let activeItem = null;
+
+    const closeAll = () => {
+        if (activeItem) {
+            activeItem.classList.remove('active');
+            activeItem = null;
+        }
+    };
+
+    const onClickOutside = (e) => {
+        if (!bar.contains(e.target)) {
+            closeAll();
+        }
+    };
+
+    document.addEventListener('mousedown', onClickOutside);
+
+    bar._cleanup = () => {
+        document.removeEventListener('mousedown', onClickOutside);
+    };
 
     bar.createMenu = (label, items) => {
         const item = document.createElement('div');
         item.className = 'gos-app-menu-item';
-        item.textContent = label;
 
-        const showMenu = () => {
-            const rect = item.getBoundingClientRect();
-            item.classList.add('active');
-            activeItem = item;
+        const lbl = document.createElement('span');
+        lbl.textContent = label;
+        item.appendChild(lbl);
 
-            gosShowContextMenu(rect.left, rect.bottom, items);
+        const dropdown = document.createElement('div');
+        dropdown.className = 'gos-app-dropdown';
 
-            // Listen for menu close to remove active class
-            const checkClose = setInterval(() => {
-                if (!document.querySelector('.gos-context-menu')) {
-                    item.classList.remove('active');
-                    activeItem = null;
-                    clearInterval(checkClose);
-                }
-            }, 100);
+        items.forEach(menuItem => {
+            if (menuItem.type === 'sep') {
+                const sep = document.createElement('div');
+                sep.className = 'gos-app-dropdown-sep';
+                dropdown.appendChild(sep);
+                return;
+            }
+
+            const el = document.createElement('div');
+            el.className = 'gos-app-dropdown-item' + (menuItem.color === 'danger' || menuItem.color === '#f44336' ? ' danger' : '') + (menuItem.disabled ? ' disabled' : '');
+
+            const iconStr = menuItem.icon ? `<i class="${menuItem.icon.startsWith('bi-') || menuItem.icon.startsWith('ri-') ? menuItem.icon : 'bi-' + menuItem.icon}"></i>` : '';
+            const shortcutStr = menuItem.shortcut ? `<span class="shortcut">${menuItem.shortcut}</span>` : '';
+
+            el.innerHTML = `${iconStr} <span style="flex:1; margin-left: ${menuItem.icon ? '8px' : '0'}">${menuItem.label}</span> ${shortcutStr}`;
+
+            if (menuItem.hasSubmenu) {
+                el.innerHTML += `<i class="bi bi-chevron-right ms-2" style="font-size:0.7rem; opacity:0.5;"></i>`;
+            }
+
+            el.onmousedown = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            };
+
+            el.onclick = (e) => {
+                e.stopPropagation();
+                if (menuItem.disabled) return;
+
+                item.classList.add('item-clicked');
+                el.classList.add('gos-dropdown-item-ghost');
+
+                setTimeout(() => {
+                    item.classList.remove('item-clicked');
+                    el.classList.remove('gos-dropdown-item-ghost');
+                    closeAll();
+                    if (menuItem.action) menuItem.action();
+                }, 150);
+            };
+
+            if (menuItem.onMouseEnter) {
+                el.onmouseenter = (e) => menuItem.onMouseEnter(e, el);
+            }
+
+            dropdown.appendChild(el);
+        });
+
+        item.appendChild(dropdown);
+
+        const toggleMenu = () => {
+            if (item.classList.contains('active')) {
+                closeAll();
+            } else {
+                closeAll();
+                item.classList.add('active');
+                activeItem = item;
+            }
         };
 
         item.onmousedown = (e) => {
             e.stopPropagation();
-            showMenu();
+            toggleMenu();
         };
 
         item.onmouseenter = () => {
             if (activeItem && activeItem !== item) {
-                // If another menu is already open, switch to this one
-                PopupMenuManager.closeAll();
-                showMenu();
+                toggleMenu();
             }
         };
 
@@ -145,8 +209,6 @@ function buildAppMenuBar() {
     };
 
     bar.handleKey = (e) => {
-        // Keyboard shortcuts handle by apps usually, 
-        // but we could implement Alt navigation here if needed.
         return false;
     };
 

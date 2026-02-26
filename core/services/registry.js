@@ -43,6 +43,8 @@ const registry = (() => {
             }
             curr[parts[parts.length - 1]] = val;
             _save();
+            if (typeof SysLog !== 'undefined') SysLog.debug(`Registry: Set "${path}" to ${JSON.stringify(val)}`);
+            if (typeof glidBus !== 'undefined') glidBus.publish(`registry:set`, { path, val });
         },
         /** Get entire registry data (deep copy) */
         getAll() { return JSON.parse(JSON.stringify(_data)); },
@@ -56,6 +58,8 @@ const registry = (() => {
             }
             delete curr[parts[parts.length - 1]];
             _save();
+            if (typeof SysLog !== 'undefined') SysLog.debug(`Registry: Deleted "${path}"`);
+            if (typeof glidBus !== 'undefined') glidBus.publish(`registry:delete`, { path });
         }
     };
 })();

@@ -13,6 +13,7 @@ const PopupMenuManager = (() => {
     }
 
     function create(x, y, items, isSubmenu = false) {
+        if (typeof glidBus !== 'undefined') glidBus.publish('menu:registered', { type: 'context', x, y, items, isSubmenu });
         if (!isSubmenu) _closeAll();
 
         const menu = document.createElement('div');
