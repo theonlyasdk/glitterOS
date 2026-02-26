@@ -95,3 +95,64 @@ function gosInitDesktopSelection() {
         window.addEventListener('mouseup', onMouseUp);
     });
 }
+
+/**
+ * buildAppMenuBar - Creates a standardized menubar for applications
+ */
+function buildAppMenuBar() {
+    const bar = document.createElement('div');
+    bar.className = 'gos-app-menubar';
+
+    // Internal tracking for open state
+    let activeItem = null;
+
+    bar.createMenu = (label, items) => {
+        const item = document.createElement('div');
+        item.className = 'gos-app-menu-item';
+        item.textContent = label;
+
+        const showMenu = () => {
+            const rect = item.getBoundingClientRect();
+            item.classList.add('active');
+            activeItem = item;
+
+            gosShowContextMenu(rect.left, rect.bottom, items);
+
+            // Listen for menu close to remove active class
+            const checkClose = setInterval(() => {
+                if (!document.querySelector('.gos-context-menu')) {
+                    item.classList.remove('active');
+                    activeItem = null;
+                    clearInterval(checkClose);
+                }
+            }, 100);
+        };
+
+        item.onmousedown = (e) => {
+            e.stopPropagation();
+            showMenu();
+        };
+
+        item.onmouseenter = () => {
+            if (activeItem && activeItem !== item) {
+                // If another menu is already open, switch to this one
+                PopupMenuManager.closeAll();
+                showMenu();
+            }
+        };
+
+        bar.appendChild(item);
+    };
+
+    bar.handleKey = (e) => {
+        // Keyboard shortcuts handle by apps usually, 
+        // but we could implement Alt navigation here if needed.
+        return false;
+    };
+
+    return bar;
+}
+
+window.gosInitMenubar = gosInitMenubar;
+window.gosInitDesktopSelection = gosInitDesktopSelection;
+window.buildAppMenuBar = buildAppMenuBar;

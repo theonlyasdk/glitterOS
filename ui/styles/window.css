@@ -1,0 +1,346 @@
+.gos-window {
+	position: absolute;
+	min-width: 200px;
+	min-height: 100px;
+	background-color: #1e1e1e;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+	/* Inactive shadow */
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	color: white;
+	transition: transform 0.4s cubic-bezier(0, 0, 0.2, 1),
+		opacity 0.4s cubic-bezier(0, 0, 0.2, 1),
+		top 0.4s cubic-bezier(0, 0, 0.2, 1),
+		left 0.4s cubic-bezier(0, 0, 0.2, 1),
+		width 0.4s cubic-bezier(0, 0, 0.2, 1),
+		height 0.4s cubic-bezier(0, 0, 0.2, 1);
+	transform-origin: center center;
+}
+
+.gos-window.active {
+	box-shadow: 0 10px 40px rgba(0, 0, 0, 0.65);
+	border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.gos-window.minimized {
+	opacity: 0 !important;
+	pointer-events: none;
+	transform: scale(0.01) !important;
+}
+
+.gos-window.opening {
+	opacity: 0 !important;
+	transform: perspective(1000px) scale(0.9) rotateX(10deg) !important;
+	transform-origin: top center;
+}
+
+.gos-window.closing {
+	opacity: 0 !important;
+	transform: perspective(1000px) scale(0.9) rotateX(-10deg) !important;
+	pointer-events: none;
+	transition: opacity 0.2s cubic-bezier(0, 0, 0.2, 1), transform 0.2s cubic-bezier(0, 0, 0.2, 1) !important;
+}
+
+.gos-window.resizing,
+.gos-window.dragging,
+.no-transition {
+	transition: none !important;
+}
+
+
+/* Resize handles */
+.gos-win-resizer {
+	position: absolute;
+	z-index: 10;
+}
+
+.gos-win-resizer-r {
+	top: 0;
+	right: 0;
+	width: 6px;
+	height: 100%;
+	cursor: ew-resize;
+}
+
+.gos-win-resizer-b {
+	bottom: 0;
+	left: 0;
+	width: 100%;
+	height: 6px;
+	cursor: ns-resize;
+}
+
+.gos-win-resizer-rb {
+	bottom: 0;
+	right: 0;
+	width: 12px;
+	height: 12px;
+	cursor: nwse-resize;
+	z-index: 11;
+}
+
+.gos-win-header {
+	height: 32px;
+	background-color: #2b2b2b;
+	display: flex;
+	align-items: center;
+	position: relative;
+	cursor: default;
+	user-select: none;
+	flex-shrink: 0;
+}
+
+
+
+.gos-win-controls {
+	display: flex;
+	height: 100%;
+}
+
+.gos-win-btn {
+	width: 46px;
+	height: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	transition: background-color 0.1s;
+	font-size: 0.8rem;
+}
+
+.gos-win-btn:hover {
+	background-color: rgba(255, 255, 255, 0.1);
+}
+
+.gos-win-btn-close:hover {
+	background-color: #e81123 !important;
+}
+
+.gos-win-body {
+	flex-grow: 1;
+	padding: 0;
+	overflow: auto;
+	background-color: #1e1e1e;
+}
+
+.gos-win-footer {
+	height: 24px;
+	padding: 0 10px;
+	color: var(--bs-secondary);
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: flex-end;
+	font-size: 0.75rem;
+	background-color: #1e1e1e;
+	border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Window icon in header */
+.gos-win-icon {
+	width: 32px;
+	height: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	cursor: pointer;
+	font-size: 0.85rem;
+	color: #ccc;
+}
+
+.gos-win-icon:hover {
+	background-color: rgba(255, 255, 255, 0.08);
+}
+
+.gos-win-title {
+	padding: 0 8px;
+	font-weight: normal;
+	font-size: 0.85rem;
+	pointer-events: none;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	flex-grow: 1;
+}
+
+/* Window system menu */
+.gos-win-sysmenu {
+	position: fixed;
+	z-index: 99999;
+	background-color: #2b2b2b;
+	border: 1px solid #444;
+	border-radius: 0;
+	box-shadow: var(--menu-shadow);
+	min-width: 180px;
+	padding: 2px;
+	display: none;
+	font-family: var(--font-family, 'Noto Sans', sans-serif);
+	font-size: 0.85rem;
+}
+
+.gos-win-sysmenu.visible {
+	display: block;
+}
+
+.gos-win-sysmenu-item {
+	padding: 6px 20px;
+	color: #eee;
+	cursor: pointer;
+	user-select: none;
+	white-space: nowrap;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 32px;
+}
+
+.gos-sysmenu-shortcut {
+	color: #888;
+	font-size: 0.8em;
+	margin-left: auto;
+}
+
+.gos-win-sysmenu-item:hover {
+	background-color: #3f3f3f;
+	color: #fff;
+}
+
+.gos-win-sysmenu-item:hover .gos-sysmenu-shortcut {
+	color: #aaa;
+}
+
+.gos-win-sysmenu-close {
+	color: #eee;
+}
+
+.gos-win-sysmenu-close:hover {
+	background-color: #c42b1c;
+	color: #fff;
+}
+
+.gos-win-sysmenu-divider {
+	margin: 2px 0;
+	border-color: #444;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   MessageBox Styles (Win32 Dark)
+   ────────────────────────────────────────────────────────────────────────── */
+.gos-messagebox {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	background: #1e1e1e;
+	color: #fff;
+	font-family: var(--font-family);
+}
+
+.gos-messagebox-main {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	flex: 1;
+	padding: 20px;
+	gap: 20px;
+}
+
+.gos-messagebox-icon {
+	font-size: 2.2rem;
+	color: var(--accent-color);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.bi-exclamation-triangle-fill {
+	color: #ffcc00;
+}
+
+.bi-x-circle-fill {
+	color: #f44336;
+}
+
+.bi-info-circle-fill {
+	color: #2196f3;
+}
+
+.gos-messagebox-text {
+	flex: 1;
+	font-size: 0.9rem;
+	line-height: 1.4;
+	white-space: pre-wrap;
+}
+
+.gos-messagebox-buttons {
+	background: #2b2b2b;
+	padding: 12px 16px;
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+
+.gos-window-messagebox {
+	box-shadow: 0 15px 50px rgba(0, 0, 0, 0.7) !important;
+}
+
+/* Splash Screen */
+.gos-splash {
+	position: absolute;
+	inset: 0;
+	z-index: 1000;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	background: var(--accent-color);
+	/* Default UWP blue */
+	transition: opacity 0.4s ease-out;
+}
+
+.gos-splash-icon {
+	font-size: 4rem;
+	color: #fff;
+}
+
+.gos-splash.fade-out {
+	opacity: 0;
+	pointer-events: none;
+}
+
+.gos-snap-preview {
+	position: fixed;
+	z-index: 999999;
+	pointer-events: none;
+	background: rgba(255, 255, 255, 0.1);
+	border: 1px solid rgba(255, 255, 255, 0.2);
+	transition: all 600ms cubic-bezier(0.1, 0.9, 0.2, 1);
+	opacity: 0;
+}
+
+.gos-snap-preview.visible {
+	opacity: 1;
+}
+
+@keyframes modal-flash {
+	0% {
+		filter: brightness(1);
+	}
+
+	50% {
+		filter: brightness(1.2);
+		transform: scale(1.005);
+	}
+
+	100% {
+		filter: brightness(1);
+	}
+}
+
+.gos-window.modal-flash {
+	animation: modal-flash 0.15s ease-in-out;
+}

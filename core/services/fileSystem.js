@@ -80,9 +80,8 @@ const fs = (() => {
 
     // ── Internal helpers ──────────────────────────────────────────────────────
     function _error(msg) {
-        if (typeof wm !== 'undefined' && wm.messageBox) {
-            wm.messageBox('File System', msg, { icon: 'bi-x-circle-fill' });
-        }
+        // Removed DOM dependency (wm.messageBox) for Core Layer compliance
+        console.warn(`FS Error: ${msg}`);
         return { error: msg };
     }
 
@@ -221,22 +220,22 @@ const fs = (() => {
             const name = segs.pop();
             const dirNode = _getNode(segs);
             if (!dirNode) return _error(`The system cannot find the file specified.`);
-            const idx = dirNode.children.findIndex(c => c.name.toLowerCase() === name.toLowerCase() && c.type === 'file');
+            const idx = dirNode.children.findIndex(c => c.name.toLowerCase() === name.toLowerCase() && (c.type === 'file' || c.type === 'dir'));
             if (idx === -1) return _error(`Could Not Find ${name}`);
             dirNode.children.splice(idx, 1);
             _save();
-            if (typeof SysLog !== 'undefined') SysLog.info(`FS: Removed file "${path}"`);
+            if (typeof SysLog !== 'undefined') SysLog.info(`FS: Removed "${path}"`);
             return { ok: true };
         },
 
-        rmdir(path) {
+        rmdir(path, recursive = false) {
             const segs = _resolvePath(path);
             const name = segs.pop();
             const dirNode = _getNode(segs);
             if (!dirNode) return _error(`The system cannot find the path specified.`);
             const idx = dirNode.children.findIndex(c => c.name.toLowerCase() === name.toLowerCase() && c.type === 'dir');
             if (idx === -1) return _error(`The system cannot find the path specified.`);
-            if (dirNode.children[idx].children.length)
+            if (!recursive && dirNode.children[idx].children.length)
                 return _error(`The directory is not empty.`);
             dirNode.children.splice(idx, 1);
             _save();
@@ -250,8 +249,7 @@ const fs = (() => {
 
         stat(path) {
             const node = _getNode(_resolvePath(path));
-            if (!node) return { error: `The system cannot find the path specified.` }; // stat shouldn't always alert
-            // Return N/A size for directories
+            if (!node) return { error: `The system cannot find the path specified.` };
             const size = node.type === 'dir' ? 'N/A' : (node.size !== undefined ? node.size : (node.content ? new TextEncoder().encode(node.content).length : 0));
             return { name: node.name, type: node.type, size: size };
         },
@@ -283,22 +281,4 @@ const fs = (() => {
     };
 })();
 
-// Initialize System32 executables
-(function () {
-    const apps = [
-        { exe: 'notepad.exe', id: 'notepad' },
-        { exe: 'explorer.exe', id: 'filemanager' },
-        { exe: 'taskmgr.exe', id: 'taskmanager' },
-        { exe: 'control.exe', id: 'controlpanel' },
-        { exe: 'regedit.exe', id: 'regedit' },
-        { exe: 'cmd.exe', id: 'cmd' }
-    ];
-
-    apps.forEach(app => {
-        const path = `C:\\glitterOS\\System\\${app.exe}`;
-        if (!fs.exists(path)) {
-            fs.write(path, '[glitterOS System Executable]');
-            fs.setattr(path, 'appId', app.id);
-        }
-    });
-})();
+window.fs = fs;

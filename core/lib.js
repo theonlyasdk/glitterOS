@@ -10,6 +10,19 @@ const fromId = (id) => document.getElementById(id);
 const query = (qs) => document.querySelector(qs);
 const queryAll = (qs) => document.querySelectorAll(qs);
 
+function getFullIcon(name) {
+    if (!name) return 'bi-window';
+    if (name.startsWith('bi-') || name.startsWith('ri-')) return name;
+    return 'bi-' + name;
+}
+
+function assertExistsElseReload(elem) {
+    if (!elem) {
+        console.warn("Critical element missing! Reloading in 3s...");
+        setTimeout(() => location.reload(), 3000);
+    }
+}
+
 const shuffle = (array) => {
     // See: https://javascript.info/task/shuffle
     for (let i = array.length - 1; i > 0; i--) {

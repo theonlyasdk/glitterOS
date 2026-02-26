@@ -31,28 +31,27 @@
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
 	<link rel="stylesheet" href="styles/theme.css">
 	<link rel="stylesheet" href="styles/bs-theme.css">
-	<link rel="stylesheet" href="styles/controls.css">
+	<link rel="stylesheet" href="ui/styles/controls.css">
 	<link rel="stylesheet" href="styles/desktop.css">
 	<link rel="stylesheet" href="styles/fonts.css">
-	<link rel="stylesheet" href="styles/menubar.css">
-	<link rel="stylesheet" href="styles/window.css">
-	<link rel="stylesheet" href="styles/taskbar.css">
-	<link rel="stylesheet" href="styles/action-centre.css">
-	<link rel="stylesheet" href="styles/search.css">
-	<link rel="stylesheet" href="styles/cmd.css">
-	<link rel="stylesheet" href="styles/filemanager.css">
-	<link rel="stylesheet" href="styles/switcher.css">
-	<link rel="stylesheet" href="styles/appmenu.css">
-	<link rel="stylesheet" href="styles/notepad.css">
-	<link rel="stylesheet" href="styles/widgets.css">
-	<link rel="stylesheet" href="styles/filedialog.css">
-	<link rel="stylesheet" href="styles/controlpanel.css">
-	<link rel="stylesheet" href="styles/edit.css">
-	<link rel="stylesheet" href="styles/taskmanager.css">
-	<link rel="stylesheet" href="styles/regedit.css">
-	<link rel="stylesheet" href="styles/assistant.css">
-	<link rel="stylesheet" href="styles/lockscreen.css">
-	<link rel="stylesheet" href="styles/about.css">
+	<link rel="stylesheet" href="system/shell/menubar.css">
+	<link rel="stylesheet" href="ui/styles/window.css">
+	<link rel="stylesheet" href="system/shell/taskbar.css">
+	<link rel="stylesheet" href="system/shell/action-centre.css">
+	<link rel="stylesheet" href="ui/components/search.css">
+	<link rel="stylesheet" href="apps/cmd/styles.css">
+	<link rel="stylesheet" href="apps/fileManager/styles.css">
+	<link rel="stylesheet" href="ui/components/switcher.css">
+	<link rel="stylesheet" href="apps/notepad/styles.css">
+	<link rel="stylesheet" href="ui/styles/widgets.css">
+	<link rel="stylesheet" href="system/dialogs/styles.css">
+	<link rel="stylesheet" href="apps/controlPanel/styles.css">
+	<link rel="stylesheet" href="apps/edit/styles.css">
+	<link rel="stylesheet" href="apps/taskManager/styles.css">
+	<link rel="stylesheet" href="apps/regedit/styles.css">
+	<link rel="stylesheet" href="apps/assistant/styles.css">
+	<link rel="stylesheet" href="system/shell/styles.css">
+	<link rel="stylesheet" href="system/shell/about.css">
 	<link rel="stylesheet" href="styles/styles.css">
 </head>
 
@@ -202,29 +201,44 @@
 	crossorigin="anonymous"></script>
 <script src="core/document.js"></script>
 <script src="core/lib.js"></script>
-<script src="core/wm.js"></script>
-<!-- LDE modules (order: globals → applets → menubar → action-centre → fs → apps → search → boot) -->
-<script src="core/registry.js"></script>
-<script src="core/widgets.js"></script>
-<script src="core/globals.js"></script>
-<script src="core/applets.js"></script>
-<script src="core/menubar.js"></script>
-<script src="core/action-centre.js"></script>
-<script src="core/fs.js"></script>
-<script src="core/apps/cmd.js"></script>
-<script src="core/apps/filemanager.js"></script>
-<script src="core/apps/notepad.js"></script>
-<script src="core/filedialog.js"></script>
-<script src="core/apps/welcome.js"></script>
-<script src="core/apps/edit.js"></script>
-<script src="core/apps/controlpanel.js"></script>
-<script src="core/apps/taskmanager.js"></script>
-<script src="core/apps/regedit.js"></script>
-<script src="core/apps/assistant.js"></script>
-<script src="core/apps/syslog.js"></script>
-<script src="core/search.js"></script>
-<script src="core/switcher.js"></script>
-<script src="core/lockscreen.js"></script>
+
+<!-- Core Layer: State & Services -->
+<script src="core/state/systemState.js"></script>
+<script src="core/services/sysLog.js"></script>
+<script src="core/services/eventBus.js"></script>
+<script src="core/services/registry.js"></script>
+<script src="core/services/fileSystem.js"></script>
+<script src="core/services/appRegistry.js"></script>
+<script src="core/services/processManager.js"></script>
+
+<!-- UI Layer: Components -->
+<script src="ui/components/popupMenuManager.js"></script>
+<script src="ui/components/windowManager.js"></script>
+<script src="ui/components/menuBar.js"></script>
+<script src="ui/components/widgets.js"></script>
+<script src="ui/components/searchPanel.js"></script>
+<script src="ui/components/switcher.js"></script>
+
+<!-- System Layer: Shell & Dialogs -->
+<script src="system/shell/shellUtils.js"></script>
+<script src="system/shell/applets.js"></script>
+<script src="system/shell/actionCentre.js"></script>
+<script src="system/shell/lockscreen.js"></script>
+<script src="system/dialogs/fileDialog.js"></script>
+
+<!-- Apps Layer -->
+<script src="apps/cmd/index.js"></script>
+<script src="apps/fileManager/index.js"></script>
+<script src="apps/notepad/index.js"></script>
+<script src="apps/welcome/index.js"></script>
+<script src="apps/edit/index.js"></script>
+<script src="apps/controlPanel/index.js"></script>
+<script src="apps/taskManager/index.js"></script>
+<script src="apps/regedit/index.js"></script>
+<script src="apps/assistant/index.js"></script>
+<script src="apps/syslog/index.js"></script>
+
+<!-- Boot -->
 <script src="core/boot.js"></script>
 <script>
 	if ('serviceWorker' in navigator && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {

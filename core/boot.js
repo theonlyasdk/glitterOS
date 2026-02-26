@@ -1,3 +1,29 @@
+// Initialize System32 executables
+(function () {
+    if (typeof fs === 'undefined') return;
+    const apps = [
+        { exe: 'notepad.exe', id: 'notepad' },
+        { exe: 'explorer.exe', id: 'filemanager' },
+        { exe: 'taskmgr.exe', id: 'taskmanager' },
+        { exe: 'control.exe', id: 'controlpanel' },
+        { exe: 'regedit.exe', id: 'regedit' },
+        { exe: 'cmd.exe', id: 'cmd' }
+    ];
+
+    apps.forEach(app => {
+        const path = `C:\\glitterOS\\System\\${app.exe}`;
+        if (!fs.exists(path)) {
+            fs.write(path, '[glitterOS System Executable]');
+            fs.setattr(path, 'appId', app.id);
+        }
+    });
+})();
+
+function truncateFilename(name, limit) {
+    if (name.length <= limit) return name;
+    return name.substring(0, limit - 3) + "...";
+}
+
 // ── LDE Boot — calls gosInit after all modules are loaded ────────────────────
 function gosInit() {
     assertExistsElseReload(menubar);
@@ -7,6 +33,9 @@ function gosInit() {
     gosInitApplets();
     gosInitMenubar();
     renderCalendar(currentCalendarDate);
+
+    // Set default wallpaper
+    setWallpaper(registry.get('personalization.wallpaper', 'res/wall.png'));
 
     const currentDesktopName = desktops[currentDesktopIdx].name;
     desktopNameLbl.innerText = currentDesktopName;
