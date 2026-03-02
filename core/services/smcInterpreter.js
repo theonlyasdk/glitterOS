@@ -243,7 +243,7 @@ const SmcInterpreter = (() => {
                     i++;
                 } else {
                     let j = i;
-                    while (j < expr.length && !/\s|['"+-*/]/.test(expr[j])) j++;
+                    while (j < expr.length && !/\s|['"+\-*/]/.test(expr[j])) j++;
                     let w = expr.slice(i, j);
                     tokens.push({ type: 'val', value: w });
                     i = j;
