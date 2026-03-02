@@ -39,6 +39,17 @@
             'notify Flow Demo|Conditional and operator demo complete'
         ].join('\r\n'));
     }
+    if (!fs.exists('C:\\Users\\User\\Documents\\Scripts\\loop_demo.smc')) {
+        fs.write('C:\\Users\\User\\Documents\\Scripts\\loop_demo.smc', [
+            'let counter = 0',
+            'while "%counter%" != "3" do',
+            '    echo Loop iteration %counter%',
+            '    let counter = %counter% + 1',
+            'end',
+            'notify Loop Demo|Finished counter %counter%',
+            'import workspace_setup.smc'
+        ].join('\r\n'));
+    }
 
     const apps = [
         { exe: 'notepad.exe', id: 'notepad' },

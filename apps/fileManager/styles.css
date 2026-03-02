@@ -110,6 +110,11 @@
     background: rgba(255, 255, 255, 0.05);
 }
 
+.gos-fm-sidebar-item.drag-over {
+    background: rgba(0, 120, 215, 0.2);
+    color: #fff;
+}
+
 .gos-fm-sidebar-item.active {
     background: var(--accent-muted);
     color: #fff;

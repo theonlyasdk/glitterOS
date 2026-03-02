@@ -7,7 +7,7 @@
     /* Classic DOS blue */
     color: #aaaaaa;
     font-family: var(--font-family-mono);
-    font-size: 1rem;
+    font-size: 1.05rem;
     overflow: hidden;
     position: relative;
     user-select: none;
@@ -78,8 +78,8 @@
     color: #0000aa;
     text-align: right;
     padding: 10px 8px 10px 0;
-    font-size: 0.9rem;
-    line-height: 20px;
+    font-size: 1.05rem;
+    line-height: 26px;
     overflow: hidden;
     user-select: none;
     flex-shrink: 0;
@@ -96,7 +96,7 @@
     position: absolute;
     left: 0;
     right: 0;
-    height: 20px;
+    height: 26px;
     background-color: rgba(255, 255, 255, 0.15);
     pointer-events: none;
     z-index: 0;
@@ -115,7 +115,7 @@
     outline: none;
     padding: 10px;
     margin: 0;
-    line-height: 20px;
+    line-height: 26px;
     overflow: auto;
     position: relative;
     z-index: 2;
@@ -138,7 +138,7 @@
     margin: 0;
     padding: 10px;
     font: inherit;
-    line-height: 20px;
+    line-height: 26px;
     white-space: pre;
     overflow: hidden;
     color: #ffffff;
@@ -169,6 +169,10 @@
 
 .gos-edit .gos-syn-com {
     color: #9aa0a8;
+}
+
+.gos-edit .gos-syn-varref {
+    color: #ffeaa5;
 }
 
 .gos-edit .gos-syn-tag {

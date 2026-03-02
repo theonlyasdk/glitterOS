@@ -8,7 +8,7 @@ const SyntaxHighlighter = (() => {
 
     function highlightSmc(text) {
         const kws = new Set([
-            'if', 'then', 'else', 'end', 'proc', 'do', 'echo', 'type', 'cd', 'dir', 'md', 'mkdir', 'del', 'rm',
+            'if', 'then', 'else', 'end', 'proc', 'do', 'var', 'echo', 'type', 'cd', 'dir', 'md', 'mkdir', 'del', 'rm',
             'rd', 'rmdir', 'ren', 'copy', 'ver', 'help', 'cls', 'exit', 'history', 'runsmc', 'notify',
             'pwd', 'ls', 'cat', 'cp', 'mv', 'clear'
         ]);
@@ -26,7 +26,24 @@ const SyntaxHighlighter = (() => {
                         if (line[j] === quote) { j++; break; }
                         j++;
                     }
-                    out += `<span class="gos-syn-str">${esc(line.slice(i, j))}</span>`;
+                    const raw = line.slice(i, j);
+                    const varRefRe = /%\{([A-Za-z_][A-Za-z0-9_]*)\}/g;
+                    let cursor = 0;
+                    let highlightedParts = [];
+                    varRefRe.lastIndex = 0;
+                    let match;
+                    while ((match = varRefRe.exec(raw)) !== null) {
+                        if (match.index > cursor) {
+                            highlightedParts.push(esc(raw.slice(cursor, match.index)));
+                        }
+                        highlightedParts.push(`<span class="gos-syn-varref">${esc(match[0])}</span>`);
+                        cursor = match.index + match[0].length;
+                    }
+                    if (cursor < raw.length) {
+                        highlightedParts.push(esc(raw.slice(cursor)));
+                    }
+                    const highlighted = highlightedParts.join('');
+                    out += `<span class="gos-syn-str">${highlighted}</span>`;
                     i = j;
                     continue;
                 }

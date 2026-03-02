@@ -6,7 +6,7 @@
     background-color: #0c0c0c;
     color: #cccccc;
     font-family: var(--font-family-mono);
-    font-size: 0.82rem;
+    font-size: 1.05rem;
     overflow: hidden;
     cursor: text;
 }
@@ -108,6 +108,9 @@
     background-color: #e8c84a;
     color: #0c0c0c;
     min-width: 0.55em;
+    height: 1em;
+    line-height: 1em;
+    vertical-align: baseline;
     animation: cmd-blink 1.1s step-end infinite;
 }
 

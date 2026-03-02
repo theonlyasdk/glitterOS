@@ -147,7 +147,15 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         return out;
     }
 
+    let _scriptMode = { silent: false, noEcho: false };
+
+    function setInterpreterMode(flags = {}) {
+        _scriptMode.silent = !!flags.silent;
+        _scriptMode.noEcho = !!flags.noEcho;
+    }
+
     function appendLine(text, cls = '') {
+        if (_scriptMode.silent) return;
         if (_execContext && _execContext.capture) {
             _execContext.lines.push(String(text));
             return;
@@ -162,6 +170,7 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
     }
 
     function appendHTML(html, cls = '') {
+        if (_scriptMode.silent) return;
         if (_execContext && _execContext.capture) {
             const probe = document.createElement('div');
             probe.innerHTML = html;
@@ -183,8 +192,13 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
     let _execContext = null;
 
     function appendCmdError(problem, fix) {
-        appendLine(`Error: ${problem}`, 'gos-cmd-err');
-        appendLine(`How to fix: ${fix}`, 'gos-cmd-err');
+        appendLine(problem, 'gos-cmd-err');
+        appendLine(`Fix: ${fix}`, 'gos-cmd-err');
+    }
+
+    function commandError(problem, fix) {
+        appendCmdError(problem, fix);
+        return { ok: false };
     }
 
     function getStdinText() {
@@ -200,6 +214,8 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         if (q !== '"' && q !== "'") return false;
         return t[t.length - 1] === q;
     }
+
+    const ALIASES = new Map();
 
     // ── Active inline prompt line ─────────────────────────────────────────────
     function createActiveLine() {
@@ -255,11 +271,11 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
                 '<span style="color:#e8c84a">EDIT</span>      Starts the glitterOS Editor.<br>' +
                 '<span style="color:#e8c84a">RUNSMC</span>    Executes a .smc script file.<br>' +
                 '<span style="color:#e8c84a">NOTIFY</span>    Sends a test notification to Action Centre.<br>' +
+                '<span style="color:#e8c84a">ALIAS</span>    Lists or defines custom command shortcuts.<br>' +
                 '<span style="color:#e8c84a">VER</span>       Displays the Windows version.<br>' +
                 '<span style="color:#e8c84a">EXIT</span>      Quits the CMD program.'
             );
             appendLine('');
-            appendLine('Unix-like aliases: PWD, LS, CAT, CLEAR, CP, MV.');
         },
         cls() {
             // Remove all lines except the active one
@@ -274,16 +290,14 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         },
         notify(args, ctx = {}) {
             if (typeof NotificationService === 'undefined') {
-                appendCmdError(
+                return commandError(
                     'NotificationService is not available.',
                     'Open Task Manager and restart NotificationService, then try NOTIFY again.'
                 );
-                return;
             }
             const rawInput = (ctx.rawArgText || '').trim();
             if (!rawInput || !isQuotedText(rawInput)) {
-                appendCmdError('NOTIFY requires a quoted message string.', 'Use: NOTIFY "Title|Message"');
-                return;
+                return commandError('NOTIFY requires a quoted message string.', 'Use: NOTIFY "Title|Message"');
             }
             const raw = rawInput.slice(1, -1).trim();
             let title = 'Dummy Notification';
@@ -301,10 +315,42 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
             });
 
             if (res.error) {
-                appendCmdError(`Failed to send notification: ${res.error}`, 'Ensure NotificationService is enabled and retry.');
-            } else {
-                appendLine('Notification sent.');
+                return commandError(`Failed to send notification: ${res.error}`, 'Ensure NotificationService is enabled and retry.');
             }
+            appendLine('Notification sent.');
+        },
+        alias(args, ctx = {}) {
+            const rawArgText = String(ctx.rawArgText || '').trim();
+            if (!rawArgText) {
+                const entries = listAliasEntries();
+                if (!entries.length) {
+                    appendLine('No aliases defined.');
+                    return;
+                }
+                entries.forEach(entry => appendLine(`${entry.name}=${entry.definition}`));
+                return;
+            }
+
+            const eqIndex = rawArgText.indexOf('=');
+            if (eqIndex === -1) {
+                const entry = resolveAlias(rawArgText);
+                if (!entry) {
+                return commandError(`Alias '${rawArgText}' not found.`, 'Create it with: ALIAS name=command');
+                }
+                appendLine(`${entry.name}=${entry.definition}`);
+                return;
+            }
+
+            const aliasName = rawArgText.slice(0, eqIndex).trim();
+            const aliasValue = rawArgText.slice(eqIndex + 1).trim();
+            if (!aliasName) {
+                return commandError('Alias name cannot be empty.', 'Use: ALIAS name=command');
+            }
+            if (!aliasValue) {
+                return commandError('Alias target cannot be empty.', 'Provide a destination command after "=".');
+            }
+            registerAlias(aliasName, aliasValue);
+            appendLine(`${aliasName} -> ${aliasValue}`);
         },
         cd(args) {
             if (!args[0] || args[0] === '/d') {
@@ -313,7 +359,7 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
             }
             const target = args[args[0] === '/d' ? 1 : 0] || '~';
             const res = fs.cd(target);
-            if (res.error) appendCmdError('The system cannot find the path specified.', 'Use DIR to check valid folders, then run CD <path>.');
+            if (res.error) return commandError('The system cannot find the path specified.', 'Use DIR to check valid folders, then run CD <path>.');
             else persistCwd();
         },
         pwd() {
@@ -322,7 +368,9 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         dir(args) {
             const path = args[0] ? args[0] : '.';
             const res = fs.ls(path);
-            if (res.error) { appendCmdError('File or directory not found.', 'Run DIR on the current folder or provide an existing path.'); return; }
+            if (res.error) {
+                return commandError('File or directory not found.', 'Run DIR on the current folder or provide an existing path.');
+            }
             const winPath = path === '.' ? fs.pwd() : path;
             const now = new Date();
             const dateStr = now.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
@@ -355,12 +403,16 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         type(args) {
             if (!args[0]) {
                 const stdin = getStdinText();
-                if (!stdin) { appendCmdError('TYPE requires a file path or piped input.', 'Use TYPE <file> or pipe text into TYPE.'); return; }
+                if (!stdin) {
+                    return commandError('TYPE requires a file path or piped input.', 'Use TYPE <file> or pipe text into TYPE.');
+                }
                 normalizeLineEnding(stdin).split('\n').forEach(l => appendLine(l));
                 return;
             }
             const res = fs.cat(args[0]);
-            if (res.error) { appendCmdError('The system cannot find the file specified.', 'Check the file name/path and run TYPE <file>.'); return; }
+            if (res.error) {
+                return commandError('The system cannot find the file specified.', 'Check the file name/path and run TYPE <file>.');
+            }
             res.content.split('\n').forEach(l => appendLine(l));
         },
         echo(args, ctx = {}) {
@@ -371,52 +423,68 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
                 return;
             }
             if (!isQuotedText(rawInput)) {
-                appendCmdError('ECHO requires a quoted string.', 'Use: ECHO "your text here"');
-                return;
+                return commandError('ECHO requires a quoted string.', 'Use: ECHO "your text here"');
             }
             appendLine(rawInput.slice(1, -1));
         },
         md(args) {
             if (!args[0]) {
                 if (getStdinText()) {
-                    appendCmdError('MKDIR cannot use piped text as a directory name.', 'Provide a folder path explicitly: MKDIR <folder>.');
-                } else {
-                    appendCmdError('MKDIR requires a directory name.', 'Use MKDIR <folder>.');
+                    return commandError('MKDIR cannot use piped text as a directory name.', 'Provide a folder path explicitly: MKDIR <folder>.');
                 }
-                return;
+                return commandError('MKDIR requires a directory name.', 'Use MKDIR <folder>.');
             }
             const res = fs.mkdir(args[0]);
-            if (res.error) appendCmdError('A subdirectory or file already exists.', 'Choose a different name or remove the existing item first.');
+            if (res.error) {
+                return commandError('A subdirectory or file already exists.', 'Choose a different name or remove the existing item first.');
+            }
         },
         mkdir(args) { CMDS.md(args); },
         ls(args) { CMDS.dir(args); },
         del(args) {
-            if (!args[0]) { appendCmdError('DEL requires a file path.', 'Use DEL <file>.'); return; }
+            if (!args[0]) {
+                return commandError('DEL requires a file path.', 'Use DEL <file>.');
+            }
             const res = fs.rm(args[0]);
-            if (res.error) appendCmdError('Could not find ' + args[0], 'Check the file path with DIR, then run DEL again.');
+            if (res.error) {
+                return commandError('Could not find ' + args[0], 'Check the file path with DIR, then run DEL again.');
+            }
         },
         rm(args) { CMDS.del(args); },
         rd(args) {
-            if (!args[0]) { appendCmdError('RMDIR requires a directory path.', 'Use RMDIR <folder>.'); return; }
+            if (!args[0]) {
+                return commandError('RMDIR requires a directory path.', 'Use RMDIR <folder>.');
+            }
             const res = fs.rmdir(args[0]);
-            if (res.error) appendCmdError(
-                res.error.includes('empty') ? 'The directory is not empty.' : 'The system cannot find the path specified.',
-                res.error.includes('empty') ? 'Delete files inside first, then run RMDIR again.' : 'Check the directory path with DIR and retry.'
-            );
+            if (res.error) {
+                const isNotEmpty = res.error.includes('empty');
+                return commandError(
+                    isNotEmpty ? 'The directory is not empty.' : 'The system cannot find the path specified.',
+                    isNotEmpty ? 'Delete files inside first, then run RMDIR again.' : 'Check the directory path with DIR and retry.'
+                );
+            }
         },
         rmdir(args) { CMDS.rd(args); },
         ren(args) {
-            if (args.length < 2) { appendCmdError('REN requires source and destination names.', 'Use REN <oldname> <newname>.'); return; }
+            if (args.length < 2) {
+                return commandError('REN requires source and destination names.', 'Use REN <oldname> <newname>.');
+            }
             const catRes = fs.cat(args[0]);
-            if (catRes.error) { appendCmdError('The system cannot find the file specified.', 'Check the source file path and retry REN.'); return; }
+            if (catRes.error) {
+                return commandError('The system cannot find the file specified.', 'Check the source file path and retry REN.');
+            }
             fs.write(args[1], catRes.content);
             fs.rm(args[0]);
         },
         mv(args) { CMDS.ren(args); },
         copy(args) {
-            if (args.length < 2) { appendCmdError('COPY requires source and destination paths.', 'Use COPY <source> <destination>.'); return; }
+            if (args.length < 2) {
+                return commandError('COPY requires source and destination paths.', 'Use COPY <source> <destination>.');
+            }
             const catRes = fs.cat(args[0]);
-            if (catRes.error) { appendCmdError('The system cannot find the file specified.', 'Check the source file path and retry COPY.'); return; }
+            if (catRes.error) {
+                return commandError('The system cannot find the file specified.', 'Check the source file path and retry COPY.');
+            }
             fs.write(args[1], catRes.content);
             appendLine('        1 file(s) copied.');
         },
@@ -431,15 +499,13 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         runsmc(args) {
             const p = args[0];
             if (!p) {
-                appendCmdError('RUNSMC requires a script path.', 'Usage: RUNSMC <script.smc>');
-                return { ok: false };
+                return commandError('RUNSMC requires a script path.', 'Usage: RUNSMC <script.smc>');
             }
             const res = fs.cat(p);
             if (res.error) {
-                appendCmdError('The system cannot find the file specified.', 'Check the script path and extension, then run RUNSMC <script.smc>.');
-                return { ok: false };
+                return commandError('The system cannot find the file specified.', 'Check the script path and extension, then run RUNSMC <script.smc>.');
             }
-            return executeScriptContent(res.content);
+            return executeScriptContent(res.content, p);
         },
         exit() {
             const winObj = wm.windows.find(w => w.element === container.closest('.gos-window'));
@@ -493,6 +559,43 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         }
         if (current) tokens.push(current);
         return tokens;
+    }
+
+    function normalizeAliasName(name) {
+        if (!name) return '';
+        return name.trim().toLowerCase();
+    }
+
+    function registerAlias(name, definition) {
+        const normalized = normalizeAliasName(name);
+        const def = typeof definition === 'string' ? definition.trim() : '';
+        if (!normalized || !def) return null;
+        const entry = { name: name.trim(), definition: def };
+        ALIASES.set(normalized, entry);
+        return entry;
+    }
+
+    function resolveAlias(name) {
+        return ALIASES.get(normalizeAliasName(name)) || null;
+    }
+
+    function listAliasEntries() {
+        return Array.from(ALIASES.values());
+    }
+
+    function expandAliasLine(line, visited = new Set()) {
+        const trimmed = String(line || '').trim();
+        if (!trimmed) return '';
+        const tokens = tokenize(trimmed);
+        if (!tokens.length) return trimmed;
+        const alias = resolveAlias(tokens[0]);
+        if (!alias) return trimmed;
+        const key = normalizeAliasName(tokens[0]);
+        if (visited.has(key)) return trimmed;
+        visited.add(key);
+        const suffix = tokens.slice(1).join(' ');
+        const nextLine = alias.definition + (suffix ? ' ' + suffix : '');
+        return expandAliasLine(nextLine, visited);
     }
 
     function splitByOperator(line, op) {
@@ -614,27 +717,26 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         const line = raw.trim();
         if (!line) return { ok: true };
 
-        const tokens = tokenize(line);
+        const expandedLine = expandAliasLine(line);
+        const tokens = tokenize(expandedLine);
         if (tokens.length === 0) return { ok: true };
         const cmd = tokens[0].toLowerCase();
         const args = tokens.slice(1);
 
         if (tokens[0].toLowerCase().endsWith('.smc') && tokens.length === 1) {
             if (!fs.exists(tokens[0])) {
-                appendCmdError('The system cannot find the file specified.', 'Make sure the .smc file exists in the current directory or provide its full path.');
-                return { ok: false };
+                return commandError('The system cannot find the file specified.', 'Make sure the .smc file exists in the current directory or provide its full path.');
             }
             const smcRes = fs.cat(tokens[0]);
             if (smcRes.error) {
-                appendCmdError('The system cannot find the file specified.', 'Verify read access and script path, then retry.');
-                return { ok: false };
+                return commandError('The system cannot find the file specified.', 'Verify read access and script path, then retry.');
             }
-            return executeScriptContent(smcRes.content);
+            return executeScriptContent(smcRes.content, tokens[0]);
         }
 
-        if (CMDS[cmd]) {
-            const rawArgText = line.slice(tokens[0].length).trim();
-            const result = CMDS[cmd](args, { rawArgText, line, cmd });
+            if (CMDS[cmd]) {
+                const rawArgText = expandedLine.slice(tokens[0].length).trim();
+                const result = CMDS[cmd](args, { rawArgText, line: expandedLine, cmd });
             if (result && typeof result.ok === 'boolean') return result;
             return { ok: true };
         }
@@ -654,11 +756,10 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
             }
         }
 
-        appendCmdError(
+        return commandError(
             `'${cmd}' is not recognized as an internal or external command.`,
             'Run HELP to list commands, or check the executable/script name and path.'
         );
-        return { ok: false };
     }
 
     function validateSingle(raw) {
@@ -668,6 +769,7 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         if (!tokens.length) return true;
         const cmd = tokens[0].toLowerCase();
         if (CMDS[cmd]) return true;
+        if (resolveAlias(cmd)) return true;
 
         if (tokens[0].toLowerCase().endsWith('.smc')) return tokens.length === 1 && fs.exists(tokens[0]);
 
@@ -738,16 +840,14 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
                     : line.slice(thenPos + 4).trim();
                 const elseExpr = elsePos > thenPos ? line.slice(elsePos + 4).trim() : '';
                 if (!validateFlowSyntax(thenExpr) || (elseExpr && !validateFlowSyntax(elseExpr))) {
-                    appendCmdError('Invalid THEN/ELSE command expression.', 'Use: IF <condition> THEN <command> ELSE <command>.');
-                    return { ok: false };
+                    return commandError('Invalid THEN/ELSE command expression.', 'Use: IF <condition> THEN <command> ELSE <command>.');
                 }
                 const condOk = executeCondition(condExpr);
                 if (condOk) return executeLineWithFlow(thenExpr);
                 if (elseExpr) return executeLineWithFlow(elseExpr);
                 return { ok: true };
             } else {
-                appendCmdError('IF statement requires THEN.', 'Use: IF <condition> THEN <command> [ELSE <command>].');
-                return { ok: false };
+                return commandError('IF statement requires THEN.', 'Use: IF <condition> THEN <command> [ELSE <command>].');
             }
         }
 
@@ -773,14 +873,12 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
 
         const redir = parseRedirection(line);
         if (redir.error) {
-            appendCmdError(redir.error, 'Use one redirection target: <command> > <file>.');
-            return { ok: false };
+            return commandError(redir.error, 'Use one redirection target: <command> > <file>.');
         }
 
         const stages = splitTopLevelPipes(redir.command);
         if (!stages.length || stages.some(s => !s)) {
-            appendCmdError('Invalid pipe syntax.', 'Use: <command1> | <command2> with a command on both sides of "|".');
-            return { ok: false };
+            return commandError('Invalid pipe syntax.', 'Use: <command1> | <command2> with a command on both sides of "|".');
         }
 
         // Keep normal rendering behavior (HTML/colors/etc.) for non-piped, non-redirected commands.
@@ -811,28 +909,43 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         return last;
     }
 
-    function executeScriptContent(content) {
+    function executeScriptContent(content, scriptPath = null) {
         if (typeof SmcInterpreter === 'undefined' || !SmcInterpreter.runScript) {
-            appendCmdError('SMC interpreter service is unavailable.', 'Ensure core/services/smcInterpreter.js is loaded before CMD.');
-            return { ok: false };
+            return commandError('SMC interpreter service is unavailable.', 'Ensure core/services/smcInterpreter.js is loaded before CMD.');
         }
-        return SmcInterpreter.runScript(content, {
-            tokenize,
-            evaluateCondition: executeCondition,
-            executeCommand: (line) => executeLineWithFlow(line),
-            onCommand: (line) => {
-                commitActiveLine(line);
-                if (_activeLine === null) createActiveLine();
-            },
-            onError: (problem) => {
-                if (problem === 'Procedure recursion limit exceeded.') {
-                    appendCmdError(problem, 'Reduce recursive calls or add termination conditions.');
-                } else {
-                    appendCmdError(problem, 'Ensure each IF/PROC block is closed with END.');
-                }
-            },
-            recursionLimit: 32
-        });
+        const cwd = scriptPath && scriptPath.includes('\\')
+            ? (scriptPath.substring(0, scriptPath.lastIndexOf('\\')) || 'C:\\')
+            : fs.pwd();
+        const prevMode = { ..._scriptMode };
+        let scriptFlags = { silent: false, noEcho: false };
+        try {
+            const result = SmcInterpreter.runScript(content, {
+                tokenize,
+                evaluateCondition: executeCondition,
+                executeCommand: (line) => executeLineWithFlow(line),
+                onFlags: (flags) => {
+                    const normalized = { silent: !!flags.silent, noEcho: !!flags.noEcho };
+                    scriptFlags = normalized;
+                    setInterpreterMode(normalized);
+                },
+                onCommand: (line) => {
+                    if (scriptFlags.noEcho) return;
+                    commitActiveLine(line);
+                    if (_activeLine === null) createActiveLine();
+                },
+                onError: (problem) => {
+                    const help = problem === 'Procedure recursion limit exceeded.'
+                        ? 'Reduce recursive calls or add termination conditions.'
+                        : 'Ensure each IF/PROC/WHILE block is closed with END.';
+                    appendCmdError(problem, help);
+                },
+                recursionLimit: 32,
+                cwd
+            }, null);
+            return result;
+        } finally {
+            setInterpreterMode(prevMode);
+        }
     }
 
     // ── Input dispatch ────────────────────────────────────────────────────────

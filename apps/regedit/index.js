@@ -93,7 +93,7 @@ function launchRegistryEditor() {
         nameInput.value = nameVal === '(Default)' ? '' : (nameVal || '');
         nameInput.placeholder = '(Default)';
         nameInput.readOnly = !!nameReadOnly;
-        nameInput.style.cssText = 'background:#1a1a1a;border:1px solid #444;color:#eee;padding:6px 10px;font-size:0.85rem;font-family:monospace;width:100%;box-sizing:border-box;' + (nameReadOnly ? 'opacity:0.6;background:transparent;' : '');
+        nameInput.style.cssText = 'background:#1a1a1a;border:1px solid #444;color:#eee;padding:6px 10px;font-size:0.85rem;font-family:var(--font-family-mono);width:100%;box-sizing:border-box;' + (nameReadOnly ? 'opacity:0.6;background:transparent;' : '');
 
         const dataLbl = document.createElement('div');
         dataLbl.style.cssText = 'font-size:0.85rem;color:#ccc;padding-top:6px;';
@@ -129,7 +129,7 @@ function launchRegistryEditor() {
             const numInput = document.createElement('input');
             numInput.type = 'number';
             numInput.value = dataVal;
-            numInput.style.cssText = 'background:#1a1a1a;border:1px solid #444;color:#eee;padding:6px 10px;font-size:0.85rem;font-family:monospace;width:100%;box-sizing:border-box;';
+            numInput.style.cssText = 'background:#1a1a1a;border:1px solid #444;color:#eee;padding:6px 10px;font-size:0.85rem;font-family:var(--font-family-mono);width:100%;box-sizing:border-box;';
             dataWrap.appendChild(numInput);
             getData = () => {
                 const v = parseFloat(numInput.value);
@@ -204,7 +204,7 @@ function launchRegistryEditor() {
             const textInput = document.createElement('input');
             textInput.type = 'text';
             textInput.value = dataVal !== undefined ? String(dataVal) : '';
-            textInput.style.cssText = 'background:#1a1a1a;border:1px solid #444;color:#eee;padding:6px 10px;font-size:0.85rem;font-family:monospace;width:100%;box-sizing:border-box;';
+            textInput.style.cssText = 'background:#1a1a1a;border:1px solid #444;color:#eee;padding:6px 10px;font-size:0.85rem;font-family:var(--font-family-mono);width:100%;box-sizing:border-box;';
             dataWrap.appendChild(textInput);
             getData = () => textInput.value;
         }

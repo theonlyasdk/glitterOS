@@ -729,7 +729,7 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
         cursorPos.innerHTML = `Line:${line}  Col:${col}`;
 
         // Update highlight
-        const lineHeight = 20;
+        const lineHeight = 26;
         const paddingTop = 10;
 
         highlight.style.top = (paddingTop + (line - 1) * lineHeight - textarea.scrollTop) + 'px';
@@ -784,7 +784,7 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
         e.preventDefault();
         const direction = Math.sign(e.deltaY);
         // Assuming line-height is 20px based on our CSS variables
-        const lineHeight = 20;
+        const lineHeight = 26;
         const lineCount = 3; // jump 3 lines per standard wheel tick like many terminal emulators
         textarea.scrollTop += direction * (lineHeight * lineCount);
     }, { passive: false });

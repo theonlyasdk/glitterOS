@@ -184,6 +184,73 @@ function launchFileManager(startPath) {
         { name: 'Local Disk (C:)', path: 'C:\\', icon: 'bi-hdd' },
     ];
 
+    function normalizeDragPaths(data) {
+        if (!data) return [];
+        try {
+            const parsed = JSON.parse(data);
+            if (!Array.isArray(parsed)) return [];
+            return parsed
+                .filter(p => typeof p === 'string' && p.length > 0)
+                .map(p => p.replace(/\//g, '\\'));
+        } catch (err) {
+            return [];
+        }
+    }
+
+    function copyEntryRecursive(srcPath, destPath) {
+        const stat = fs.stat(srcPath);
+        if (!stat || stat.error) return false;
+        if (stat.type === 'file') {
+            const fileRes = fs.cat(srcPath);
+            if (fileRes.error) return false;
+            fs.write(destPath, fileRes.content);
+            return true;
+        }
+        if (stat.type === 'dir') {
+            if (!fs.exists(destPath)) {
+                fs.mkdir(destPath);
+            }
+            const listing = fs.ls(srcPath);
+            if (listing.error) return false;
+            for (const entry of listing.entries || []) {
+                copyEntryRecursive(`${srcPath}\\${entry.name}`, `${destPath}\\${entry.name}`);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    function movePathsToDirectory(paths, targetDir) {
+        if (!paths || !paths.length) return;
+        if (!targetDir) return;
+        const targetStat = fs.stat(targetDir);
+        if (!targetStat || targetStat.error || targetStat.type !== 'dir') return;
+        const destBase = targetDir.endsWith('\\') ? targetDir : `${targetDir}\\`;
+        let moved = false;
+        paths.forEach((rawPath) => {
+            const srcPath = rawPath.replace(/\//g, '\\');
+            if (!fs.exists(srcPath)) return;
+            const name = srcPath.split('\\').pop();
+            if (!name) return;
+            const destPath = `${destBase}${name}`;
+            if (srcPath.toLowerCase() === destPath.toLowerCase()) return;
+            if (fs.exists(destPath)) return;
+            if (!copyEntryRecursive(srcPath, destPath)) return;
+            const stat = fs.stat(srcPath);
+            if (stat && stat.type === 'file') {
+                fs.rm(srcPath);
+            } else if (stat && stat.type === 'dir') {
+                fs.rmdir(srcPath, true);
+            }
+            moved = true;
+        });
+        if (moved) {
+            _selected = [];
+            _lastClicked = null;
+            renderContent();
+        }
+    }
+
     function updateSidebar() {
         sidebar.innerHTML = '';
 
@@ -214,6 +281,10 @@ function launchFileManager(startPath) {
         const qaContainer = document.createElement('div');
         qaContainer.style.display = qaItems.length === 0 ? 'none' : 'block';
 
+        const pinIndicator = document.createElement('div');
+        pinIndicator.className = 'gos-fm-sidebar-pin-indicator';
+        pinIndicator.innerHTML = '<i class="bi bi-pin-angle" style="display:block; font-size: 1.2rem; margin-bottom: 4px;"></i> Drop here to pin';
+
         qaItems.forEach((qa, idx) => {
             const item = document.createElement('div');
             item.className = 'gos-fm-sidebar-item' + (qa.path === _cwd ? ' active' : '');
@@ -235,12 +306,26 @@ function launchFileManager(startPath) {
                     }
                 ]);
             };
+            item.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                item.classList.add('drag-over');
+                sidebar.classList.add('drag-active');
+            });
+            item.addEventListener('dragleave', () => {
+                item.classList.remove('drag-over');
+            });
+            item.addEventListener('drop', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                item.classList.remove('drag-over');
+                sidebar.classList.remove('drag-active');
+                pinIndicator.classList.remove('visible');
+                const paths = normalizeDragPaths(e.dataTransfer.getData('text/plain'));
+                movePathsToDirectory(paths, qa.path);
+            });
             qaContainer.appendChild(item);
         });
-
-        const pinIndicator = document.createElement('div');
-        pinIndicator.className = 'gos-fm-sidebar-pin-indicator';
-        pinIndicator.innerHTML = '<i class="bi bi-pin-angle" style="display:block; font-size: 1.2rem; margin-bottom: 4px;"></i> Drop here to pin';
 
         // Drop handling for Quick Access
         if (!sidebar.dataset.hasListeners) {
@@ -266,24 +351,25 @@ function launchFileManager(startPath) {
             });
 
             sidebar.addEventListener('drop', (e) => {
+                const isQaArea = [qaContainer, qaHeader, pinIndicator].some(el => el === e.target || el.contains(e.target));
+                if (!isQaArea) return;
                 e.preventDefault();
                 sidebar.classList.remove('drag-active');
                 pinIndicator.classList.remove('visible');
-                const data = e.dataTransfer.getData('text/plain');
-                if (data) {
-                    try {
-                        const paths = JSON.parse(data);
-                        let currentQA = registry.get('Software.GlitterOS.Explorer.QuickAccess') || [];
-                        paths.forEach(p => {
-                            const stat = fs.stat(p);
-                            if (!currentQA.find(x => x.path === p)) {
-                                currentQA.push({ name: stat.name, path: p, icon: stat.type === 'dir' ? 'bi-folder' : 'bi-file-earmark' });
-                            }
-                        });
-                        registry.set('Software.GlitterOS.Explorer.QuickAccess', currentQA);
-                        updateSidebar();
-                    } catch (err) { }
-                }
+                const paths = normalizeDragPaths(e.dataTransfer.getData('text/plain'));
+                if (!paths.length) return;
+                try {
+                    let currentQA = registry.get('Software.GlitterOS.Explorer.QuickAccess') || [];
+                    paths.forEach(p => {
+                        const stat = fs.stat(p);
+                        if (stat.error) return;
+                        if (!currentQA.find(x => x.path === p)) {
+                            currentQA.push({ name: stat.name, path: p, icon: stat.type === 'dir' ? 'bi-folder' : 'bi-file-earmark' });
+                        }
+                    });
+                    registry.set('Software.GlitterOS.Explorer.QuickAccess', currentQA);
+                    updateSidebar();
+                } catch (err) { }
             });
             sidebar.dataset.hasListeners = 'true';
         }

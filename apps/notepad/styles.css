@@ -158,6 +158,7 @@
 .gos-notepad .gos-syn-num { color: #8bf18b; }
 .gos-notepad .gos-syn-str { color: #ffb6a6; }
 .gos-notepad .gos-syn-com { color: #9aa0a8; }
+.gos-notepad .gos-syn-varref { color: #ffeaa5; }
 .gos-notepad .gos-syn-tag { color: #9ecbff; }
 
 /* Notepad Dropdown (matching system menu) */

@@ -3,7 +3,7 @@
 function launchSysLog() {
     const container = document.createElement('div');
     container.className = 'gos-syslog-app';
-    container.style.cssText = 'display: flex; flex-direction: column; height: 100%; background: #111; color: #fff; font-family: "Cascadia Code", "Consolas", monospace; font-size: 0.85rem;';
+    container.style.cssText = 'display: flex; flex-direction: column; height: 100%; background: #111; color: #fff; font-family: var(--font-family-mono); font-size: 0.85rem;';
 
     const header = document.createElement('div');
     header.style.cssText = 'padding: 8px 12px; background: #222; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;';

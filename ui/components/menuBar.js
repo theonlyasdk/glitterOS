@@ -104,12 +104,14 @@ function buildAppMenuBar() {
     bar.className = 'gos-app-menubar';
 
     let activeItem = null;
+    let hoverEnabled = false;
 
     const closeAll = () => {
         if (activeItem) {
             activeItem.classList.remove('active');
             activeItem = null;
         }
+        hoverEnabled = false;
     };
 
     const onClickOutside = (e) => {
@@ -191,6 +193,7 @@ function buildAppMenuBar() {
                 closeAll();
                 item.classList.add('active');
                 activeItem = item;
+                hoverEnabled = true;
             }
         };
 
@@ -199,11 +202,11 @@ function buildAppMenuBar() {
             toggleMenu();
         };
 
-        item.onmouseenter = () => {
-            if (activeItem && activeItem !== item) {
+        item.addEventListener('mouseenter', () => {
+            if (hoverEnabled && activeItem && activeItem !== item) {
                 toggleMenu();
             }
-        };
+        });
 
         bar.appendChild(item);
     };
