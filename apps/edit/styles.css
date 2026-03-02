@@ -151,24 +151,28 @@
     display: block;
 }
 
-.gos-edit-syn-kw {
+.gos-edit .gos-syn-kw {
     color: #ffd75f;
 }
 
-.gos-edit-syn-op {
+.gos-edit .gos-syn-op {
     color: #7ec8ff;
 }
 
-.gos-edit-syn-num {
+.gos-edit .gos-syn-num {
     color: #8bf18b;
 }
 
-.gos-edit-syn-str {
+.gos-edit .gos-syn-str {
     color: #ff9d9d;
 }
 
-.gos-edit-syn-com {
+.gos-edit .gos-syn-com {
     color: #9aa0a8;
+}
+
+.gos-edit .gos-syn-tag {
+    color: #9ecbff;
 }
 
 /* Custom scrollbars for DOS look */

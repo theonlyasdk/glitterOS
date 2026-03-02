@@ -4,6 +4,7 @@
 
     if (!fs.exists('C:\\glitterOS\\System32')) fs.mkdir('C:\\glitterOS\\System32');
     if (!fs.exists('C:\\glitterOS\\System32\\Services')) fs.mkdir('C:\\glitterOS\\System32\\Services');
+    if (!fs.exists('C:\\Recycle Bin')) fs.mkdir('C:\\Recycle Bin');
     if (!fs.exists('C:\\glitterOS\\System32\\Services\\NotificationService.service')) {
         fs.write('C:\\glitterOS\\System32\\Services\\NotificationService.service', '[glitterOS Service]\r\nName=NotificationService\r\nAutoStart=true');
     }
@@ -72,8 +73,16 @@ function gosInit() {
     gosInitMenubar();
     renderCalendar(currentCalendarDate);
 
-    if (!registry.get('defaults.ext.smc')) {
-        registry.set('defaults.ext.smc', 'cmd');
+    const legacyDefaults = registry.get('defaults.ext', null);
+    if (legacyDefaults && typeof legacyDefaults === 'object') {
+        Object.entries(legacyDefaults).forEach(([ext, appId]) => {
+            registry.set(`Software.GlitterOS.Explorer.Defaults.Extensions.${String(ext).toLowerCase()}`, appId);
+        });
+        registry.delete('defaults.ext');
+    }
+
+    if (!registry.get('Software.GlitterOS.Explorer.Defaults.Extensions.smc')) {
+        registry.set('Software.GlitterOS.Explorer.Defaults.Extensions.smc', 'cmd');
     }
 
     // Set default wallpaper

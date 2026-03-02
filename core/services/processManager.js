@@ -2,6 +2,17 @@
  * Process Manager - Handles application execution and "Open With" logic
  */
 const ProcessManager = (() => {
+    function getDefaultAppForExt(ext) {
+        const lower = String(ext || '').toLowerCase();
+        return registry.get(`Software.GlitterOS.Explorer.Defaults.Extensions.${lower}`)
+            || registry.get(`defaults.ext.${lower}`);
+    }
+
+    function setDefaultAppForExt(ext, appId) {
+        const lower = String(ext || '').toLowerCase();
+        registry.set(`Software.GlitterOS.Explorer.Defaults.Extensions.${lower}`, appId);
+    }
+
     return {
         /** Launch a file if it's an executable or associated with an app */
         run(path) {
@@ -29,7 +40,7 @@ const ProcessManager = (() => {
             const ext = extMatch ? extMatch[1].toLowerCase() : '';
 
             // Check for user-defined default
-            const userDefaultId = registry.get(`defaults.ext.${ext}`);
+            const userDefaultId = getDefaultAppForExt(ext);
             if (userDefaultId) {
                 const app = AppRegistry.get(userDefaultId);
                 if (app) {
@@ -95,7 +106,7 @@ const ProcessManager = (() => {
                     item.onclick = () => {
                         const alwaysUse = container.querySelector('#always-use-app').checked;
                         if (alwaysUse) {
-                            registry.set(`defaults.ext.${ext}`, app.id);
+                            setDefaultAppForExt(ext, app.id);
                         }
                         wm.closeWindow(win.id);
                         app.launch(path);

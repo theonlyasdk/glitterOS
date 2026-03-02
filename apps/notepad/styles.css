@@ -40,15 +40,23 @@
     background: #1e1e1e;
 }
 
+.gos-notepad-content-wrap {
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+    background: #1e1e1e;
+    --np-pad-x: 6px;
+}
+
 /* Notepad Gutter (Line Numbers) */
 .gos-notepad-gutter {
     width: 45px;
     background: #252525;
     color: #858585;
-    padding: 8px 5px;
+    padding: 0 5px;
     text-align: right;
     font-size: 0.95rem;
-    line-height: 1.4;
+    line-height: 20px;
     user-select: none;
     border-right: 1px solid #333;
     overflow: hidden;
@@ -58,28 +66,99 @@
 
 /* Notepad Content */
 .gos-notepad-content {
-    flex: 1;
+    width: 100%;
+    height: 100%;
     border: none;
     outline: none;
-    padding: 8px;
+    padding: 0 var(--np-pad-x);
     resize: none;
     font-size: 0.95rem;
-    line-height: 1.4;
+    font-weight: 400;
+    line-height: 20px;
     white-space: pre;
     overflow: auto;
-    background: #1e1e1e;
+    background: transparent;
     color: #eee;
     font-family: var(--font-family-mono);
+    font-variant-ligatures: none;
+    font-feature-settings: "liga" 0, "calt" 0;
+    letter-spacing: 0;
+    tab-size: 4;
+    -moz-tab-size: 4;
+    position: relative;
+    z-index: 3;
+    margin: 0;
+}
+
+.gos-notepad-line-highlight {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 20px;
+    background-color: rgba(255, 255, 255, 0.08);
+    pointer-events: none;
+    z-index: 1;
+    display: none;
+}
+
+.gos-notepad-content.syntax-active {
+    color: transparent;
+    caret-color: #eee;
+    background: transparent !important;
+}
+
+.gos-notepad-content::selection {
+    background: #aaaaaa;
+    color: #000000;
+}
+
+.gos-notepad-content.syntax-active::selection {
+    background: #aaaaaa;
+    color: #000000;
 }
 
 .gos-notepad-content:hover,
 .gos-notepad-content:focus,
 .gos-notepad-content:focus-visible,
 .gos-notepad-content:active {
-    background: #1e1e1e;
+    background: transparent !important;
     border-color: transparent !important;
     box-shadow: none !important;
+    filter: none !important;
 }
+
+.gos-notepad-syntax-layer {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 0 var(--np-pad-x);
+    font-size: 0.95rem;
+    font-weight: 400;
+    font-family: var(--font-family-mono);
+    font-variant-ligatures: none;
+    font-feature-settings: "liga" 0, "calt" 0;
+    letter-spacing: 0;
+    line-height: 20px;
+    white-space: pre;
+    overflow: hidden;
+    color: #eee;
+    pointer-events: none;
+    z-index: 2;
+    display: none;
+    tab-size: 4;
+    -moz-tab-size: 4;
+}
+
+.gos-notepad-syntax-layer.active {
+    display: block;
+}
+
+.gos-notepad .gos-syn-kw { color: #ffd75f; }
+.gos-notepad .gos-syn-op { color: #7ec8ff; }
+.gos-notepad .gos-syn-num { color: #8bf18b; }
+.gos-notepad .gos-syn-str { color: #ffb6a6; }
+.gos-notepad .gos-syn-com { color: #9aa0a8; }
+.gos-notepad .gos-syn-tag { color: #9ecbff; }
 
 /* Notepad Dropdown (matching system menu) */
 .gos-notepad-dropdown {

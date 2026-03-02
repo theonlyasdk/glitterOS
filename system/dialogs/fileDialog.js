@@ -161,6 +161,7 @@ const filedialog = {
                 { name: 'Documents', path: 'C:\\Users\\User\\Documents', icon: 'bi-file-earmark-text' },
                 { name: 'Downloads', path: 'C:\\Users\\User\\Downloads', icon: 'bi-download' },
                 { name: 'Pictures', path: 'C:\\Users\\User\\Pictures', icon: 'bi-image' },
+                { name: 'Recycle Bin', path: 'C:\\Recycle Bin', icon: 'bi-trash3' },
                 { name: 'Disk (C:)', path: 'C:\\', icon: 'bi-hdd' },
             ];
             QC.forEach(item => {

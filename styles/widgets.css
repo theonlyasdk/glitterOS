@@ -166,7 +166,7 @@ input[type="datetime-local"],
 input[type="month"],
 input[type="week"],
 select,
-textarea:not(.gos-edit-content) {
+textarea:not(.gos-edit-content):not(.gos-notepad-content) {
     background: var(--color-bg-input);
     border: 1px solid var(--color-border);
     border-radius: var(--border-radius-input);
@@ -193,7 +193,7 @@ input[type="datetime-local"]:hover,
 input[type="month"]:hover,
 input[type="week"]:hover,
 select:hover,
-textarea:not(.gos-edit-content):hover {
+textarea:not(.gos-edit-content):not(.gos-notepad-content):hover {
     border-color: #666;
     background: #383838;
 }
@@ -212,7 +212,7 @@ input[type="datetime-local"]:focus,
 input[type="month"]:focus,
 input[type="week"]:focus,
 select:focus,
-textarea:not(.gos-edit-content):focus {
+textarea:not(.gos-edit-content):not(.gos-notepad-content):focus {
     border-color: var(--accent-color) !important;
     box-shadow: 0 0 0 1px var(--accent-color);
 }

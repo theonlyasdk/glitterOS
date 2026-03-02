@@ -190,18 +190,19 @@ function launchFileManager(startPath) {
         // 1. Quick Access
         let qaItems = [];
         try {
-            qaItems = registry.get('Software.GlitterOS.Explorer.QuickAccess');
-            if (!qaItems) {
-                // Default Quick Access
-                qaItems = [
-                    { name: 'Users', path: 'C:\\Users', icon: 'bi-people' },
-                    { name: 'Desktop', path: 'C:\\Users\\User\\Desktop', icon: 'bi-display' },
-                    { name: 'Documents', path: 'C:\\Users\\User\\Documents', icon: 'bi-file-earmark-text' },
-                    { name: 'Downloads', path: 'C:\\Users\\User\\Downloads', icon: 'bi-download' },
-                    { name: 'Pictures', path: 'C:\\Users\\User\\Pictures', icon: 'bi-image' },
-                ];
-                registry.set('Software.GlitterOS.Explorer.QuickAccess', qaItems);
-            }
+                qaItems = registry.get('Software.GlitterOS.Explorer.QuickAccess');
+                if (!qaItems) {
+                    // Default Quick Access
+                    qaItems = [
+                        { name: 'Users', path: 'C:\\Users', icon: 'bi-people' },
+                        { name: 'Desktop', path: 'C:\\Users\\User\\Desktop', icon: 'bi-display' },
+                        { name: 'Documents', path: 'C:\\Users\\User\\Documents', icon: 'bi-file-earmark-text' },
+                        { name: 'Downloads', path: 'C:\\Users\\User\\Downloads', icon: 'bi-download' },
+                        { name: 'Pictures', path: 'C:\\Users\\User\\Pictures', icon: 'bi-image' },
+                        { name: 'Recycle Bin', path: 'C:\\Recycle Bin', icon: 'bi-trash3' },
+                    ];
+                    registry.set('Software.GlitterOS.Explorer.QuickAccess', qaItems);
+                }
         } catch (e) { }
 
         const qaHeader = document.createElement('div');

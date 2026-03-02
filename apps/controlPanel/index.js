@@ -417,10 +417,25 @@ function launchControlPanel() {
     }
 
     function renderDefaultApps(parent) {
-        const defaultSettings = registry.getAll();
-        const extensionDefaults = Object.keys(defaultSettings)
-            .filter(key => key.startsWith('defaults.ext.'))
-            .map(key => ({ ext: key.replace('defaults.ext.', ''), appId: defaultSettings[key] }));
+        const collectNested = (obj, path = '', out = []) => {
+            if (!obj || typeof obj !== 'object') return out;
+            Object.entries(obj).forEach(([k, v]) => {
+                const full = path ? `${path}.${k}` : k;
+                if (v && typeof v === 'object' && !Array.isArray(v)) collectNested(v, full, out);
+                else out.push({ key: full, value: v });
+            });
+            return out;
+        };
+
+        const allPairs = collectNested(registry.getAll());
+        const extensionDefaults = allPairs
+            .filter(({ key }) => key.startsWith('Software.GlitterOS.Explorer.Defaults.Extensions.') || key.startsWith('defaults.ext.'))
+            .map(({ key, value }) => {
+                const ext = key.startsWith('Software.GlitterOS.Explorer.Defaults.Extensions.')
+                    ? key.replace('Software.GlitterOS.Explorer.Defaults.Extensions.', '')
+                    : key.replace('defaults.ext.', '');
+                return { ext, appId: value };
+            });
 
         // Ensure common extensions are listed even if not customized
         const commonExts = ['txt', 'md', 'js', 'css', 'json', 'bat', 'jpg', 'png', 'mp3', 'mp4'];
@@ -465,7 +480,7 @@ function launchControlPanel() {
                     label: pa.name,
                     icon: pa.icon,
                     action: () => {
-                        registry.set(`defaults.ext.${def.ext}`, pa.id);
+                        registry.set(`Software.GlitterOS.Explorer.Defaults.Extensions.${def.ext}`, pa.id);
                         renderDefaultApps(parent);
                     }
                 })));

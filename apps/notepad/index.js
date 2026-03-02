@@ -6,6 +6,7 @@ function launchNotepad(filePath = null) {
 
     let _currentPath = filePath;
     let _isDirty = false;
+    let _syntaxMode = 'auto'; // auto | plain | smc | html
 
     // ── Content area ──────────────────────────────────────────────────────────
     const editor = document.createElement('div');
@@ -15,11 +16,23 @@ function launchNotepad(filePath = null) {
     gutter.className = 'gos-notepad-gutter';
     gutter.textContent = '1';
 
+    const contentWrap = document.createElement('div');
+    contentWrap.className = 'gos-notepad-content-wrap';
+
+    const lineHighlight = document.createElement('div');
+    lineHighlight.className = 'gos-notepad-line-highlight';
+
+    const syntaxLayer = document.createElement('pre');
+    syntaxLayer.className = 'gos-notepad-syntax-layer';
+    syntaxLayer.setAttribute('aria-hidden', 'true');
+
     const textarea = document.createElement('textarea');
     textarea.className = 'gos-notepad-content';
     textarea.spellcheck = false;
+    textarea.wrap = 'off';
 
-    editor.append(gutter, textarea);
+    contentWrap.append(lineHighlight, syntaxLayer, textarea);
+    editor.append(gutter, contentWrap);
 
     if (_currentPath) {
         const res = fs.cat(_currentPath);
@@ -37,14 +50,87 @@ function launchNotepad(filePath = null) {
         gutter.textContent = lineNumbers;
     }
 
+    function updateCursorLineHighlight() {
+        const pos = textarea.selectionStart;
+        const textBefore = textarea.value.substring(0, pos);
+        const line = textBefore.split('\n').length;
+        const lineHeight = 20;
+        const paddingTop = 0;
+        lineHighlight.style.top = (paddingTop + (line - 1) * lineHeight - textarea.scrollTop) + 'px';
+        lineHighlight.style.display = 'block';
+    }
+
+    let _cursorFrame = null;
+    function scheduleCursorLineHighlight() {
+        if (_cursorFrame !== null) return;
+        _cursorFrame = requestAnimationFrame(() => {
+            _cursorFrame = null;
+            updateCursorLineHighlight();
+        });
+    }
+
+    function resolveLanguage() {
+        if (_syntaxMode === 'plain') return null;
+        if (_syntaxMode === 'smc' || _syntaxMode === 'html') return _syntaxMode;
+        if (typeof SyntaxHighlighter === 'undefined' || !SyntaxHighlighter.detectLanguage) return null;
+        return SyntaxHighlighter.detectLanguage(_currentPath);
+    }
+
+    function renderSyntax() {
+        const lang = resolveLanguage();
+        if (!lang || typeof SyntaxHighlighter === 'undefined' || !SyntaxHighlighter.highlight) {
+            syntaxLayer.classList.remove('active');
+            textarea.classList.remove('syntax-active');
+            syntaxLayer.innerHTML = '';
+            return;
+        }
+        syntaxLayer.classList.add('active');
+        textarea.classList.add('syntax-active');
+        syntaxLayer.innerHTML = SyntaxHighlighter.highlight(lang, textarea.value);
+        if (!syntaxLayer.innerHTML) syntaxLayer.innerHTML = '\n';
+        syntaxLayer.scrollTop = textarea.scrollTop;
+        syntaxLayer.scrollLeft = textarea.scrollLeft;
+    }
+
+    function updateSelectionOverlayState() {
+        const hasRange = (textarea.selectionEnd - textarea.selectionStart) > 0;
+        syntaxLayer.style.visibility = hasRange ? 'hidden' : 'visible';
+    }
+
+    function syntaxLabel(mode, title) {
+        return title;
+    }
+
+    function syntaxIcon(mode) {
+        return _syntaxMode === mode ? 'bi-check-square' : 'bi-square';
+    }
+
+    function buildSyntaxMenuItems() {
+        return [
+            { label: syntaxLabel('auto', 'Auto (Filename)'), icon: syntaxIcon('auto'), action: () => { _syntaxMode = 'auto'; renderSyntax(); } },
+            { label: syntaxLabel('plain', 'Plain Text'), icon: syntaxIcon('plain'), action: () => { _syntaxMode = 'plain'; renderSyntax(); } },
+            { label: syntaxLabel('smc', 'SMC Script'), icon: syntaxIcon('smc'), action: () => { _syntaxMode = 'smc'; renderSyntax(); } },
+            { label: syntaxLabel('html', 'HTML/XML'), icon: syntaxIcon('html'), action: () => { _syntaxMode = 'html'; renderSyntax(); } }
+        ];
+    }
+
+    function closeMenuBarMenus() {
+        menubar.querySelectorAll('.gos-app-menu-item.active').forEach(el => el.classList.remove('active'));
+    }
+
     textarea.addEventListener('input', () => {
         _isDirty = true;
         updateTitle();
         updateLineNumbers();
+        renderSyntax();
+        scheduleCursorLineHighlight();
     });
 
     textarea.addEventListener('scroll', () => {
         gutter.scrollTop = textarea.scrollTop;
+        syntaxLayer.scrollTop = textarea.scrollTop;
+        syntaxLayer.scrollLeft = textarea.scrollLeft;
+        scheduleCursorLineHighlight();
     });
 
     textarea.addEventListener('keydown', (e) => {
@@ -58,11 +144,32 @@ function launchNotepad(filePath = null) {
             _isDirty = true;
             updateTitle();
             updateLineNumbers();
+            renderSyntax();
+            scheduleCursorLineHighlight();
+        }
+    });
+    textarea.addEventListener('click', scheduleCursorLineHighlight);
+    textarea.addEventListener('keyup', () => {
+        scheduleCursorLineHighlight();
+        updateSelectionOverlayState();
+    });
+    textarea.addEventListener('keydown', scheduleCursorLineHighlight);
+    textarea.addEventListener('mouseup', () => {
+        scheduleCursorLineHighlight();
+        updateSelectionOverlayState();
+    });
+    document.addEventListener('selectionchange', () => {
+        if (document.activeElement === textarea) {
+            scheduleCursorLineHighlight();
+            updateSelectionOverlayState();
         }
     });
 
     // Initial line numbers
     updateLineNumbers();
+    renderSyntax();
+    scheduleCursorLineHighlight();
+    updateSelectionOverlayState();
 
     // ── Menu Bar Logic ────────────────────────────────────────────────────────
     const menubar = buildAppMenuBar();
@@ -87,6 +194,7 @@ function launchNotepad(filePath = null) {
         fs.write(_currentPath, textarea.value);
         _isDirty = false;
         updateTitle();
+        renderSyntax();
         if (callback) callback();
     }
 
@@ -109,6 +217,9 @@ function launchNotepad(filePath = null) {
             label: 'New', shortcut: 'Ctrl+N', action: () => {
                 checkSave(() => {
                     textarea.value = ''; _currentPath = null; _isDirty = false; updateTitle();
+                    updateLineNumbers();
+                    renderSyntax();
+                    scheduleCursorLineHighlight();
                 });
             }
         },
@@ -125,6 +236,8 @@ function launchNotepad(filePath = null) {
                                 _isDirty = false;
                                 updateTitle();
                                 updateLineNumbers();
+                                renderSyntax();
+                                scheduleCursorLineHighlight();
                             }
                         }
                     });
@@ -162,6 +275,18 @@ function launchNotepad(filePath = null) {
         { label: 'Select All', shortcut: 'Ctrl+A', action: () => { textarea.focus(); textarea.select(); } }
     ]);
 
+    menubar.createMenu('View', [
+        {
+            label: 'Syntax',
+            hasSubmenu: true,
+            onMouseEnter: (e, el) => {
+                const rect = el.getBoundingClientRect();
+                gosShowContextMenu(rect.right, rect.top, buildSyntaxMenuItems(), true);
+            },
+            action: () => {}
+        }
+    ]);
+
     menubar.createMenu('Help', [
         { label: 'About Notepad', action: () => aboutGlitterOS('Notepad') }
     ]);
@@ -176,6 +301,11 @@ function launchNotepad(filePath = null) {
         }
     }, true);
 
+    const onOutsideMenuClickCapture = (e) => {
+        if (!menubar.contains(e.target)) closeMenuBarMenus();
+    };
+    document.addEventListener('mousedown', onOutsideMenuClickCapture, true);
+
     container.append(menubar, editor);
 
     // ── Window Creation ───────────────────────────────────────────────────────
@@ -186,6 +316,7 @@ function launchNotepad(filePath = null) {
         height: 400,
         onClose: () => {
             menubar._cleanup();
+            document.removeEventListener('mousedown', onOutsideMenuClickCapture, true);
         }
     });
 
@@ -217,5 +348,5 @@ AppRegistry.register({
     launch: (path) => launchNotepad(path),
     desktopShortcut: true,
     acceptsFiles: true,
-    supportedExtensions: ['txt', 'md', 'json', 'csv', 'log', 'ini']
+    supportedExtensions: ['txt', 'md', 'json', 'csv', 'log', 'ini', 'smc', 'html', 'htm', 'xml', 'xhtml', 'svg']
 });

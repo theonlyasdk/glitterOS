@@ -74,90 +74,14 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
     let _activeMenuIdx = -1;
     let _activeItemIdx = -1;
 
-    const Highlighters = {
-        smc: {
-            highlight(text) {
-                const esc = (s) => String(s)
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;');
-                const kws = new Set([
-                    'if', 'then', 'else', 'end', 'proc', 'do', 'echo', 'type', 'cd', 'dir', 'md', 'mkdir', 'del', 'rm',
-                    'rd', 'rmdir', 'ren', 'copy', 'ver', 'help', 'cls', 'exit', 'history', 'runsmc', 'notify'
-                ]);
-                const ops = ['==', '!=', '||', '&&', '|', '>'];
-                const inline = (line) => {
-                    let out = '';
-                    let i = 0;
-                    while (i < line.length) {
-                        const ch = line[i];
-                        if (ch === '"' || ch === "'") {
-                            const quote = ch;
-                            let j = i + 1;
-                            while (j < line.length) {
-                                if (line[j] === '\\') { j += 2; continue; }
-                                if (line[j] === quote) { j++; break; }
-                                j++;
-                            }
-                            out += `<span class="gos-edit-syn-str">${esc(line.slice(i, j))}</span>`;
-                            i = j;
-                            continue;
-                        }
-                        const op = ops.find(o => line.startsWith(o, i));
-                        if (op) {
-                            out += `<span class="gos-edit-syn-op">${esc(op)}</span>`;
-                            i += op.length;
-                            continue;
-                        }
-                        if (/[0-9]/.test(ch)) {
-                            let j = i + 1;
-                            while (j < line.length && /[0-9.]/.test(line[j])) j++;
-                            out += `<span class="gos-edit-syn-num">${esc(line.slice(i, j))}</span>`;
-                            i = j;
-                            continue;
-                        }
-                        if (/[A-Za-z_]/.test(ch)) {
-                            let j = i + 1;
-                            while (j < line.length && /[A-Za-z0-9_]/.test(line[j])) j++;
-                            const word = line.slice(i, j);
-                            if (kws.has(word.toLowerCase())) {
-                                out += `<span class="gos-edit-syn-kw">${esc(word)}</span>`;
-                            } else {
-                                out += esc(word);
-                            }
-                            i = j;
-                            continue;
-                        }
-                        out += esc(ch);
-                        i++;
-                    }
-                    return out;
-                };
-
-                return String(text).split('\n').map((line) => {
-                    const trimmed = line.trim();
-                    if (!trimmed) return '';
-                    if (trimmed.startsWith('#') || trimmed.startsWith('//') || trimmed.toLowerCase().startsWith('rem ')) {
-                        return `<span class="gos-edit-syn-com">${esc(line)}</span>`;
-                    }
-                    return inline(line);
-                }).join('\n');
-            }
-        }
-    };
-
     function resolveHighlighter() {
-        if (!_currentPath || typeof _currentPath !== 'string') return null;
-        const path = _currentPath.trim();
-        const match = path.match(/\.([^.\\\/]+)$/);
-        if (!match) return null;
-        const ext = match[1].toLowerCase();
-        return Highlighters[ext] || null;
+        if (typeof SyntaxHighlighter === 'undefined' || !SyntaxHighlighter.detectLanguage) return null;
+        return SyntaxHighlighter.detectLanguage(_currentPath);
     }
 
     function renderSyntaxLayer() {
         _activeHighlighter = resolveHighlighter();
-        if (!_activeHighlighter) {
+        if (!_activeHighlighter || typeof SyntaxHighlighter === 'undefined' || !SyntaxHighlighter.highlight) {
             syntaxLayer.classList.remove('active');
             textarea.classList.remove('syntax-active');
             syntaxLayer.innerHTML = '';
@@ -165,7 +89,7 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
         }
         syntaxLayer.classList.add('active');
         textarea.classList.add('syntax-active');
-        syntaxLayer.innerHTML = _activeHighlighter.highlight(textarea.value);
+        syntaxLayer.innerHTML = SyntaxHighlighter.highlight(_activeHighlighter, textarea.value);
         if (!syntaxLayer.innerHTML) syntaxLayer.innerHTML = '\n';
         syntaxLayer.scrollTop = textarea.scrollTop;
         syntaxLayer.scrollLeft = textarea.scrollLeft;
