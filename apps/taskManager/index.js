@@ -6,7 +6,7 @@ function launchTaskManager() {
 
     // ── State ─────────────────────────────────────────────────────────────────
     let _activeTab = 'processes';
-    let _selectedPids = [];
+    let _selectedIds = [];
     let _perfData = {
         cpu: Array(60).fill(0),
         mem: Array(60).fill(0)
@@ -49,7 +49,12 @@ function launchTaskManager() {
                 allWins.forEach(w => {
                     if (w.id !== win.id) wm.closeWindow(w.id);
                 });
-                _selectedPids = [];
+                if (typeof ServiceManager !== 'undefined') {
+                    ServiceManager.list().forEach(svc => {
+                        if (svc.running) ServiceManager.kill(svc.id);
+                    });
+                }
+                _selectedIds = [];
                 updateViews();
             }
         });
@@ -60,9 +65,9 @@ function launchTaskManager() {
     endTaskBtn.innerText = 'End task';
     endTaskBtn.disabled = true;
     endTaskBtn.onclick = () => {
-        if (_selectedPids.length > 0) {
-            _selectedPids.forEach(pid => wm.closeWindow(pid));
-            _selectedPids = [];
+        if (_selectedIds.length > 0) {
+            _selectedIds.forEach(id => terminateTaskById(id));
+            _selectedIds = [];
             updateViews();
         }
     };
@@ -86,17 +91,30 @@ function launchTaskManager() {
     }
 
     // Listen for window changes to update lists
+    function terminateTaskById(id) {
+        const winObj = wm.windows.find(w => w.id === id);
+        if (winObj) {
+            wm.closeWindow(id);
+            return;
+        }
+        if (typeof ServiceManager !== 'undefined') {
+            const svc = ServiceManager.list().find(s => s.pid === id);
+            if (svc && svc.running) ServiceManager.kill(svc.id);
+        }
+    }
+
     const winChangeListener = () => {
         if (_activeTab === 'processes' || _activeTab === 'details') {
             updateViews();
         }
     };
     window.addEventListener('gos-window-changed', winChangeListener);
+    window.addEventListener('gos-service-changed', winChangeListener);
 
     // ── Views ─────────────────────────────────────────────────────────────────
     function updateViews() {
         // Save selection if possible
-        const prevPids = [..._selectedPids];
+        const prevIds = [..._selectedIds];
 
         content.innerHTML = '';
         const view = document.createElement('div');
@@ -113,13 +131,17 @@ function launchTaskManager() {
         content.appendChild(view);
 
         // Restore selection
-        _selectedPids = prevPids.filter(pid => wm.windows.some(w => w.id === pid));
-        endTaskBtn.disabled = _selectedPids.length === 0;
+        _selectedIds = prevIds.filter(id => {
+            if (wm.windows.some(w => w.id === id)) return true;
+            if (typeof ServiceManager === 'undefined') return false;
+            return ServiceManager.list().some(s => s.pid === id);
+        });
+        endTaskBtn.disabled = _selectedIds.length === 0;
     }
 
     // ── Task context menu ──────────────────────────────────────────────────────
     let _taskCtxMenu = null;
-    function showTaskContextMenu(x, y, winObj) {
+    function showTaskContextMenu(x, y, row) {
         if (_taskCtxMenu) _taskCtxMenu.remove();
 
         _taskCtxMenu = document.createElement('div');
@@ -129,33 +151,52 @@ function launchTaskManager() {
             box-shadow:2px 2px 8px rgba(0,0,0,0.45);font-size:0.85rem;
         `;
 
-        const focusItem = document.createElement('div');
-        focusItem.style.cssText = 'padding:6px 20px;color:#eee;cursor:pointer;';
-        focusItem.textContent = 'Focus Window';
-        focusItem.onmouseenter = () => focusItem.style.backgroundColor = '#3f3f3f';
-        focusItem.onmouseleave = () => focusItem.style.backgroundColor = '';
-        focusItem.onclick = () => { _taskCtxMenu.remove(); wm.focusWindow(winObj.id); };
-
-        const divider = document.createElement('hr');
-        divider.style.cssText = 'margin:2px 0;border-color:#444;';
-
         const closeItem = document.createElement('div');
         closeItem.style.cssText = 'padding:6px 20px;color:#f44336;cursor:pointer;';
-        closeItem.textContent = 'Close';
+        closeItem.textContent = row.kind === 'service' ? 'Stop Service' : 'Close';
         closeItem.onmouseenter = () => closeItem.style.backgroundColor = '#3f3f3f';
         closeItem.onmouseleave = () => closeItem.style.backgroundColor = '';
         closeItem.onclick = () => {
             _taskCtxMenu.remove();
-            // Also close all other selected items if user context-clicks one
-            if (!_selectedPids.includes(winObj.id)) {
-                _selectedPids = [winObj.id];
+            if (!_selectedIds.includes(row.id)) {
+                _selectedIds = [row.id];
             }
-            _selectedPids.forEach(id => wm.closeWindow(id));
-            _selectedPids = [];
+            _selectedIds.forEach(id => terminateTaskById(id));
+            _selectedIds = [];
             updateViews();
         };
 
-        _taskCtxMenu.append(focusItem, divider, closeItem);
+        if (row.kind === 'window') {
+            const focusItem = document.createElement('div');
+            focusItem.style.cssText = 'padding:6px 20px;color:#eee;cursor:pointer;';
+            focusItem.textContent = 'Focus Window';
+            focusItem.onmouseenter = () => focusItem.style.backgroundColor = '#3f3f3f';
+            focusItem.onmouseleave = () => focusItem.style.backgroundColor = '';
+            focusItem.onclick = () => { _taskCtxMenu.remove(); wm.focusWindow(row.id); };
+            const divider = document.createElement('hr');
+            divider.style.cssText = 'margin:2px 0;border-color:#444;';
+            _taskCtxMenu.append(focusItem, divider, closeItem);
+        } else {
+            if (typeof ServiceManager !== 'undefined') {
+                const svc = ServiceManager.get(row.serviceId);
+                const startRestart = document.createElement('div');
+                startRestart.style.cssText = 'padding:6px 20px;color:#9ee2ff;cursor:pointer;';
+                startRestart.textContent = svc && svc.running ? 'Restart Service' : 'Start Service';
+                startRestart.onmouseenter = () => startRestart.style.backgroundColor = '#3f3f3f';
+                startRestart.onmouseleave = () => startRestart.style.backgroundColor = '';
+                startRestart.onclick = () => {
+                    _taskCtxMenu.remove();
+                    if (svc && svc.running) ServiceManager.restart(row.serviceId);
+                    else ServiceManager.start(row.serviceId, { manual: true });
+                    updateViews();
+                };
+                const divider = document.createElement('hr');
+                divider.style.cssText = 'margin:2px 0;border-color:#444;';
+                _taskCtxMenu.append(startRestart, divider, closeItem);
+            } else {
+                _taskCtxMenu.append(closeItem);
+            }
+        }
         document.body.appendChild(_taskCtxMenu);
 
         const closeCtx = (ev) => {
@@ -169,6 +210,7 @@ function launchTaskManager() {
 
     function renderProcessTable(parent, isDetails) {
         const wins = wm.windows;
+        const services = typeof ServiceManager !== 'undefined' ? ServiceManager.list() : [];
 
         let cols = [];
         if (isDetails) {
@@ -189,7 +231,7 @@ function launchTaskManager() {
             ];
         }
 
-        const data = wins.map(winItem => {
+        const winData = wins.map(winItem => {
             const status = winItem.element.classList.contains('minimized') ? 'Minimized' : 'Running';
             const winCount = wins.length;
             const baseCpu = Math.max(1, Math.floor(Math.random() * (3 + winCount * 0.8)));
@@ -198,7 +240,9 @@ function launchTaskManager() {
             const memStr = baseMem + ' MB';
 
             return {
+                kind: 'window',
                 id: winItem.id,
+                serviceId: null,
                 name: winItem.title,
                 icon: winItem.icon,
                 pid: winItem.id.split('-')[1],
@@ -211,40 +255,61 @@ function launchTaskManager() {
             };
         });
 
+        const svcData = services.map((svc, idx) => {
+            const running = svc.running && !svc.disabled;
+            const status = svc.disabled ? 'Disabled' : (running ? 'Running' : 'Stopped');
+            const cpuRaw = running ? 1 + (idx % 2) : 0;
+            const memRaw = running ? 8 + (idx % 4) * 2 : 0;
+            return {
+                kind: 'service',
+                id: svc.pid,
+                serviceId: svc.id,
+                name: svc.name,
+                icon: 'ri-settings-3-line',
+                pid: svc.pid,
+                status: status,
+                user: 'SYSTEM',
+                cpu: `${cpuRaw}%`,
+                mem: `${memRaw} MB`,
+                _cpuRaw: cpuRaw,
+                _memRaw: memRaw
+            };
+        });
+
+        const data = [...winData, ...svcData];
+
         const tbl = Widgets.createTable({
             columns: cols,
             data: data,
             keyField: 'id',
             onSelectionChange: (selectedIds) => {
-                _selectedPids = selectedIds;
-                endTaskBtn.disabled = _selectedPids.length === 0;
+                _selectedIds = selectedIds;
+                endTaskBtn.disabled = _selectedIds.length === 0;
             },
             onAction: (id, row) => {
-                wm.focusWindow(id);
+                if (row.kind === 'window') wm.focusWindow(id);
+                if (row.kind === 'service' && typeof ServiceManager !== 'undefined') {
+                    const svc = ServiceManager.get(row.serviceId);
+                    if (svc && (!svc.running || svc.disabled)) {
+                        ServiceManager.start(row.serviceId, { manual: true });
+                        updateViews();
+                    }
+                }
+            },
+            onContextMenu: (id, row, e) => {
+                if (!_selectedIds.includes(id)) {
+                    _selectedIds = [id];
+                    endTaskBtn.disabled = false;
+                    updateViews();
+                }
+                showTaskContextMenu(e.clientX, e.clientY, row);
             }
         });
 
-        // Context menu integration mapping
-        tbl.element.querySelectorAll('table tbody tr').forEach((tr, idx) => {
-            tr.addEventListener('contextmenu', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-
-                const winObj = wins.find(w => w.id === tr.cells[1]?.textContent) || wins[idx];
-                if (winObj) {
-                    if (!_selectedPids.includes(winObj.id)) {
-                        _selectedPids = [winObj.id];
-                        updateViews(); // Will re-render and select
-                    }
-                    showTaskContextMenu(e.clientX, e.clientY, winObj);
-                }
-            });
-        });
-
         // Set initial selection visually if already set
-        if (_selectedPids.length > 0) {
+        if (_selectedIds.length > 0) {
             tbl.element.querySelectorAll('tbody tr').forEach((tr, i) => {
-                if (_selectedPids.includes(data[i].id)) tr.classList.add('selected');
+                if (_selectedIds.includes(data[i].id)) tr.classList.add('selected');
             });
         }
 
@@ -441,6 +506,7 @@ function launchTaskManager() {
         onClose: () => {
             stopPerfMonitoring();
             window.removeEventListener('gos-window-changed', winChangeListener);
+            window.removeEventListener('gos-service-changed', winChangeListener);
         }
     });
 

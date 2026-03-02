@@ -110,10 +110,10 @@
 
 /* ── Selection Marquee ────────────────────────────────────────────────────── */
 .gos-selection-marquee {
-    position: fixed;
+    position: absolute;
     border: 1px solid var(--accent-color);
     background: var(--accent-muted);
     pointer-events: none;
     display: none;
-    z-index: 10000;
+    z-index: 2;
 }

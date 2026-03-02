@@ -79,7 +79,7 @@ function launchControlPanel() {
 
             const items = [
                 { label: 'Home screen', icon: 'bi-display', action: () => setWallpaper(url) },
-                { label: 'Lock screen', icon: 'bi-lock', action: () => registry.set('personalization.lockscreenWallpaper', url) }
+                { label: 'Lock screen', icon: 'bi-lock', action: () => registry.set('Software.GlitterOS.Personalization.LockScreenWallpaper', url) }
             ];
 
             items.forEach(item => {
@@ -124,7 +124,7 @@ function launchControlPanel() {
                 <option value="unsplash">Unsplash</option>
                 <option value="upload">Upload My Own</option>
             `;
-            const savedProvider = registry.get('personalization.wallpaperProvider', 'unsplash');
+            const savedProvider = registry.get('Software.GlitterOS.Personalization.WallpaperProvider', 'unsplash');
             providerSelect.value = savedProvider;
 
             providerWrap.append(providerLabel, providerSelect);
@@ -135,7 +135,7 @@ function launchControlPanel() {
 
             function renderWallpaperProvider(provider) {
                 wallpaperArea.innerHTML = '';
-                registry.set('personalization.wallpaperProvider', provider);
+                registry.set('Software.GlitterOS.Personalization.WallpaperProvider', provider);
 
                 if (provider === 'unsplash') {
                     const grid = document.createElement('div');
@@ -175,7 +175,7 @@ function launchControlPanel() {
                 wrap.style.cssText = 'display:flex;flex-direction:column;gap:16px;';
 
                 // Show current custom wallpaper if saved
-                const savedCustom = registry.get('personalization.customWallpaper', null);
+                const savedCustom = registry.get('Software.GlitterOS.Personalization.CustomWallpaper', null);
                 if (savedCustom) {
                     const preview = document.createElement('div');
                     preview.style.cssText = `
@@ -236,7 +236,7 @@ function launchControlPanel() {
 
                             // Save to LocalStorage
                             try {
-                                registry.set('personalization.customWallpaper', dataUrl);
+                                registry.set('Software.GlitterOS.Personalization.CustomWallpaper', dataUrl);
                                 setWallpaper(dataUrl);
                                 // Re-render to show preview
                                 renderWallpaperProvider('upload');
@@ -263,7 +263,7 @@ function launchControlPanel() {
                     removeBtn.onmouseenter = () => removeBtn.style.backgroundColor = '#444';
                     removeBtn.onmouseleave = () => removeBtn.style.backgroundColor = '#333';
                     removeBtn.onclick = () => {
-                        registry.set('personalization.customWallpaper', null);
+                        registry.set('Software.GlitterOS.Personalization.CustomWallpaper', null);
                         setWallpaper('res/wall.png');
                         renderWallpaperProvider('upload');
                     };
@@ -341,9 +341,9 @@ function launchControlPanel() {
             wrap.style.cssText = 'display:flex;flex-direction:column;gap:12px;';
 
             const splashCheck = Widgets.createUWPCheckbox('Show application splash screens',
-                registry.get('personalization.showSplash', true),
+                registry.get('Software.GlitterOS.Personalization.ShowSplash', true),
                 (checked) => {
-                    registry.set('personalization.showSplash', checked);
+                    registry.set('Software.GlitterOS.Personalization.ShowSplash', checked);
                 }
             );
 
@@ -354,9 +354,9 @@ function launchControlPanel() {
             wrap.style.cssText = 'display:flex;flex-direction:column;gap:12px;';
 
             const snappingCheck = Widgets.createUWPCheckbox('Enable window snapping',
-                registry.get('system.windowSnapping', true),
+                registry.get('Software.GlitterOS.System.WindowSnapping', true),
                 (checked) => {
-                    registry.set('system.windowSnapping', checked);
+                    registry.set('Software.GlitterOS.System.WindowSnapping', checked);
                 }
             );
 

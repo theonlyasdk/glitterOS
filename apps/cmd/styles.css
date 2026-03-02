@@ -76,6 +76,32 @@
     color: #cccccc;
 }
 
+.gos-cmd-syn-kw {
+    color: #e8c84a;
+}
+
+.gos-cmd-syn-op {
+    color: #7ec8ff;
+}
+
+.gos-cmd-syn-num {
+    color: #9dde8f;
+}
+
+.gos-cmd-syn-str {
+    color: #ffb6a6;
+}
+
+.gos-cmd-syn-cmd-valid {
+    color: #ffffff;
+    font-weight: 700;
+}
+
+.gos-cmd-syn-cmd-invalid {
+    color: #f07070;
+    font-weight: 700;
+}
+
 /* Blinking block cursor */
 .gos-cmd-cursor {
     display: inline-block;

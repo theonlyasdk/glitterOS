@@ -214,7 +214,7 @@ class WindowManager {
         body.className = 'gos-win-body';
 
         // Windows 10 UWP Style Splash Screen (if enabled in registry)
-        const showSplash = registry.get('personalization.showSplash', true);
+        const showSplash = registry.get('Software.GlitterOS.Personalization.ShowSplash', true);
         if (showSplash) {
             const splash = document.createElement('div');
             splash.className = 'gos-splash';
@@ -700,13 +700,30 @@ class WindowManager {
 
                 isDragging = true;
                 if (draggingMaximized) {
-                    const oldW = parseFloat(win.dataset.oldWidth);
-                    const mouseXRatio = clientX / window.innerWidth;
-                    const newLeft = clientX - (oldW * mouseXRatio);
+                    const rect = win.getBoundingClientRect();
+                    const styleW = win.style.width || '';
+                    const styleH = win.style.height || '';
 
-                    this.toggleMaximize(win);
+                    const preservedW = (styleW.includes('%') || styleW.includes('calc') || !styleW)
+                        ? Math.round(rect.width) + 'px'
+                        : styleW;
+                    const preservedH = (styleH.includes('%') || styleH.includes('calc') || !styleH)
+                        ? Math.round(rect.height) + 'px'
+                        : styleH;
+
+                    const preserveWNum = parseFloat(preservedW) || rect.width;
+                    const mouseXRatio = clientX / window.innerWidth;
+                    const newLeft = clientX - (preserveWNum * mouseXRatio);
+
+                    // Exit maximized mode but keep current dimensions instead of restoring old pre-snap size.
+                    win.classList.add('no-transition');
+                    win.dataset.maximized = 'false';
+                    win.style.width = preservedW;
+                    win.style.height = preservedH;
                     win.style.left = newLeft + 'px';
                     win.style.top = clientY + 'px';
+                    win.offsetHeight;
+                    win.classList.remove('no-transition');
 
                     pos3 = clientX;
                     pos4 = clientY;
@@ -774,7 +791,7 @@ class WindowManager {
         const h = window.innerHeight;
         const availableH = h - mbarHeight - taskbarHeight;
 
-        const isSnappingEnabled = registry.get('system.windowSnapping', true);
+        const isSnappingEnabled = registry.get('Software.GlitterOS.System.WindowSnapping', true);
         if (!isSnappingEnabled) {
             this.snapPreview.classList.remove('visible');
             return;
@@ -810,7 +827,7 @@ class WindowManager {
         const h = window.innerHeight;
         const availableH = h - mbarHeight - taskbarHeight;
 
-        const isSnappingEnabled = registry.get('system.windowSnapping', true);
+        const isSnappingEnabled = registry.get('Software.GlitterOS.System.WindowSnapping', true);
         if (!isSnappingEnabled) {
             win.classList.remove('no-transition');
             return;

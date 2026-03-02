@@ -33,7 +33,8 @@ const ProcessManager = (() => {
             if (userDefaultId) {
                 const app = AppRegistry.get(userDefaultId);
                 if (app) {
-                    app.launch(path);
+                    if (app.id === 'cmd' && ext === 'smc') app.launch({ scriptPath: path });
+                    else app.launch(path);
                     return { ok: true };
                 }
             }
@@ -41,7 +42,8 @@ const ProcessManager = (() => {
             const possibleApps = AppRegistry.getAppsForExt(ext);
 
             if (possibleApps.length > 0) {
-                possibleApps[0].launch(path);
+                if (possibleApps[0].id === 'cmd' && ext === 'smc') possibleApps[0].launch({ scriptPath: path });
+                else possibleApps[0].launch(path);
                 return { ok: true };
             }
 

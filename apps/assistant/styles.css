@@ -87,6 +87,13 @@
     color: #f44336;
 }
 
+.gos-assistant-history-item .delete-btn:active {
+    transform: translateY(-50%);
+    background: transparent;
+    border-color: transparent;
+    outline: none;
+}
+
 /* Main Chat Area */
 .gos-assistant-main {
     flex: 1;
@@ -213,23 +220,6 @@
     max-height: 120px;
     overflow-y: auto;
     resize: none;
-}
-
-/* Static states (Instant) */
-.gos-assistant button:hover {
-    background: #444;
-}
-
-.gos-assistant button:active {
-    background: #222 !important;
-    border-color: var(--accent-color) !important;
-    outline: 1px solid var(--accent-color);
-}
-
-.gos-assistant button.disabled {
-    opacity: 0.4;
-    cursor: default;
-    pointer-events: none;
 }
 
 .gos-assistant-input:focus {

@@ -9,10 +9,12 @@ const Widgets = (() => {
      */
     function applyTiltPress(elem, e) {
         const rect = elem.getBoundingClientRect();
-        const relX = (e.clientX - rect.left) / rect.width;
-        const relY = (e.clientY - rect.top) / rect.height;
-        const rotY = (relX - 0.5) * 30;
-        const rotX = -(relY - 0.5) * 30;
+        const clamp01 = (v) => Math.max(0, Math.min(1, v));
+        const relX = clamp01((e.clientX - rect.left) / rect.width);
+        const relY = clamp01((e.clientY - rect.top) / rect.height);
+        const maxTiltDeg = 12;
+        const rotY = (relX - 0.5) * 2 * maxTiltDeg;
+        const rotX = -(relY - 0.5) * 2 * maxTiltDeg;
         elem.style.transform = `perspective(500px) rotateX(${rotX}deg) rotateY(${rotY}deg) scale(0.93)`;
     }
 
@@ -429,4 +431,3 @@ const Widgets = (() => {
 })();
 
 // For backward compatibility until refactored
-

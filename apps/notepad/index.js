@@ -48,12 +48,15 @@ function launchNotepad(filePath = null) {
     });
 
     textarea.addEventListener('keydown', (e) => {
-        if (e.key === 'Tab') {
+        if (e.key === 'Tab' && !e.ctrlKey && !e.metaKey) {
             e.preventDefault();
+            e.stopPropagation();
             const start = textarea.selectionStart;
             const end = textarea.selectionEnd;
             textarea.value = textarea.value.substring(0, start) + "\t" + textarea.value.substring(end);
             textarea.selectionStart = textarea.selectionEnd = start + 1;
+            _isDirty = true;
+            updateTitle();
             updateLineNumbers();
         }
     });
@@ -164,6 +167,9 @@ function launchNotepad(filePath = null) {
     ]);
 
     container.addEventListener('keydown', (e) => {
+        if (e.target === textarea && e.key === 'Tab') {
+            return;
+        }
         if (menubar.handleKey(e)) {
             e.preventDefault();
             e.stopPropagation();

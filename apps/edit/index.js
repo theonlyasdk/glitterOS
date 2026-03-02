@@ -5,13 +5,25 @@
 function launchEdit(filePath = null, parentContainer = null, onExit = null) {
     const container = document.createElement('div');
     container.className = 'gos-edit';
+    container.tabIndex = 0;
 
-    let _currentPath = filePath;
+    function normalizePathArg(pathArg) {
+        if (!pathArg) return null;
+        if (typeof pathArg === 'string') return pathArg;
+        if (typeof pathArg === 'object') {
+            if (typeof pathArg.path === 'string') return pathArg.path;
+            if (typeof pathArg.scriptPath === 'string') return pathArg.scriptPath;
+        }
+        return null;
+    }
+
+    let _currentPath = normalizePathArg(filePath);
     let _cwd = _currentPath ? _currentPath.substring(0, _currentPath.lastIndexOf('\\')) : 'C:\\Users\\User\\Documents';
     if (!_cwd) _cwd = 'C:\\';
     let _isDirty = false;
     let _oldContent = null;
     let _targetWin = null;
+    let _activeHighlighter = null;
 
     // ── Components ──────────────────────────────────────────────────────────
     const menubar = document.createElement('div');
@@ -31,12 +43,16 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
     const highlight = document.createElement('div');
     highlight.className = 'gos-edit-line-highlight';
 
+    const syntaxLayer = document.createElement('pre');
+    syntaxLayer.className = 'gos-edit-syntax-layer';
+    syntaxLayer.setAttribute('aria-hidden', 'true');
+
     const textarea = document.createElement('textarea');
     textarea.className = 'gos-edit-content';
     textarea.spellcheck = false;
     textarea.wrap = 'off'; // Typical for console editors
 
-    contentWrapper.append(highlight, textarea);
+    contentWrapper.append(highlight, syntaxLayer, textarea);
     editorArea.append(gutter, contentWrapper);
 
     const statusbar = document.createElement('div');
@@ -57,6 +73,103 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
     const menuItemsData = [];
     let _activeMenuIdx = -1;
     let _activeItemIdx = -1;
+
+    const Highlighters = {
+        smc: {
+            highlight(text) {
+                const esc = (s) => String(s)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+                const kws = new Set([
+                    'if', 'then', 'else', 'end', 'proc', 'do', 'echo', 'type', 'cd', 'dir', 'md', 'mkdir', 'del', 'rm',
+                    'rd', 'rmdir', 'ren', 'copy', 'ver', 'help', 'cls', 'exit', 'history', 'runsmc', 'notify'
+                ]);
+                const ops = ['==', '!=', '||', '&&', '|', '>'];
+                const inline = (line) => {
+                    let out = '';
+                    let i = 0;
+                    while (i < line.length) {
+                        const ch = line[i];
+                        if (ch === '"' || ch === "'") {
+                            const quote = ch;
+                            let j = i + 1;
+                            while (j < line.length) {
+                                if (line[j] === '\\') { j += 2; continue; }
+                                if (line[j] === quote) { j++; break; }
+                                j++;
+                            }
+                            out += `<span class="gos-edit-syn-str">${esc(line.slice(i, j))}</span>`;
+                            i = j;
+                            continue;
+                        }
+                        const op = ops.find(o => line.startsWith(o, i));
+                        if (op) {
+                            out += `<span class="gos-edit-syn-op">${esc(op)}</span>`;
+                            i += op.length;
+                            continue;
+                        }
+                        if (/[0-9]/.test(ch)) {
+                            let j = i + 1;
+                            while (j < line.length && /[0-9.]/.test(line[j])) j++;
+                            out += `<span class="gos-edit-syn-num">${esc(line.slice(i, j))}</span>`;
+                            i = j;
+                            continue;
+                        }
+                        if (/[A-Za-z_]/.test(ch)) {
+                            let j = i + 1;
+                            while (j < line.length && /[A-Za-z0-9_]/.test(line[j])) j++;
+                            const word = line.slice(i, j);
+                            if (kws.has(word.toLowerCase())) {
+                                out += `<span class="gos-edit-syn-kw">${esc(word)}</span>`;
+                            } else {
+                                out += esc(word);
+                            }
+                            i = j;
+                            continue;
+                        }
+                        out += esc(ch);
+                        i++;
+                    }
+                    return out;
+                };
+
+                return String(text).split('\n').map((line) => {
+                    const trimmed = line.trim();
+                    if (!trimmed) return '';
+                    if (trimmed.startsWith('#') || trimmed.startsWith('//') || trimmed.toLowerCase().startsWith('rem ')) {
+                        return `<span class="gos-edit-syn-com">${esc(line)}</span>`;
+                    }
+                    return inline(line);
+                }).join('\n');
+            }
+        }
+    };
+
+    function resolveHighlighter() {
+        if (!_currentPath || typeof _currentPath !== 'string') return null;
+        const path = _currentPath.trim();
+        const match = path.match(/\.([^.\\\/]+)$/);
+        if (!match) return null;
+        const ext = match[1].toLowerCase();
+        return Highlighters[ext] || null;
+    }
+
+    function renderSyntaxLayer() {
+        _activeHighlighter = resolveHighlighter();
+        if (!_activeHighlighter) {
+            syntaxLayer.classList.remove('active');
+            textarea.classList.remove('syntax-active');
+            syntaxLayer.innerHTML = '';
+            return;
+        }
+        syntaxLayer.classList.add('active');
+        textarea.classList.add('syntax-active');
+        syntaxLayer.innerHTML = _activeHighlighter.highlight(textarea.value);
+        if (!syntaxLayer.innerHTML) syntaxLayer.innerHTML = '\n';
+        syntaxLayer.scrollTop = textarea.scrollTop;
+        syntaxLayer.scrollLeft = textarea.scrollLeft;
+    }
 
     function showAboutDialog() {
         const overlay = document.createElement('div');
@@ -166,6 +279,9 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
             if (!wasActive) {
                 menu.classList.add('active');
                 _activeMenuIdx = idx;
+                _activeItemIdx = 0;
+                highlightMenu();
+                container.focus({ preventScroll: true });
             }
         };
 
@@ -176,6 +292,8 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
                 closeAllMenus();
                 menu.classList.add('active');
                 _activeMenuIdx = idx;
+                _activeItemIdx = 0;
+                highlightMenu();
             }
         };
 
@@ -563,7 +681,7 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
     }
 
     const fileMenu = createMenu('File', [
-        { label: 'New', action: () => { textarea.value = ''; _currentPath = null; _isDirty = false; updateTitle(); updateLineNumbers(); } },
+        { label: 'New', action: () => { textarea.value = ''; _currentPath = null; _isDirty = false; updateTitle(); updateLineNumbers(); renderSyntaxLayer(); } },
         {
             label: 'Open...', action: () => {
                 showDOSFileDialog('open', (path) => {
@@ -575,6 +693,7 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
                         _isDirty = false;
                         updateTitle();
                         updateLineNumbers();
+                        renderSyntaxLayer();
                         setTimeout(() => textarea.focus(), 10);
                     } else {
                         if (typeof wm !== 'undefined') wm.messageBox('Error', 'File not found.', { icon: 'bi-x-circle' });
@@ -608,6 +727,7 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
                     _isDirty = true;
                     updateLineNumbers();
                     updateCursorInfo();
+                    renderSyntaxLayer();
                 }).catch(err => {
                     console.error('Failed to read clipboard contents: ', err);
                 });
@@ -656,6 +776,7 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
         fs.write(_currentPath, textarea.value);
         _isDirty = false;
         updateTitle();
+        renderSyntaxLayer();
     }
 
     function updateTitle() {
@@ -691,16 +812,47 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
         highlight.style.display = 'block';
     }
 
+    let _cursorFrame = null;
+    function scheduleCursorRefresh() {
+        if (_cursorFrame !== null) return;
+        _cursorFrame = requestAnimationFrame(() => {
+            _cursorFrame = null;
+            updateCursorInfo();
+        });
+    }
+
     textarea.addEventListener('input', () => {
         _isDirty = true;
-        updateCursorInfo();
+        scheduleCursorRefresh();
         updateLineNumbers();
+        renderSyntaxLayer();
     });
-    textarea.addEventListener('click', updateCursorInfo);
-    textarea.addEventListener('keyup', updateCursorInfo);
+    textarea.addEventListener('keydown', (e) => {
+        if (e.key === 'Tab' && !e.ctrlKey && !e.metaKey) {
+            e.preventDefault();
+            e.stopPropagation();
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            textarea.value = textarea.value.substring(0, start) + '\t' + textarea.value.substring(end);
+            textarea.selectionStart = textarea.selectionEnd = start + 1;
+            _isDirty = true;
+            updateLineNumbers();
+            scheduleCursorRefresh();
+            renderSyntaxLayer();
+        }
+    });
+    textarea.addEventListener('click', scheduleCursorRefresh);
+    textarea.addEventListener('keyup', scheduleCursorRefresh);
+    textarea.addEventListener('keydown', scheduleCursorRefresh);
+    textarea.addEventListener('mouseup', scheduleCursorRefresh);
     textarea.addEventListener('scroll', () => {
         gutter.scrollTop = textarea.scrollTop;
-        updateCursorInfo();
+        syntaxLayer.scrollTop = textarea.scrollTop;
+        syntaxLayer.scrollLeft = textarea.scrollLeft;
+        scheduleCursorRefresh();
+    });
+    document.addEventListener('selectionchange', () => {
+        if (document.activeElement === textarea) scheduleCursorRefresh();
     });
 
     // Disable smooth scrolling and force TTY-style line step scrolling
@@ -716,6 +868,7 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
     container.addEventListener('keydown', (e) => {
         // If an overlay dialogue is visible, ignore generic container hotkeys
         if (container.querySelector('.gos-edit-ncurses-overlay')) return;
+        if (e.target === textarea && e.key === 'Tab') return;
 
         if (e.key === 'Alt') {
             e.preventDefault();
@@ -785,6 +938,8 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
         parentContainer.appendChild(container);
         updateTitle();
         updateLineNumbers();
+        renderSyntaxLayer();
+        scheduleCursorRefresh();
         setTimeout(() => textarea.focus(), 100);
     } else {
         winObj = wm.createWindow('Editor', container, {
@@ -795,6 +950,8 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
         });
         updateTitle();
         updateLineNumbers();
+        renderSyntaxLayer();
+        scheduleCursorRefresh();
         setTimeout(() => textarea.focus(), 100);
     }
 
@@ -840,5 +997,5 @@ AppRegistry.register({
     launch: (path) => launchEdit(path),
     desktopShortcut: false,
     acceptsFiles: true,
-    supportedExtensions: ['txt', 'md', 'js', 'css', 'json', 'bat']
+    supportedExtensions: ['txt', 'md', 'js', 'css', 'json', 'bat', 'smc']
 });

@@ -25,9 +25,9 @@ function lockScreen() {
     if (typeof closeActionCentre === 'function') closeActionCentre();
 
     // Set background to current wallpaper
-    let wall = registry.get('personalization.lockscreenWallpaper', null);
+    let wall = registry.get('Software.GlitterOS.Personalization.LockScreenWallpaper', null);
     if (!wall) {
-        wall = registry.get('personalization.wallpaper', 'res/wall.png');
+        wall = registry.get('Software.GlitterOS.Personalization.Wallpaper', 'res/wall.png');
     }
     _lockScreen.style.backgroundImage = `url("${wall}")`;
 

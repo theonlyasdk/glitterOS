@@ -139,29 +139,39 @@
 		<div id="action-centre" class="gos-action-centre">
 			<div class="gos-ac-header">
 				<span>Action Centre</span>
-				<span id="ac-date-label" class="gos-ac-date"></span>
+				<button id="ac-clear-notifications-btn" type="button" class="gos-ac-clear-link">Clear all</button>
 			</div>
-			<div class="gos-ac-tiles">
-				<div class="gos-ac-tile active"><i class="ri-wifi-line"></i><span>Wi-Fi</span></div>
-				<div class="gos-ac-tile active"><i class="ri-bluetooth-line"></i><span>Bluetooth</span></div>
-				<div class="gos-ac-tile"><i class="ri-plane-line"></i><span>Airplane</span></div>
-				<div class="gos-ac-tile active"><i class="ri-moon-clear-line"></i><span>Night Mode</span></div>
-				<div class="gos-ac-tile" id="ac-battery-saver"><i class="ri-battery-2-charge-line"></i><span>Battery
-						Saver</span></div>
-				<div class="gos-ac-tile active"><i class="ri-sun-line"></i><span>Brightness</span></div>
-			</div>
-			<div class="gos-ac-sliders">
-				<div class="gos-ac-slider-row">
-					<div class="gos-ac-icon-tile" id="ac-vol-btn" data-muted="false" title="Mute/Unmute">
-						<i class="ri-volume-up-line"></i>
-					</div>
-					<input type="range" class="gos-ac-slider" id="ac-vol-slider" value="75">
+			<div class="gos-ac-notifications-wrap" id="ac-notifications-scroll">
+				<div id="ac-service-warning" class="gos-ac-service-warning" style="display:none;">
+					<div class="gos-ac-service-warning-title"><i class="ri-alert-line"></i> NotificationService is disabled</div>
+					<div class="gos-ac-service-warning-body">Notifications are unavailable until the service is restarted.</div>
+					<button id="ac-service-restart-btn" type="button">Restart Service</button>
 				</div>
-				<div class="gos-ac-slider-row">
-					<div class="gos-ac-icon-tile" id="ac-bright-btn" data-toggled="false" title="Toggle Brightness">
-						<i class="ri-sun-line"></i>
+				<div id="ac-notification-stack" class="gos-ac-notification-stack"></div>
+			</div>
+			<div class="gos-ac-controls">
+				<div class="gos-ac-tiles">
+					<div class="gos-ac-tile active"><i class="ri-wifi-line"></i><span>Wi-Fi</span></div>
+					<div class="gos-ac-tile active"><i class="ri-bluetooth-line"></i><span>Bluetooth</span></div>
+					<div class="gos-ac-tile"><i class="ri-plane-line"></i><span>Airplane</span></div>
+					<div class="gos-ac-tile active"><i class="ri-moon-clear-line"></i><span>Night Mode</span></div>
+					<div class="gos-ac-tile" id="ac-battery-saver"><i class="ri-battery-2-charge-line"></i><span>Battery
+							Saver</span></div>
+					<div class="gos-ac-tile active"><i class="ri-sun-line"></i><span>Brightness</span></div>
+				</div>
+				<div class="gos-ac-sliders">
+					<div class="gos-ac-slider-row">
+						<div class="gos-ac-icon-tile" id="ac-vol-btn" data-muted="false" title="Mute/Unmute">
+							<i class="ri-volume-up-line"></i>
+						</div>
+						<input type="range" class="gos-ac-slider" id="ac-vol-slider" value="75">
 					</div>
-					<input type="range" class="gos-ac-slider" id="ac-bright-slider" value="100">
+					<div class="gos-ac-slider-row">
+						<div class="gos-ac-icon-tile" id="ac-bright-btn" data-toggled="false" title="Toggle Brightness">
+							<i class="ri-sun-line"></i>
+						</div>
+						<input type="range" class="gos-ac-slider" id="ac-bright-slider" value="100">
+					</div>
 				</div>
 			</div>
 		</div>
@@ -211,6 +221,9 @@
 <script src="core/services/fileSystem.js"></script>
 <script src="core/services/appRegistry.js"></script>
 <script src="core/services/processManager.js"></script>
+<script src="core/services/serviceManager.js"></script>
+<script src="core/services/notificationService.js"></script>
+<script src="core/services/smcInterpreter.js"></script>
 
 <!-- UI Layer: Components -->
 <script src="ui/components/popupMenuManager.js"></script>

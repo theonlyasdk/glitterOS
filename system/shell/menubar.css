@@ -13,7 +13,7 @@
     align-items: center;
     font-size: 0.95rem;
     position: relative;
-    z-index: 1000000;
+    z-index: 2000;
     border-bottom: 1px solid #333;
 }
 

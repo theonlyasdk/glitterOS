@@ -109,7 +109,7 @@ function setWallpaper(url) {
     });
 
     if (typeof registry !== 'undefined') {
-        registry.set('personalization.wallpaper', url);
+        registry.set('Software.GlitterOS.Personalization.Wallpaper', url);
     }
     if (typeof SysLog !== 'undefined') SysLog.info(`glitterOS: Wallpaper set to ${url}`);
 }

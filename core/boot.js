@@ -1,6 +1,44 @@
 // Initialize System32 executables
 (function () {
     if (typeof fs === 'undefined') return;
+
+    if (!fs.exists('C:\\glitterOS\\System32')) fs.mkdir('C:\\glitterOS\\System32');
+    if (!fs.exists('C:\\glitterOS\\System32\\Services')) fs.mkdir('C:\\glitterOS\\System32\\Services');
+    if (!fs.exists('C:\\glitterOS\\System32\\Services\\NotificationService.service')) {
+        fs.write('C:\\glitterOS\\System32\\Services\\NotificationService.service', '[glitterOS Service]\r\nName=NotificationService\r\nAutoStart=true');
+    }
+
+    if (!fs.exists('C:\\Users\\User\\Documents\\Scripts')) fs.mkdir('C:\\Users\\User\\Documents\\Scripts');
+    if (!fs.exists('C:\\Users\\User\\Documents\\Scripts\\sample.smc')) {
+        fs.write('C:\\Users\\User\\Documents\\Scripts\\sample.smc', [
+            'echo === Sample SMC Script ===',
+            'echo Current directory:',
+            'cd',
+            'if "1" == "1" then echo Condition matched else echo Condition failed',
+            'notify Script Runner|sample.smc executed successfully'
+        ].join('\r\n'));
+    }
+    if (!fs.exists('C:\\Users\\User\\Documents\\Scripts\\workspace_setup.smc')) {
+        fs.write('C:\\Users\\User\\Documents\\Scripts\\workspace_setup.smc', [
+            'echo Preparing workspace...',
+            'md Work',
+            'md Work\\Logs',
+            'echo Ready > Work\\Logs\\status.txt',
+            'type Work\\Logs\\status.txt',
+            'notify Workspace|Workspace directories created'
+        ].join('\r\n'));
+    }
+    if (!fs.exists('C:\\Users\\User\\Documents\\Scripts\\flow_demo.smc')) {
+        fs.write('C:\\Users\\User\\Documents\\Scripts\\flow_demo.smc', [
+            'echo === Flow Demo ===',
+            'if "alpha" == "alpha" then echo EQ-OK else echo EQ-NO',
+            'if "a" != "b" then echo NEQ-OK else echo NEQ-NO',
+            'md TempFlow && echo Created TempFlow',
+            'type no_such_file.txt || echo Fallback branch executed',
+            'notify Flow Demo|Conditional and operator demo complete'
+        ].join('\r\n'));
+    }
+
     const apps = [
         { exe: 'notepad.exe', id: 'notepad' },
         { exe: 'explorer.exe', id: 'filemanager' },
@@ -34,8 +72,12 @@ function gosInit() {
     gosInitMenubar();
     renderCalendar(currentCalendarDate);
 
+    if (!registry.get('defaults.ext.smc')) {
+        registry.set('defaults.ext.smc', 'cmd');
+    }
+
     // Set default wallpaper
-    setWallpaper(registry.get('personalization.wallpaper', 'res/wall.png'));
+    setWallpaper(registry.get('Software.GlitterOS.Personalization.Wallpaper', 'res/wall.png'));
 
     const currentDesktopName = desktops[currentDesktopIdx].name;
     desktopNameLbl.innerText = currentDesktopName;
@@ -263,15 +305,15 @@ function gosInitDesktopSelection() {
     let startX, startY;
     const marquee = document.createElement('div');
     marquee.className = 'gos-selection-marquee';
-    document.body.appendChild(marquee);
+    desktop.appendChild(marquee);
 
     const activateMarquee = (clientX, clientY) => {
         // Clear selection if not modified
         document.querySelectorAll('.gos-desktop-shortcut').forEach(el => el.classList.remove('selected'));
 
         const dRect = desktop.getBoundingClientRect();
-        startX = Math.max(dRect.left, Math.min(clientX, dRect.right));
-        startY = Math.max(dRect.top, Math.min(clientY, dRect.bottom));
+        startX = Math.max(0, Math.min(clientX - dRect.left, dRect.width));
+        startY = Math.max(0, Math.min(clientY - dRect.top, dRect.height));
 
         marquee.style.left = startX + 'px';
         marquee.style.top = startY + 'px';
@@ -283,9 +325,9 @@ function gosInitDesktopSelection() {
     const moveMarquee = (clientX, clientY, ctrlKey = false, shiftKey = false) => {
         const dRect = desktop.getBoundingClientRect();
 
-        // Constrain mouse coordinates to desktop viewport
-        const curX = Math.max(dRect.left, Math.min(clientX, dRect.right));
-        const curY = Math.max(dRect.top, Math.min(clientY, dRect.bottom));
+        // Constrain mouse coordinates to desktop viewport (local coordinates)
+        const curX = Math.max(0, Math.min(clientX - dRect.left, dRect.width));
+        const curY = Math.max(0, Math.min(clientY - dRect.top, dRect.height));
 
         const x = Math.min(startX, curX);
         const y = Math.min(startY, curY);

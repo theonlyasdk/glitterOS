@@ -72,6 +72,15 @@
     font-family: var(--font-family-mono);
 }
 
+.gos-notepad-content:hover,
+.gos-notepad-content:focus,
+.gos-notepad-content:focus-visible,
+.gos-notepad-content:active {
+    background: #1e1e1e;
+    border-color: transparent !important;
+    box-shadow: none !important;
+}
+
 /* Notepad Dropdown (matching system menu) */
 .gos-notepad-dropdown {
     position: absolute;

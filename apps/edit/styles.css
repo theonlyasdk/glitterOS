@@ -118,13 +118,57 @@
     line-height: 20px;
     overflow: auto;
     position: relative;
-    z-index: 1;
+    z-index: 2;
     white-space: pre;
+}
+
+.gos-edit-content.syntax-active {
+    color: transparent;
+    caret-color: #ffffff;
 }
 
 .gos-edit-content::selection {
     background-color: #aaaaaa;
     color: #000000;
+}
+
+.gos-edit-syntax-layer {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 10px;
+    font: inherit;
+    line-height: 20px;
+    white-space: pre;
+    overflow: hidden;
+    color: #ffffff;
+    pointer-events: none;
+    z-index: 1;
+    display: none;
+}
+
+.gos-edit-syntax-layer.active {
+    display: block;
+}
+
+.gos-edit-syn-kw {
+    color: #ffd75f;
+}
+
+.gos-edit-syn-op {
+    color: #7ec8ff;
+}
+
+.gos-edit-syn-num {
+    color: #8bf18b;
+}
+
+.gos-edit-syn-str {
+    color: #ff9d9d;
+}
+
+.gos-edit-syn-com {
+    color: #9aa0a8;
 }
 
 /* Custom scrollbars for DOS look */
