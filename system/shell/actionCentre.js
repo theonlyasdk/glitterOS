@@ -24,13 +24,13 @@ function layoutToastStack() {
     toasts.forEach((t) => {
         t.classList.remove('stacked');
         t.classList.remove('hidden-stack');
-        t.style.position = '';
-        t.style.bottom = '';
-        t.style.marginTop = '';
-        t.style.transform = '';
-        t.style.zIndex = '';
-        t.style.opacity = '';
-        t.style.width = '';
+        t.style.removeProperty('position');
+        t.style.removeProperty('bottom');
+        t.style.removeProperty('margin-top');
+        t.style.removeProperty('transform');
+        t.style.removeProperty('z-index');
+        t.style.removeProperty('opacity');
+        t.style.removeProperty('width');
     });
 
     const wrapRect = wrap.getBoundingClientRect();
@@ -39,14 +39,11 @@ function layoutToastStack() {
     let currentY = 0;
     let stackStartIdx = -1;
 
-    // Identify where the stack should start (from the newest down)
+    // Identify where the stack should start
     for (let i = 0; i < toasts.length; i++) {
         const toast = toasts[i];
-        if (toast.classList.contains('entering')) continue;
-        
-        // Use getBoundingClientRect to get actual height even if CSS or scale is applied
         const h = toast.getBoundingClientRect().height;
-        // If this toast would overflow the bottom of the container
+        
         if (currentY + h > availableHeight) {
             stackStartIdx = i;
             break;
@@ -58,32 +55,33 @@ function layoutToastStack() {
 
     // Stack items that reached the bottom
     const stackedItems = toasts.slice(stackStartIdx); // [newer, ..., oldest]
-    const oldestIdx = stackedItems.length - 1;
+    const numStacked = stackedItems.length;
+    const oldestIdx = numStacked - 1;
+
+    // Adaptive factors: reduce shift as more items stack
+    const maxStackHeight = availableHeight * 0.5; 
+    const adaptiveShift = Math.min(32, maxStackHeight / Math.max(1, numStacked));
 
     stackedItems.forEach((toast, idx) => {
-        toast.style.position = 'absolute';
-        toast.style.bottom = '0';
-        toast.style.width = '100%';
-        toast.style.boxSizing = 'border-box';
+        toast.style.setProperty('position', 'absolute', 'important');
+        toast.style.setProperty('bottom', '0', 'important');
+        toast.style.setProperty('width', '100%', 'important');
+        toast.style.setProperty('box-sizing', 'border-box', 'important');
         
-        // idx goes from 0 (newest in stack) to oldestIdx (oldest in stack)
-        // User wants oldest on top (front)
-        const depth = oldestIdx - idx; // 0 for oldest, increasing for newer
+        // depth 0 = oldest (front), depth N = newest (back)
+        const depth = oldestIdx - idx;
         
-        // Oldest (depth 0) is front-most
-        toast.style.zIndex = `${2000 - depth}`;
+        // Oldest is visually on top (Z-index priority)
+        toast.style.setProperty('z-index', (2000 - depth).toString(), 'important');
         
-        // Newer cards (higher depth) shift UP to peek out
-        // Increased offset to 24px per card for better 'deck' visibility
-        const translateY = -(depth * 24);
-        const scale = Math.max(0.88, 1 - (depth * 0.02));
+        // Newer cards shift UP to peek out (fanning effect), NO SCALE
+        const translateY = -(depth * adaptiveShift);
         
-        toast.style.transformOrigin = 'bottom center';
-        toast.style.transform = `translateY(${translateY}px) scale(${scale})`;
+        toast.style.setProperty('transform-origin', 'bottom center', 'important');
+        toast.style.setProperty('transform', `translateY(${translateY}px)`, 'important');
         toast.classList.add('stacked');
         
-        // Hide if too many in stack
-        if (depth > 4) {
+        if (depth > 20) {
             toast.classList.add('hidden-stack');
         }
     });
@@ -165,10 +163,15 @@ function showToast(n) {
     const wrap = ensureToastContainer();
     const existing = Array.from(wrap.children);
     const before = new Map(existing.map(el => [el, el.getBoundingClientRect()]));
+    
     const toast = createNotificationNode(n, true);
     toast.classList.add('entering');
     wrap.prepend(toast);
+    
+    // Update stacking logic immediately so that the FLIP animation below
+    // picks up the NEW target positions (even if they are now absolute/stacked)
     layoutToastStack();
+
     requestAnimationFrame(() => {
         existing.forEach((el) => {
             const first = before.get(el);
@@ -176,16 +179,22 @@ function showToast(n) {
             const last = el.getBoundingClientRect();
             const deltaY = first.top - last.top;
             if (!deltaY) return;
+            
+            // Capture the target transform set by layoutToastStack
             const targetTransform = el.style.transform || '';
+            
             el.style.transition = 'none';
+            // Animate from (old position) to (new position + any stack offset)
             el.style.transform = `translateY(${deltaY}px) ${targetTransform}`.trim();
-            el.offsetHeight;
+            el.offsetHeight; // force reflow
             el.style.transition = 'transform 0.5s cubic-bezier(0.1, 0.9, 0.2, 1), margin-top 0.5s cubic-bezier(0.1, 0.9, 0.2, 1), opacity 0.5s cubic-bezier(0.1, 0.9, 0.2, 1)';
             el.style.transform = targetTransform;
         });
     });
+
     setTimeout(() => {
         toast.classList.remove('entering');
+        // Final refresh to ensure everything is settled
         layoutToastStack();
     }, 520);
 
@@ -351,9 +360,25 @@ if (_acServiceRestartBtn) {
 
 if (_acClearNotificationsBtn) {
     _acClearNotificationsBtn.addEventListener('click', () => {
-        if (typeof NotificationService !== 'undefined') {
+        if (typeof NotificationService === 'undefined') return;
+        
+        const stack = document.getElementById('ac-notification-stack');
+        if (!stack) return;
+        
+        const items = Array.from(stack.querySelectorAll('.gos-ac-notification'));
+        if (items.length === 0) return;
+
+        // Animate from bottom to top (reverse order) with 10ms delay
+        items.reverse().forEach((item, idx) => {
+            setTimeout(() => {
+                item.classList.add('clearing');
+            }, idx * 10);
+        });
+
+        // Wait for last animation to finish then clear state
+        setTimeout(() => {
             NotificationService.clearAll();
-        }
+        }, (items.length * 10) + 400);
     });
 }
 

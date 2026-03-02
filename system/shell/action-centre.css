@@ -340,6 +340,18 @@
     padding: 6px 8px;
 }
 
+.gos-ac-notification.clearing {
+    animation: gos-notif-clear-slide 0.4s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+    pointer-events: none;
+}
+
+@keyframes gos-notif-clear-slide {
+    to {
+        transform: translateX(110%);
+        opacity: 0;
+    }
+}
+
 .gos-ac-notification-stack {
     display: flex;
     flex-direction: column;

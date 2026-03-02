@@ -30,13 +30,17 @@ function lockScreen() {
         wall = registry.get('Software.GlitterOS.Personalization.Wallpaper', 'res/wall.png');
     }
     _lockScreen.style.backgroundImage = `url("${wall}")`;
+    _lockScreen.style.display = 'flex';
+
+    // Force reflow
+    _lockScreen.offsetHeight;
 
     _lockScreen.classList.add('active');
     _lockScreen.focus();
 }
 
 function unlockScreen() {
-    _lockScreen.classList.remove('active');
+    finishUnlock();
 }
 
 // ── Interactivity ─────────────────────────────────────────────────────────────
@@ -66,6 +70,7 @@ const finishUnlock = () => {
         _lockScreen.classList.remove('active');
         _lockScreen.style.transform = '';
         _lockScreen.style.transition = '';
+        _lockScreen.style.display = 'none';
         isDraggingLock = false;
     }, 400);
 };
