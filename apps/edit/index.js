@@ -648,7 +648,7 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
                     const end = textarea.selectionEnd;
                     textarea.value = textarea.value.substring(0, start) + text + textarea.value.substring(end);
                     textarea.selectionStart = textarea.selectionEnd = start + text.length;
-                    _isDirty = true;
+                    _isDirty = true; updateTitle();
                     updateLineNumbers();
                     updateCursorInfo();
                     renderSyntaxLayer();
@@ -705,7 +705,8 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
 
     function updateTitle() {
         const name = _currentPath ? _currentPath.split('\\').pop().toUpperCase() : 'UNTITLED.TXT';
-        const titleText = `${name} - edit.exe`;
+        const prefix = _isDirty ? '*' : '';
+        const titleText = `${prefix}${name} - edit.exe`;
         if (_targetWin) {
             _targetWin.element.querySelector('.gos-win-title').textContent = titleText;
         } else if (typeof winObj !== 'undefined') {
@@ -746,7 +747,7 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
     }
 
     textarea.addEventListener('input', () => {
-        _isDirty = true;
+        _isDirty = true; updateTitle();
         scheduleCursorRefresh();
         updateLineNumbers();
         renderSyntaxLayer();
@@ -759,7 +760,7 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
             const end = textarea.selectionEnd;
             textarea.value = textarea.value.substring(0, start) + '\t' + textarea.value.substring(end);
             textarea.selectionStart = textarea.selectionEnd = start + 1;
-            _isDirty = true;
+            _isDirty = true; updateTitle();
             updateLineNumbers();
             scheduleCursorRefresh();
             renderSyntaxLayer();
@@ -792,6 +793,13 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
     container.addEventListener('keydown', (e) => {
         // If an overlay dialogue is visible, ignore generic container hotkeys
         if (container.querySelector('.gos-edit-ncurses-overlay')) return;
+        
+        if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            saveFile();
+            return;
+        }
+
         if (e.target === textarea && e.key === 'Tab') return;
 
         if (e.key === 'Alt') {

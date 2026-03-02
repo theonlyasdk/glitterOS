@@ -9,12 +9,48 @@
     font-size: 1.05rem;
     overflow: hidden;
     cursor: text;
+    user-select: text !important;
 }
 
 .gos-cmd-terminal::selection,
 .gos-cmd-terminal *::selection {
-    background-color: #eee;
-    color: #000;
+    background-color: #cccccc;
+    color: #0c0c0c;
+}
+
+.gos-cmd-prompt::selection {
+    background-color: #e8c84a;
+    color: #0c0c0c;
+}
+
+.gos-cmd-syn-kw::selection {
+    background-color: #e8c84a;
+    color: #0c0c0c;
+}
+
+.gos-cmd-syn-op::selection {
+    background-color: #7ec8ff;
+    color: #0c0c0c;
+}
+
+.gos-cmd-syn-num::selection {
+    background-color: #9dde8f;
+    color: #0c0c0c;
+}
+
+.gos-cmd-syn-str::selection {
+    background-color: #ffb6a6;
+    color: #0c0c0c;
+}
+
+.gos-cmd-syn-cmd-valid::selection {
+    background-color: #ffffff;
+    color: #0c0c0c;
+}
+
+.gos-cmd-syn-cmd-invalid::selection {
+    background-color: #f07070;
+    color: #0c0c0c;
 }
 
 /* Hidden real input — captures keystrokes, invisible */
@@ -38,6 +74,11 @@
     scrollbar-width: thin;
     scrollbar-color: #3a3a3a #0c0c0c;
     cursor: text;
+    user-select: text !important;
+}
+
+.gos-cmd-terminal * {
+    user-select: text !important;
 }
 
 .gos-cmd-terminal::-webkit-scrollbar {
@@ -63,12 +104,12 @@
     font-family: inherit;
     white-space: pre-wrap;
     min-height: 1.2em;
+    user-select: text !important;
 }
 
 /* Prompt text — amber/gold Windows CMD colour */
 .gos-cmd-prompt {
     color: #e8c84a;
-    user-select: none;
 }
 
 /* Typed text on the active line */
@@ -129,6 +170,11 @@
 /* Error output — soft red */
 .gos-cmd-err {
     color: #f07070;
+}
+
+/* Warning output — amber */
+.gos-cmd-warn {
+    color: #ffcc00;
 }
 
 /* Active input line loses blink when window blurred and becomes a hollow box */

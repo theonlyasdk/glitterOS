@@ -292,6 +292,11 @@ function launchNotepad(filePath = null) {
     ]);
 
     container.addEventListener('keydown', (e) => {
+        if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            saveFile();
+            return;
+        }
         if (e.target === textarea && e.key === 'Tab') {
             return;
         }

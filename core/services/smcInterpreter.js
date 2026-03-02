@@ -21,12 +21,12 @@ const SmcInterpreter = (() => {
     function parseScriptLines(content) {
         return normalize(content)
             .split('\n')
-            .map(l => l.trim())
-            .map(stripInlineComments)
-            .filter(l => l && !l.startsWith('//') && !l.toLowerCase().startsWith('rem '));
+            .map((l, i) => ({ text: l.trim(), num: i + 1 }))
+            .map(obj => ({ text: stripInlineComments(obj.text), num: obj.num }))
+            .filter(obj => obj.text && !obj.text.startsWith('//') && !obj.text.toLowerCase().startsWith('rem '));
     }
 
-    const INTERPRETER_ONLY_FLAGS = new Set(['ignore_errors', 'no_echo', 'silent', 'allow_casting']);
+    const INTERPRETER_ONLY_FLAGS = new Set(['ignore_errors', 'no_echo', 'silent', 'allow_casting', 'echo_var_values']);
 
     function parseDirective(line) {
         const match = line.match(/^\!\[\s*([^\]]+)\s*\]$/i);
@@ -38,12 +38,12 @@ const SmcInterpreter = (() => {
         return parts.length ? parts : null;
     }
 
-    function extractInterpreterFlags(lines) {
+    function extractInterpreterFlags(linesObj) {
         const interpreterFlags = [];
-        const mask = new Array(lines.length).fill(false);
+        const mask = new Array(linesObj.length).fill(false);
         let seenNonInterpreterLine = false;
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
+        for (let i = 0; i < linesObj.length; i++) {
+            const line = linesObj[i].text;
             const directive = parseDirective(line);
             if (!directive) {
                 seenNonInterpreterLine = true;
@@ -55,20 +55,25 @@ const SmcInterpreter = (() => {
                 continue;
             }
             if (seenNonInterpreterLine) {
-                return { error: 'Interpreter directives must appear before any other statements.' };
+                return { error: `Interpreter directives must appear before any other statements (Line ${linesObj[i].num}).` };
             }
             interpreterFlags.push(...directive);
             mask[i] = true;
         }
-        const filtered = lines.filter((_, idx) => !mask[idx]);
+        const filtered = linesObj.filter((_, idx) => !mask[idx]);
         return { lines: filtered, flags: interpreterFlags };
     }
 
     function parseAssignment(line) {
-        const match = line.match(/^(?:let|set|var)\s+\$?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)$/i);
-        if (match) return { name: match[1], value: match[2] };
-        const reassignMatch = line.match(/^\$?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)$/i);
-        if (reassignMatch) return { name: reassignMatch[1], value: reassignMatch[2] };
+        // Enforce $ prefix for declarations
+        const declMatch = line.match(/^(global|let|set|var)\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)$/i);
+        if (declMatch) return { error: `Variable declaration '${declMatch[2]}' must start with '$' prefix.` };
+
+        const match = line.match(/^(global|let|set|var)\s+\$([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)$/i);
+        if (match) return { type: match[1].toLowerCase(), name: match[2], value: match[3] };
+        
+        const reassignMatch = line.match(/^\$([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)$/i);
+        if (reassignMatch) return { type: 'reassign', name: reassignMatch[1], value: reassignMatch[2] };
         return null;
     }
 
@@ -82,81 +87,92 @@ const SmcInterpreter = (() => {
         return match ? match[1] : null;
     }
 
-    function parseScriptBlock(lines, startIdx = 0, terminators = []) {
+    function parseScriptBlock(linesObj, startIdx = 0, terminators = []) {
         const nodes = [];
         const terms = new Set(terminators.map(t => t.toLowerCase()));
         let i = startIdx;
 
-        while (i < lines.length) {
-            const line = lines[i];
+        while (i < linesObj.length) {
+            const obj = linesObj[i];
+            const line = obj.text;
+            const lineNum = obj.num;
             const lower = line.toLowerCase();
             if (terms.has(lower)) return { nodes, nextIdx: i + 1, terminator: lower };
 
             const directive = parseDirective(line);
             if (directive) {
-                directive.forEach(flag => nodes.push({ type: 'directive', name: flag }));
+                directive.forEach(flag => nodes.push({ type: 'directive', name: flag, lineNum }));
                 i++;
                 continue;
             }
 
             const assign = parseAssignment(line);
             if (assign) {
-                nodes.push({ type: 'assign', name: assign.name, value: assign.value });
+                if (assign.error) return { error: `${assign.error} at Line ${lineNum}` };
+                nodes.push({ type: 'assign', assignType: assign.type, name: assign.name, value: assign.value, lineNum });
+                i++;
+                continue;
+            }
+
+            // Detect stand-alone variable reference
+            const varEchoMatch = line.match(/^\$([A-Za-z_][A-Za-z0-9_]*)$/);
+            if (varEchoMatch) {
+                nodes.push({ type: 'var_echo', name: varEchoMatch[1], lineNum });
                 i++;
                 continue;
             }
 
             const whileExpr = parseWhile(line);
             if (whileExpr) {
-                const bodyBlock = parseScriptBlock(lines, i + 1, ['end']);
+                const bodyBlock = parseScriptBlock(linesObj, i + 1, ['end']);
                 if (bodyBlock.error) return bodyBlock;
-                if (bodyBlock.terminator !== 'end') return { error: 'Missing END for WHILE block.' };
-                nodes.push({ type: 'while', condition: whileExpr, body: bodyBlock.nodes });
+                if (bodyBlock.terminator !== 'end') return { error: `Missing END for block at Line ${lineNum}` };
+                nodes.push({ type: 'while', condition: whileExpr, body: bodyBlock.nodes, lineNum });
                 i = bodyBlock.nextIdx;
                 continue;
             }
 
             const importPath = parseImport(line);
             if (importPath) {
-                nodes.push({ type: 'import', path: importPath });
+                nodes.push({ type: 'import', path: importPath, lineNum });
                 i++;
                 continue;
             }
 
             const ifMatch = line.match(/^if\s+(.+)\s+then$/i);
             if (ifMatch) {
-                const thenBlock = parseScriptBlock(lines, i + 1, ['else', 'end']);
+                const thenBlock = parseScriptBlock(linesObj, i + 1, ['else', 'end']);
                 if (thenBlock.error) return thenBlock;
                 let elseNodes = [];
                 if (thenBlock.terminator === 'else') {
-                    const elseBlock = parseScriptBlock(lines, thenBlock.nextIdx, ['end']);
+                    const elseBlock = parseScriptBlock(linesObj, thenBlock.nextIdx, ['end']);
                     if (elseBlock.error) return elseBlock;
-                    if (elseBlock.terminator !== 'end') return { error: 'Missing END for IF/ELSE block.' };
+                    if (elseBlock.terminator !== 'end') return { error: `Missing END for block at Line ${lineNum}` };
                     elseNodes = elseBlock.nodes;
                     i = elseBlock.nextIdx;
                 } else if (thenBlock.terminator === 'end') {
                     i = thenBlock.nextIdx;
                 } else {
-                    return { error: 'Missing END for IF block.' };
+                    return { error: `Missing END for block at Line ${lineNum}` };
                 }
-                nodes.push({ type: 'if', condition: ifMatch[1].trim(), thenNodes: thenBlock.nodes, elseNodes });
+                nodes.push({ type: 'if', condition: ifMatch[1].trim(), thenNodes: thenBlock.nodes, elseNodes, lineNum });
                 continue;
             }
 
             const procMatch = line.match(/^proc\s+([@A-Za-z_][A-Za-z0-9_]*)\s*:\s*(.*?)\s+do$/i);
             if (procMatch) {
-                const bodyBlock = parseScriptBlock(lines, i + 1, ['end']);
+                const bodyBlock = parseScriptBlock(linesObj, i + 1, ['end']);
                 if (bodyBlock.error) return bodyBlock;
-                if (bodyBlock.terminator !== 'end') return { error: `Missing END for procedure ${procMatch[1]}.` };
+                if (bodyBlock.terminator !== 'end') return { error: `Missing END for block at Line ${lineNum}` };
                 const argNames = procMatch[2]
                     ? procMatch[2].split(',').map(a => a.trim()).filter(Boolean)
                     : [];
-                nodes.push({ type: 'proc', name: procMatch[1], argNames, body: bodyBlock.nodes });
+                nodes.push({ type: 'proc', name: procMatch[1], argNames, body: bodyBlock.nodes, lineNum });
                 i = bodyBlock.nextIdx;
                 continue;
             }
 
-            nodes.push({ type: 'cmd', line });
+            nodes.push({ type: 'cmd', line, lineNum });
             i++;
         }
 
@@ -194,21 +210,79 @@ const SmcInterpreter = (() => {
             executeCommand = () => ({ ok: true }),
             onCommand = null,
             onError = null,
+            onWarning = null,
             recursionLimit = 32,
-            cwd = fs.pwd()
+            cwd = fs.pwd(),
+            filename = 'script.smc'
         } = hooks;
 
         const ctx = state || {
-            variables: {},
+            globalScope: {},
             importStack: [],
+            callStack: [],
             ignoreNextCommand: false,
             cwd
         };
 
-        const evaluateExpression = (exprRaw, vars) => {
+        const formatError = (msg, lineNum) => {
+            const loc = lineNum ? ` at line ${lineNum}` : '';
+            let out = `Error: ${filename}${loc}: ${msg}`;
+            if (ctx.callStack && ctx.callStack.length > 0) {
+                out += '\nCall Stack:';
+                for (let i = ctx.callStack.length - 1; i >= 0; i--) {
+                    const frame = ctx.callStack[i];
+                    const args = frame.args.map(a => typeof a === 'string' ? `"${a}"` : a).join(', ');
+                    const fName = frame.name.startsWith('@') ? frame.name : '@' + frame.name;
+                    out += `\n  at ${fName} : ${args} (${frame.filename} at line ${frame.lineNum})`;
+                }
+            }
+            return out;
+        };
+
+        const formatWarning = (msg, lineNum) => {
+            const loc = lineNum ? ` at line ${lineNum}` : '';
+            let out = `Warning: ${filename}${loc}: ${msg}`;
+            if (ctx.callStack && ctx.callStack.length > 0) {
+                out += '\nCall Stack:';
+                for (let i = ctx.callStack.length - 1; i >= 0; i--) {
+                    const frame = ctx.callStack[i];
+                    const args = frame.args.map(a => typeof a === 'string' ? `"${a}"` : a).join(', ');
+                    const fName = frame.name.startsWith('@') ? frame.name : '@' + frame.name;
+                    out += `\n  at ${fName} : ${args} (${frame.filename} at line ${frame.lineNum})`;
+                }
+            }
+            return out;
+        };
+
+        const findInScopes = (name, scope) => {
+            let curr = scope;
+            while (curr) {
+                if (curr.variables && curr.variables[name] !== undefined) return { scope: curr, value: curr.variables[name] };
+                curr = curr.parent;
+            }
+            if (ctx.globalScope && ctx.globalScope[name] !== undefined) return { scope: 'global', value: ctx.globalScope[name] };
+            return null;
+        };
+
+        const getAllVariables = (scope) => {
+            let vars = { ...ctx.globalScope };
+            let chain = [];
+            let curr = scope;
+            while (curr) {
+                chain.push(curr.variables || {});
+                curr = curr.parent;
+            }
+            for (let i = chain.length - 1; i >= 0; i--) {
+                vars = { ...vars, ...chain[i] };
+            }
+            return vars;
+        };
+
+        const evaluateExpression = (exprRaw, scope, lineNum) => {
             let expr = String(exprRaw);
             let tokens = [];
             let i = 0;
+            const vars = getAllVariables(scope);
             while (i < expr.length) {
                 let c = expr[i];
                 if (c === '"' || c === "'") {
@@ -292,12 +366,12 @@ const SmcInterpreter = (() => {
         const lines = parseScriptLines(content);
         const extracted = extractInterpreterFlags(lines);
         if (extracted.error) {
-            if (onError) onError(extracted.error);
+            if (onError) onError(formatError(extracted.error));
             return { ok: false };
         }
         const parsed = parseScriptBlock(extracted.lines, 0, []);
         if (parsed.error) {
-            if (onError) onError(parsed.error);
+            if (onError) onError(formatError(parsed.error));
             return { ok: false };
         }
 
@@ -309,13 +383,15 @@ const SmcInterpreter = (() => {
         ctx.flags.noEcho = flagSet.has('no_echo');
         ctx.flags.silent = flagSet.has('silent');
         ctx.flags.allowCasting = flagSet.has('allow_casting');
+        ctx.flags.echoVarValues = flagSet.has('echo_var_values');
         if (hooks.onFlags) hooks.onFlags(ctx.flags);
 
-        const expandVariables = (str) => {
+        const expandVariables = (str, scope) => {
             let out = String(str);
-            const sortedKeys = Object.keys(ctx.variables || {}).sort((a,b)=>b.length-a.length);
+            const vars = getAllVariables(scope);
+            const sortedKeys = Object.keys(vars).sort((a,b)=>b.length-a.length);
             sortedKeys.forEach((key) => {
-                const val = ctx.variables[key] ?? '';
+                const val = vars[key] ?? '';
                 const baseKey = key.startsWith('$') ? key.substring(1) : key;
                 out = out.replace(new RegExp(`%${baseKey}%`, 'g'), val);
                 out = out.replace(new RegExp(`\\$\\{${baseKey}\\}`, 'g'), val);
@@ -333,8 +409,8 @@ const SmcInterpreter = (() => {
             return base.endsWith('\\') ? base + cleaned : `${base}\\${cleaned}`;
         };
 
-        function handleCommandExecution(line) {
-            const expanded = expandVariables(line);
+        function handleCommandExecution(line, lineNum, scope) {
+            const expanded = expandVariables(line, scope);
             if (onCommand) onCommand(expanded);
             const result = executeCommand(expanded) || { ok: true };
             if (!result.ok) {
@@ -349,15 +425,19 @@ const SmcInterpreter = (() => {
                     ctx.ignoreNextCommand = false;
                     return { ok: true };
                 }
+                
+                if (onError && !result.suppressMsg) {
+                    onError(formatError(result.error || 'Command failed', lineNum));
+                }
                 return result;
             }
             ctx.ignoreNextCommand = false;
             return { ok: true };
         }
 
-        function runNodes(nodes, depth = 0) {
+        function runNodes(nodes, scope = { variables: {}, parent: null }, depth = 0) {
             if (depth > recursionLimit) {
-                if (onError) onError('Procedure recursion limit exceeded.');
+                if (onError) onError(formatError('Procedure recursion limit exceeded.'));
                 return { ok: false };
             }
             for (const node of nodes) {
@@ -367,63 +447,93 @@ const SmcInterpreter = (() => {
                     }
                     continue;
                 }
-                if (node.type === 'assign') {
-                    ctx.variables = ctx.variables || {};
-                    let newVal;
-                    try {
-                        newVal = evaluateExpression(node.value, ctx.variables);
-                    } catch (e) {
-                        if (onError) onError(`Assignment error for ${node.name}: ${e.message}`);
+                if (node.type === 'var_echo') {
+                    const existing = findInScopes(node.name, scope);
+                    if (existing) {
+                        if (ctx.flags.echoVarValues) {
+                            if (onCommand) onCommand(String(existing.value));
+                        } else {
+                            if (onWarning) onWarning(formatWarning(`unused value of variable: $${node.name}`, node.lineNum));
+                        }
+                    } else {
+                        if (onError) onError(formatError(`Variable $${node.name} is not defined.`, node.lineNum));
                         return { ok: false };
                     }
-                    const oldVal = ctx.variables[node.name];
-                    if (oldVal !== undefined && !ctx.flags.allowCasting) {
-                        if (typeof oldVal !== typeof newVal) {
-                            if (onError) onError(`Type mismatch: cannot assign ${typeof newVal} to ${typeof oldVal} variable ${node.name}. Use ![allow_casting]`);
+                    continue;
+                }
+                if (node.type === 'assign') {
+                    let newVal;
+                    try {
+                        newVal = evaluateExpression(node.value, scope, node.lineNum);
+                    } catch (e) {
+                        if (onError) onError(formatError(`Assignment error for ${node.name}: ${e.message}`, node.lineNum));
+                        return { ok: false };
+                    }
+
+                    if (node.assignType === 'global') {
+                        ctx.globalScope[node.name] = newVal;
+                    } else if (node.assignType === 'reassign') {
+                        const existing = findInScopes(node.name, scope);
+                        if (existing) {
+                            if (!ctx.flags.allowCasting && typeof existing.value !== typeof newVal) {
+                                if (onError) onError(formatError(`Type mismatch: cannot assign ${typeof newVal} to ${typeof existing.value} variable ${node.name}. Use ![allow_casting]`, node.lineNum));
+                                return { ok: false };
+                            }
+                            if (existing.scope === 'global') ctx.globalScope[node.name] = newVal;
+                            else existing.scope.variables[node.name] = newVal;
+                        } else {
+                            // Default to local if not found
+                            scope.variables[node.name] = newVal;
+                        }
+                    } else {
+                        // var, let, set
+                        if (scope.variables[node.name] !== undefined) {
+                            if (onError) onError(formatError(`Variable ${node.name} is already declared in this scope.`, node.lineNum));
                             return { ok: false };
                         }
+                        scope.variables[node.name] = newVal;
                     }
-                    ctx.variables[node.name] = newVal;
                     continue;
                 }
                 if (node.type === 'while') {
                     while (true) {
-                        const condition = expandVariables(node.condition);
+                        const condition = expandVariables(node.condition, scope);
                         const condOk = evaluateCondition(condition);
                         if (!condOk) break;
-                        const res = runNodes(node.body, depth);
+                        const res = runNodes(node.body, { variables: {}, parent: scope }, depth);
                         if (!res.ok) return res;
                         if (ctx.ignoreNextCommand) ctx.ignoreNextCommand = false;
                     }
                     continue;
                 }
                 if (node.type === 'import') {
-                    const importPath = expandVariables(node.path);
+                    const importPath = expandVariables(node.path, scope);
                     const resolved = resolveImportPath(importPath);
                     if (!resolved || !fs.exists(resolved)) {
-                        if (onError) onError(`Import failed: ${importPath} not found.`);
+                        if (onError) onError(formatError(`Import failed: ${importPath} not found.`, node.lineNum));
                         return { ok: false };
                     }
                     if (ctx.importStack.includes(resolved)) continue;
                     ctx.importStack.push(resolved);
                     const fileRes = fs.cat(resolved);
                     if (fileRes.error) {
-                        if (onError) onError(`Import failed: ${fileRes.error}`);
+                        if (onError) onError(formatError(`Import failed: ${fileRes.error}`, node.lineNum));
                         ctx.importStack.pop();
                         return { ok: false };
                     }
                     const previousCwd = ctx.cwd;
                     ctx.cwd = resolved.includes('\\') ? resolved.substring(0, resolved.lastIndexOf('\\')) || 'C:\\' : 'C:\\';
-                    const res = runScript(fileRes.content, hooks, ctx);
+                    // Imports share the same global scope but start with a fresh local scope
+                    const res = runScript(fileRes.content, { ...hooks, filename: importPath }, ctx);
                     ctx.cwd = previousCwd;
                     ctx.importStack.pop();
                     if (!res.ok) return res;
                     continue;
                 }
                 if (node.type === 'if') {
-                    const condition = expandVariables(node.condition);
+                    const condition = expandVariables(node.condition, scope);
                     const chosen = evaluateCondition(condition) ? node.thenNodes : node.elseNodes;
-                    const res = runNodes(chosen, depth);
+                    const res = runNodes(chosen, { variables: {}, parent: scope }, depth);
                     if (!res.ok) return res;
                     continue;
                 }
@@ -432,29 +542,43 @@ const SmcInterpreter = (() => {
                     continue;
                 }
                 if (node.type === 'cmd') {
-                    const expandedLine = expandVariables(node.line);
+                    const expandedLine = expandVariables(node.line, scope);
                     const tokens = tokenize(expandedLine);
                     if (!tokens.length) continue;
                     const proc = procedures.get(tokens[0].toLowerCase());
                     if (proc) {
                         const callArgsRaw = expandedLine.slice(tokens[0].length).trim();
                         const callArgs = parseProcedureCallArgs(callArgsRaw, tokenize);
-                        const expanded = proc.body.map(n => {
-                            if (n.type !== 'cmd') return n;
-                            return { ...n, line: applyProcedureArgs(n.line, proc, callArgs) };
+                        // Procedures get their own scope, with arguments mapped to variables
+                        const procScope = { variables: {}, parent: scope };
+                        proc.argNames.forEach((argName, idx) => {
+                            const val = callArgs[idx] ?? '';
+                            const name = argName.startsWith('$') ? argName.substring(1) : argName;
+                            procScope.variables[name] = val;
                         });
-                        const res = runNodes(expanded, depth + 1);
+
+                        ctx.callStack.push({
+                            name: proc.name,
+                            args: callArgs,
+                            filename: filename,
+                            lineNum: node.lineNum
+                        });
+
+                        const res = runNodes(proc.body, procScope, depth + 1);
+                        
+                        ctx.callStack.pop();
+
                         if (!res.ok) return res;
                         continue;
                     }
-                    const res = handleCommandExecution(expandedLine);
+                    const res = handleCommandExecution(expandedLine, node.lineNum, scope);
                     if (!res.ok) return res;
                 }
             }
             return { ok: true };
         }
 
-        const runResult = runNodes(parsed.nodes, 0);
+        const runResult = runNodes(parsed.nodes, { variables: {}, parent: null }, 0);
         runResult.flags = ctx.flags;
         return runResult;
     }

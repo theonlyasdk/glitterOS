@@ -147,9 +147,10 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         return out;
     }
 
-    let _scriptMode = { silent: false, noEcho: false };
+    let _scriptMode = { active: false, silent: false, noEcho: false };
 
     function setInterpreterMode(flags = {}) {
+        _scriptMode.active = !!flags.active;
         _scriptMode.silent = !!flags.silent;
         _scriptMode.noEcho = !!flags.noEcho;
     }
@@ -197,8 +198,10 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
     }
 
     function commandError(problem, fix) {
-        appendCmdError(problem, fix);
-        return { ok: false };
+        if (!_scriptMode.active) {
+            appendCmdError(problem, fix);
+        }
+        return { ok: false, error: problem, fix: fix };
     }
 
     function getStdinText() {
@@ -992,14 +995,15 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
             ? (scriptPath.substring(0, scriptPath.lastIndexOf('\\')) || 'C:\\')
             : fs.pwd();
         const prevMode = { ..._scriptMode };
-        let scriptFlags = { silent: false, noEcho: false };
+        let scriptFlags = { active: true, silent: false, noEcho: false };
         try {
             const result = SmcInterpreter.runScript(content, {
                 tokenize,
                 evaluateCondition: executeCondition,
-                executeCommand: (line) => executeCommandLine(line),
+                executeCommand: (line, lineNum) => executeCommandLine(line),
+                filename: scriptPath || 'interactive',
                 onFlags: (flags) => {
-                    const normalized = { silent: !!flags.silent, noEcho: !!flags.noEcho };
+                    const normalized = { active: true, silent: !!flags.silent, noEcho: !!flags.noEcho };
                     scriptFlags = normalized;
                     setInterpreterMode(normalized);
                 },
@@ -1008,11 +1012,15 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
                     commitActiveLine(line);
                     if (_activeLine === null) createActiveLine();
                 },
-                onError: (problem) => {
-                    const help = problem === 'Procedure recursion limit exceeded.'
-                        ? 'Reduce recursive calls or add termination conditions.'
-                        : 'Ensure each IF/PROC/WHILE block is closed with END.';
-                    appendCmdError(problem, help);
+                onError: (err) => {
+                    if (!scriptFlags.silent) {
+                        appendLine(err, 'gos-cmd-err');
+                    }
+                },
+                onWarning: (msg) => {
+                    if (!scriptFlags.silent) {
+                        appendLine(msg, 'gos-cmd-warn');
+                    }
                 },
                 recursionLimit: 32,
                 cwd
@@ -1153,12 +1161,18 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         }
     });
 
-    const focusIfNoSelection = () => {
-        if (!window.getSelection().toString()) hiddenInput.focus();
+    let _mouseDownPos = null;
+    const focusIfNoSelection = (e) => {
+        if (window.getSelection().toString()) return;
+        if (_mouseDownPos) {
+            const dist = Math.sqrt(Math.pow(e.clientX - _mouseDownPos.x, 2) + Math.pow(e.clientY - _mouseDownPos.y, 2));
+            if (dist > 5) return;
+        }
+        hiddenInput.focus();
     };
     terminal.addEventListener('click', focusIfNoSelection);
     container.addEventListener('click', (e) => {
-        if (e.target === container) focusIfNoSelection();
+        if (e.target === container) focusIfNoSelection(e);
     });
 
     let isBlockSelecting = false;
@@ -1187,6 +1201,7 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
     }
 
     terminal.addEventListener('mousedown', (e) => {
+        _mouseDownPos = { x: e.clientX, y: e.clientY };
         if (e.ctrlKey && e.button === 0) {
             e.preventDefault();
             window.getSelection().removeAllRanges();

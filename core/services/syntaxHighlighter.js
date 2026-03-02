@@ -8,7 +8,7 @@ const SyntaxHighlighter = (() => {
 
     function highlightSmc(text) {
         const kws = new Set([
-            'if', 'then', 'else', 'end', 'proc', 'do', 'var', 'let', 'set', 'while', 'echo', 'type', 'cd', 'dir', 'md', 'mkdir', 'del', 'rm',
+            'if', 'then', 'else', 'end', 'proc', 'do', 'var', 'let', 'set', 'while', 'global', 'echo', 'type', 'cd', 'dir', 'md', 'mkdir', 'del', 'rm',
             'rd', 'rmdir', 'ren', 'copy', 'ver', 'help', 'cls', 'exit', 'history', 'runsmc', 'notify',
             'pwd', 'ls', 'cat', 'cp', 'mv', 'clear'
         ]);
