@@ -106,7 +106,7 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
         dialog.innerHTML = `
             <div class="gos-edit-ncurses-title">About</div>
             <div class="gos-edit-ncurses-body">
-                <div style="text-align:center; margin-bottom:15px; font-size: 0.95rem;">
+                <div style="text-align:center; margin-bottom:15px; font-size: inherit;">
                     glitterOS Editor (edit.exe)<br>
                     Version 1.0.64 (Alpha)<br><br>
                     (C) 2026 glitterOS Project<br>
@@ -730,7 +730,7 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
 
         // Update highlight
         const lineHeight = 26;
-        const paddingTop = 10;
+        const paddingTop = 0;
 
         highlight.style.top = (paddingTop + (line - 1) * lineHeight - textarea.scrollTop) + 'px';
         highlight.style.display = 'block';

@@ -20,7 +20,7 @@
     padding: 0 10px;
     height: 1.5em;
     align-items: center;
-    font-size: 0.9em;
+    font-size: inherit;
 }
 
 .gos-edit-menu-item {
@@ -77,7 +77,7 @@
     background-color: #aaaaaa;
     color: #0000aa;
     text-align: right;
-    padding: 10px 8px 10px 0;
+    padding: 0 8px 10px 0;
     font-size: 1.05rem;
     line-height: 26px;
     overflow: hidden;
@@ -113,7 +113,7 @@
     font-size: inherit;
     resize: none;
     outline: none;
-    padding: 10px;
+    padding: 0 10px 10px 10px;
     margin: 0;
     line-height: 26px;
     overflow: auto;
@@ -136,7 +136,7 @@
     position: absolute;
     inset: 0;
     margin: 0;
-    padding: 10px;
+    padding: 0 10px 10px 10px;
     font: inherit;
     line-height: 26px;
     white-space: pre;
@@ -201,7 +201,7 @@
     display: flex;
     justify-content: space-between;
     padding: 0 10px;
-    font-size: 1rem;
+    font-size: inherit;
 }
 
 .gos-edit-cursor-pos {
@@ -247,7 +247,7 @@
     background-color: #0000aa;
     color: #fff;
     padding: 15px;
-    font-size: 1.1rem;
+    font-size: inherit;
     position: relative;
     border: 1px solid #aaaaaa;
     margin: 2px;
@@ -285,7 +285,7 @@
 }
 
 .gos-edit-file-list-label {
-    font-size: 0.8rem;
+    font-size: 0.9rem;
     color: #aaaaaa;
     margin-bottom: 2px;
 }
@@ -300,7 +300,7 @@
 
 .gos-edit-file-item {
     padding: 0 4px;
-    font-size: 0.9rem;
+    font-size: inherit;
     cursor: pointer;
     white-space: nowrap;
 }
@@ -316,7 +316,7 @@
     border: 1px solid #aaaaaa;
     color: #fff;
     font-family: inherit;
-    font-size: 1rem;
+    font-size: inherit;
     padding: 2px 6px;
     outline: none;
     margin-bottom: 10px;

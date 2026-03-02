@@ -15,7 +15,7 @@ function launchTaskManager() {
 
     // ── Components ────────────────────────────────────────────────────────────
     const header = document.createElement('div');
-    header.className = 'gos-taskmgr-tabs';
+    header.className = 'gos-tab-strip';
 
     const tabs = [
         { id: 'processes', label: 'Processes' },
@@ -25,7 +25,7 @@ function launchTaskManager() {
 
     tabs.forEach(tab => {
         const el = document.createElement('div');
-        el.className = 'gos-taskmgr-tab' + (tab.id === _activeTab ? ' active' : '');
+        el.className = 'gos-tab' + (tab.id === _activeTab ? ' active' : '');
         el.innerText = tab.label;
         el.onclick = () => switchTab(tab.id);
         header.appendChild(el);
@@ -78,7 +78,7 @@ function launchTaskManager() {
     // ── Tab Switching ─────────────────────────────────────────────────────────
     function switchTab(id) {
         _activeTab = id;
-        header.querySelectorAll('.gos-taskmgr-tab').forEach(t => {
+        header.querySelectorAll('.gos-tab').forEach(t => {
             t.classList.toggle('active', t.innerText.toLowerCase() === id);
         });
         updateViews();
@@ -141,8 +141,21 @@ function launchTaskManager() {
 
     // ── Task context menu ──────────────────────────────────────────────────────
     let _taskCtxMenu = null;
+    let _taskCtxListener = null;
+
+    function closeTaskContextMenu() {
+        if (_taskCtxMenu) {
+            _taskCtxMenu.remove();
+            _taskCtxMenu = null;
+        }
+        if (_taskCtxListener) {
+            window.removeEventListener('mousedown', _taskCtxListener, true);
+            _taskCtxListener = null;
+        }
+    }
+
     function showTaskContextMenu(x, y, row) {
-        if (_taskCtxMenu) _taskCtxMenu.remove();
+        closeTaskContextMenu();
 
         _taskCtxMenu = document.createElement('div');
         _taskCtxMenu.style.cssText = `
@@ -157,7 +170,7 @@ function launchTaskManager() {
         closeItem.onmouseenter = () => closeItem.style.backgroundColor = '#3f3f3f';
         closeItem.onmouseleave = () => closeItem.style.backgroundColor = '';
         closeItem.onclick = () => {
-            _taskCtxMenu.remove();
+            closeTaskContextMenu();
             if (!_selectedIds.includes(row.id)) {
                 _selectedIds = [row.id];
             }
@@ -172,7 +185,7 @@ function launchTaskManager() {
             focusItem.textContent = 'Focus Window';
             focusItem.onmouseenter = () => focusItem.style.backgroundColor = '#3f3f3f';
             focusItem.onmouseleave = () => focusItem.style.backgroundColor = '';
-            focusItem.onclick = () => { _taskCtxMenu.remove(); wm.focusWindow(row.id); };
+            focusItem.onclick = () => { closeTaskContextMenu(); wm.focusWindow(row.id); };
             const divider = document.createElement('hr');
             divider.style.cssText = 'margin:2px 0;border-color:#444;';
             _taskCtxMenu.append(focusItem, divider, closeItem);
@@ -185,7 +198,7 @@ function launchTaskManager() {
                 startRestart.onmouseenter = () => startRestart.style.backgroundColor = '#3f3f3f';
                 startRestart.onmouseleave = () => startRestart.style.backgroundColor = '';
                 startRestart.onclick = () => {
-                    _taskCtxMenu.remove();
+                    closeTaskContextMenu();
                     if (svc && svc.running) ServiceManager.restart(row.serviceId);
                     else ServiceManager.start(row.serviceId, { manual: true });
                     updateViews();
@@ -199,13 +212,12 @@ function launchTaskManager() {
         }
         document.body.appendChild(_taskCtxMenu);
 
-        const closeCtx = (ev) => {
+        _taskCtxListener = (ev) => {
             if (_taskCtxMenu && !_taskCtxMenu.contains(ev.target)) {
-                _taskCtxMenu.remove(); _taskCtxMenu = null;
-                document.removeEventListener('mousedown', closeCtx);
+                closeTaskContextMenu();
             }
         };
-        setTimeout(() => document.addEventListener('mousedown', closeCtx), 10);
+        setTimeout(() => window.addEventListener('mousedown', _taskCtxListener, true), 10);
     }
 
     function renderProcessTable(parent, isDetails) {

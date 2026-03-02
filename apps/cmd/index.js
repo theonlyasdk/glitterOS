@@ -217,6 +217,38 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
 
     const ALIASES = new Map();
 
+    function parseOptionArgs(tokens) {
+        const flags = new Set();
+        const rest = [];
+        tokens.forEach(token => {
+            if (typeof token !== 'string') return;
+            const match = token.match(/^-([A-Za-z]+)$/);
+            if (match) {
+                for (const ch of match[1]) {
+                    flags.add(`-${ch.toLowerCase()}`);
+                }
+            } else {
+                rest.push(token);
+            }
+        });
+        return { flags, args: rest };
+    }
+
+    function createDirsRecursively(targetPath) {
+        const normalized = String(targetPath || '').trim().replace(/\//g, '\\');
+        if (!normalized) return { error: 'The system cannot find the path specified.' };
+        const parts = normalized.split('\\');
+        let current = '';
+        for (const part of parts) {
+            if (!part) continue;
+            current = current ? (current.endsWith('\\') ? `${current}${part}` : `${current}\\${part}`) : part;
+            if (fs.exists(current)) continue;
+            const res = fs.mkdir(current);
+            if (res.error) return res;
+        }
+        return { ok: true };
+    }
+
     // ── Active inline prompt line ─────────────────────────────────────────────
     function createActiveLine() {
         _activeLine = document.createElement('div');
@@ -263,9 +295,9 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
                 '<span style="color:#e8c84a">DIR</span>       Displays a list of files and subdirectories in a directory.<br>' +
                 '<span style="color:#e8c84a">TYPE</span>      Displays the contents of a text file.<br>' +
                 '<span style="color:#e8c84a">ECHO</span>      Displays messages.<br>' +
-                '<span style="color:#e8c84a">MD / MKDIR</span>  Creates a directory.<br>' +
+                '<span style="color:#e8c84a">MD / MKDIR</span>  Creates a directory (-p creates parents).<br>' +
                 '<span style="color:#e8c84a">DEL / RM</span>  Deletes one or more files.<br>' +
-                '<span style="color:#e8c84a">RD / RMDIR</span> Removes a directory.<br>' +
+                '<span style="color:#e8c84a">RD / RMDIR</span> Removes a directory (-rf removes recursively).<br>' +
                 '<span style="color:#e8c84a">REN</span>       Renames a file.<br>' +
                 '<span style="color:#e8c84a">COPY</span>      Copies one file to another location.<br>' +
                 '<span style="color:#e8c84a">EDIT</span>      Starts the glitterOS Editor.<br>' +
@@ -360,7 +392,10 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
             const target = args[args[0] === '/d' ? 1 : 0] || '~';
             const res = fs.cd(target);
             if (res.error) return commandError('The system cannot find the path specified.', 'Use DIR to check valid folders, then run CD <path>.');
-            else persistCwd();
+            else {
+                persistCwd();
+                refreshActiveLine(); // Update prompt immediately after changing dir
+            }
         },
         pwd() {
             CMDS.cd([]);
@@ -428,18 +463,34 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
             appendLine(rawInput.slice(1, -1));
         },
         md(args) {
-            if (!args[0]) {
+            const { flags, args: targets } = parseOptionArgs(args);
+            if (!targets.length) {
                 if (getStdinText()) {
                     return commandError('MKDIR cannot use piped text as a directory name.', 'Provide a folder path explicitly: MKDIR <folder>.');
                 }
                 return commandError('MKDIR requires a directory name.', 'Use MKDIR <folder>.');
             }
-            const res = fs.mkdir(args[0]);
-            if (res.error) {
-                return commandError('A subdirectory or file already exists.', 'Choose a different name or remove the existing item first.');
+            const allowParents = flags.has('-p');
+            for (const target of targets) {
+                if (!target) continue;
+                if (allowParents) {
+                    const res = createDirsRecursively(target);
+                    if (res.error) {
+                        return commandError(res.error, 'Choose a different name or remove the existing item first.');
+                    }
+                } else {
+                    const res = fs.mkdir(target);
+                    if (res.error) {
+                        const fix = res.error.includes('cannot find the path specified')
+                            ? 'Use MKDIR -p to create intermediate folders.'
+                            : 'Choose a different name or remove the existing item first.';
+                        return commandError(res.error, fix);
+                    }
+                }
             }
+            return { ok: true };
         },
-        mkdir(args) { CMDS.md(args); },
+        mkdir(args) { return CMDS.md(args); },
         ls(args) { CMDS.dir(args); },
         del(args) {
             if (!args[0]) {
@@ -452,19 +503,32 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         },
         rm(args) { CMDS.del(args); },
         rd(args) {
-            if (!args[0]) {
+            const { flags, args: targets } = parseOptionArgs(args);
+            if (!targets.length) {
                 return commandError('RMDIR requires a directory path.', 'Use RMDIR <folder>.');
             }
-            const res = fs.rmdir(args[0]);
-            if (res.error) {
-                const isNotEmpty = res.error.includes('empty');
-                return commandError(
-                    isNotEmpty ? 'The directory is not empty.' : 'The system cannot find the path specified.',
-                    isNotEmpty ? 'Delete files inside first, then run RMDIR again.' : 'Check the directory path with DIR and retry.'
-                );
+            const recursive = flags.has('-r');
+            const force = flags.has('-f');
+            for (const target of targets) {
+                if (!target) continue;
+                const res = fs.rmdir(target, recursive);
+                if (res.error) {
+                    const msg = res.error.toLowerCase();
+                    const isNotEmpty = msg.includes('not empty');
+                    const isMissing = msg.includes('cannot find');
+                    if (force && isMissing) continue;
+                    if (!recursive && isNotEmpty) {
+                        return commandError('The directory is not empty.', 'Delete files inside first, then run RMDIR again.');
+                    }
+                    if (isMissing) {
+                        return commandError('The system cannot find the path specified.', 'Check the directory path with DIR and retry.');
+                    }
+                    return commandError(res.error, 'Check the directory path with DIR and retry.');
+                }
             }
+            return { ok: true };
         },
-        rmdir(args) { CMDS.rd(args); },
+        rmdir(args) { return CMDS.rd(args); },
         ren(args) {
             if (args.length < 2) {
                 return commandError('REN requires source and destination names.', 'Use REN <oldname> <newname>.');
@@ -508,8 +572,12 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
             return executeScriptContent(res.content, p);
         },
         exit() {
+            if (_scriptMode.active) {
+                return { ok: false, haltScript: true };
+            }
             const winObj = wm.windows.find(w => w.element === container.closest('.gos-window'));
             if (winObj) wm.closeWindow(winObj.id);
+            return { ok: true };
         },
         history(args) {
             if (args[0] === 'clear') {
@@ -817,15 +885,24 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
     function executeCondition(expr) {
         const cond = expr.trim();
         if (!cond) return false;
-        const match = cond.match(/^(.+?)\s*(==|!=)\s*(.+)$/);
+        const match = cond.match(/^(.+?)\s*(==|!=|<=|>=|<|>)\s*(.+)$/);
         if (!match) return executeSingle(cond).ok;
         const left = match[1].trim().replace(/^["']|["']$/g, '');
         const op = match[2];
         const right = match[3].trim().replace(/^["']|["']$/g, '');
-        return op === '==' ? left === right : left !== right;
+        const nLeft = Number(left);
+        const nRight = Number(right);
+        const isNum = !isNaN(nLeft) && !isNaN(nRight);
+        if (op === '==') return left === right;
+        if (op === '!=') return left !== right;
+        if (op === '<') return isNum ? nLeft < nRight : left < right;
+        if (op === '>') return isNum ? nLeft > nRight : left > right;
+        if (op === '<=') return isNum ? nLeft <= nRight : left <= right;
+        if (op === '>=') return isNum ? nLeft >= nRight : left >= right;
+        return false;
     }
 
-    function executeLineWithFlow(raw) {
+    function executeCommandLine(raw) {
         const line = raw.trim();
         if (!line) return { ok: true };
 
@@ -843,19 +920,18 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
                     return commandError('Invalid THEN/ELSE command expression.', 'Use: IF <condition> THEN <command> ELSE <command>.');
                 }
                 const condOk = executeCondition(condExpr);
-                if (condOk) return executeLineWithFlow(thenExpr);
-                if (elseExpr) return executeLineWithFlow(elseExpr);
+                if (condOk) return executeCommandLine(thenExpr);
+                if (elseExpr) return executeCommandLine(elseExpr);
                 return { ok: true };
-            } else {
-                return commandError('IF statement requires THEN.', 'Use: IF <condition> THEN <command> [ELSE <command>].');
             }
+            return commandError('IF statement requires THEN.', 'Use: IF <condition> THEN <command> [ELSE <command>].');
         }
 
         const andParts = splitByOperator(line, '&&');
         if (andParts.length > 1) {
             let last = { ok: true };
             for (const p of andParts) {
-                last = executeLineWithFlow(p);
+                last = executeCommandLine(p);
                 if (!last.ok) break;
             }
             return last;
@@ -865,7 +941,7 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         if (orParts.length > 1) {
             let last = { ok: false };
             for (const p of orParts) {
-                last = executeLineWithFlow(p);
+                last = executeCommandLine(p);
                 if (last.ok) break;
             }
             return last;
@@ -881,7 +957,6 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
             return commandError('Invalid pipe syntax.', 'Use: <command1> | <command2> with a command on both sides of "|".');
         }
 
-        // Keep normal rendering behavior (HTML/colors/etc.) for non-piped, non-redirected commands.
         if (stages.length === 1 && !redir.outputPath) {
             return executeSingle(stages[0]);
         }
@@ -922,7 +997,7 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
             const result = SmcInterpreter.runScript(content, {
                 tokenize,
                 evaluateCondition: executeCondition,
-                executeCommand: (line) => executeLineWithFlow(line),
+                executeCommand: (line) => executeCommandLine(line),
                 onFlags: (flags) => {
                     const normalized = { silent: !!flags.silent, noEcho: !!flags.noEcho };
                     scriptFlags = normalized;
@@ -950,7 +1025,8 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
 
     // ── Input dispatch ────────────────────────────────────────────────────────
     function dispatch(raw) {
-        executeLineWithFlow(raw);
+        if (!raw.trim()) return;
+        executeScriptContent(raw);
     }
 
     // ── Keyboard handler ──────────────────────────────────────────────────────

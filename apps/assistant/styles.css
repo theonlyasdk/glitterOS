@@ -200,11 +200,11 @@
 
 /* Input Area */
 .gos-assistant-input-wrap {
-    padding: 16px;
+    padding: 8px;
     background: #222;
     border-top: 1px solid #333;
     display: flex;
-    gap: 10px;
+    gap: 8px;
     align-items: flex-end;
 }
 
@@ -217,13 +217,24 @@
     border-radius: 0;
     outline: none;
     font-size: 0.9rem;
+    min-height: 38px;
     max-height: 120px;
     overflow-y: auto;
     resize: none;
+    line-height: 1.5;
+    box-sizing: border-box;
 }
 
 .gos-assistant-input:focus {
     border-color: #666;
+}
+
+.gos-assistant-send-btn {
+    height: 38px; /* matching roughly 8px padding + 1.5*0.9rem line height + borders */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 16px !important;
 }
 
 /* Thinking Animation */

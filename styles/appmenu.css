@@ -117,7 +117,7 @@
     background: #3f3f3f !important;
     color: #fff !important;
     animation: gos-ghost-fade 300ms forwards;
-    pointer-events: none;
+    pointer-events: none !important;
 }
 
 @keyframes gos-ghost-fade {
@@ -141,6 +141,7 @@
 
 .gos-context-menu.fade-out {
     animation: menu-fade-out 200ms forwards;
+    pointer-events: none !important;
 }
 
 .gos-context-menu.item-clicked {
@@ -148,9 +149,22 @@
     border-color: transparent !important;
     box-shadow: none !important;
     pointer-events: none !important;
+    animation: none !important;
 }
 
 .gos-context-menu.item-clicked>*:not(.gos-dropdown-item-ghost) {
+    visibility: hidden;
+}
+
+.gos-context-submenu.item-clicked {
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+    pointer-events: none !important;
+    animation: none !important;
+}
+
+.gos-context-submenu.item-clicked>*:not(.gos-dropdown-item-ghost) {
     visibility: hidden;
 }
 

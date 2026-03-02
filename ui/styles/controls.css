@@ -1,7 +1,51 @@
 .wm-button {
-	height: 2em;
+        height: 2em;
+        display: flex;
+        align-content: center;
+        align-items: center;
+        justify-content: center;
+}
+.gos-tab-strip {
+	background: #252525;
+	border-bottom: 1px solid #333;
+	padding: 4px 4px 0 4px;
 	display: flex;
-	align-content: center;
+	gap: 2px;
+	align-items: flex-end;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.gos-tab {
+	position: relative;
+	padding: 6px 10px;
+	font-size: 0.85rem;
+	font-weight: 400;
+	color: #aaa;
+	background: transparent;
+	border: 1px solid transparent;
+	border-bottom: none;
+	min-height: 30px;
+	cursor: pointer;
+	user-select: none;
+	display: inline-flex;
 	align-items: center;
 	justify-content: center;
+	white-space: nowrap;
+	box-sizing: border-box;
 }
+
+.gos-tab:hover:not(.active) {
+	background: rgba(255, 255, 255, 0.05);
+	color: #fff;
+}
+
+.gos-tab.active {
+	background: #1e1e1e;
+	color: #fff;
+	border-color: #333;
+	border-bottom-color: #1e1e1e;
+	z-index: 1;
+}
+
+

@@ -8,16 +8,32 @@ const SyntaxHighlighter = (() => {
 
     function highlightSmc(text) {
         const kws = new Set([
-            'if', 'then', 'else', 'end', 'proc', 'do', 'var', 'echo', 'type', 'cd', 'dir', 'md', 'mkdir', 'del', 'rm',
+            'if', 'then', 'else', 'end', 'proc', 'do', 'var', 'let', 'set', 'while', 'echo', 'type', 'cd', 'dir', 'md', 'mkdir', 'del', 'rm',
             'rd', 'rmdir', 'ren', 'copy', 'ver', 'help', 'cls', 'exit', 'history', 'runsmc', 'notify',
             'pwd', 'ls', 'cat', 'cp', 'mv', 'clear'
         ]);
-        const ops = ['==', '!=', '||', '&&', '|', '>'];
-        const lineInline = (line) => {
+        const ops = ['==', '!=', '<=', '>=', '<', '>', '||', '&&', '|', '=', '+', '-', '*', '/'];
+        
+        return String(text).split('\n').map((line) => {
+            const trimmed = line.trim();
+            if (!trimmed) return '';
+            
+            // Full line comments
+            if (trimmed.startsWith('//') || trimmed.toLowerCase().startsWith('rem ')) {
+                return `<span class="gos-syn-com">${esc(line)}</span>`;
+            }
+
             let out = '';
             let i = 0;
             while (i < line.length) {
                 const ch = line[i];
+                
+                // Inline comments (if outside strings)
+                if (ch === '#') {
+                    out += `<span class="gos-syn-com">${esc(line.slice(i))}</span>`;
+                    break;
+                }
+
                 if (ch === '"' || ch === "'") {
                     const quote = ch;
                     let j = i + 1;
@@ -47,6 +63,25 @@ const SyntaxHighlighter = (() => {
                     i = j;
                     continue;
                 }
+                
+                // Procedure calls / declarations
+                if (ch === '@') {
+                    let j = i + 1;
+                    while (j < line.length && /[A-Za-z0-9_]/.test(line[j])) j++;
+                    out += `<span class="gos-syn-kw" style="color: #c586c0;">${esc(line.slice(i, j))}</span>`;
+                    i = j;
+                    continue;
+                }
+                
+                // Variable references
+                if (ch === '$') {
+                    let j = i + 1;
+                    while (j < line.length && /[A-Za-z0-9_]/.test(line[j])) j++;
+                    out += `<span class="gos-syn-varref" style="color: #9cdcfe;">${esc(line.slice(i, j))}</span>`;
+                    i = j;
+                    continue;
+                }
+
                 const op = ops.find(o => line.startsWith(o, i));
                 if (op) {
                     out += `<span class="gos-syn-op">${esc(op)}</span>`;
@@ -72,15 +107,6 @@ const SyntaxHighlighter = (() => {
                 i++;
             }
             return out;
-        };
-
-        return String(text).split('\n').map((line) => {
-            const trimmed = line.trim();
-            if (!trimmed) return '';
-            if (trimmed.startsWith('#') || trimmed.startsWith('//') || trimmed.toLowerCase().startsWith('rem ')) {
-                return `<span class="gos-syn-com">${esc(line)}</span>`;
-            }
-            return lineInline(line);
         }).join('\n');
     }
 

@@ -3,6 +3,8 @@
  */
 const PopupMenuManager = (() => {
     let _activeMenus = [];
+    let _outerClickListener = null;
+    let _activeSubmenu = null;
 
     function _closeAll() {
         _activeMenus.forEach(m => {
@@ -10,16 +12,40 @@ const PopupMenuManager = (() => {
             setTimeout(() => m.remove(), 200);
         });
         _activeMenus = [];
+        _activeSubmenu = null;
+        if (_outerClickListener) {
+            window.removeEventListener('mousedown', _outerClickListener, true);
+            _outerClickListener = null;
+        }
+    }
+
+    function _closeSubmenus() {
+        if (_activeSubmenu) {
+            const m = _activeSubmenu;
+            m.classList.add('fade-out');
+            setTimeout(() => m.remove(), 200);
+            _activeMenus = _activeMenus.filter(x => x !== m);
+            _activeSubmenu = null;
+        }
     }
 
     function create(x, y, items, isSubmenu = false) {
         if (typeof glidBus !== 'undefined') glidBus.publish('menu:registered', { type: 'context', x, y, items, isSubmenu });
-        if (!isSubmenu) _closeAll();
+        
+        if (!isSubmenu) {
+            _closeAll();
+        } else {
+            _closeSubmenus();
+        }
 
         const menu = document.createElement('div');
         menu.className = 'gos-context-menu' + (isSubmenu ? ' gos-context-submenu' : '');
         menu.style.left = x + 'px';
         menu.style.top = y + 'px';
+
+        if (isSubmenu) {
+            _activeSubmenu = menu;
+        }
 
         items.forEach(item => {
             if (item.type === 'sep') {
@@ -41,16 +67,34 @@ const PopupMenuManager = (() => {
             }
 
             el.onclick = (e) => {
+                e.stopPropagation();
                 if (item.disabled) return;
+                
                 if (!item.hasSubmenu) {
-                    item.action && item.action();
-                    _closeAll();
+                    menu.classList.add('item-clicked');
+                    el.classList.add('gos-dropdown-item-ghost');
+                    
+                    // Fast track _closeAll without the fade-out animation on this specific menu
+                    _activeMenus = _activeMenus.filter(m => m !== menu);
+                    if (_activeSubmenu === menu) _activeSubmenu = null;
+                    _closeAll(); // Close any other menus (like parents) normally
+                    
+                    setTimeout(() => {
+                        menu.classList.remove('item-clicked');
+                        el.classList.remove('gos-dropdown-item-ghost');
+                        menu.remove();
+                        if (item.action) item.action();
+                    }, 300);
                 }
             };
 
-            if (item.onMouseEnter) {
-                el.onmouseenter = (e) => item.onMouseEnter(e, el);
-            }
+            el.onmouseenter = (e) => {
+                if (item.hasSubmenu && item.onMouseEnter) {
+                    item.onMouseEnter(e, el);
+                } else if (!isSubmenu) {
+                    _closeSubmenus();
+                }
+            };
 
             menu.appendChild(el);
         });
@@ -63,14 +107,14 @@ const PopupMenuManager = (() => {
         if (rect.right > window.innerWidth) menu.style.left = (x - rect.width) + 'px';
         if (rect.bottom > window.innerHeight) menu.style.top = (y - rect.height) + 'px';
 
-        if (!isSubmenu) {
-            const onOuterClick = (e) => {
-                if (!menu.contains(e.target)) {
+        if (!isSubmenu && !_outerClickListener) {
+            _outerClickListener = (e) => {
+                const clickedInside = _activeMenus.some(m => m.contains(e.target));
+                if (!clickedInside) {
                     _closeAll();
-                    window.removeEventListener('mousedown', onOuterClick, true);
                 }
             };
-            setTimeout(() => window.addEventListener('mousedown', onOuterClick, true), 10);
+            setTimeout(() => window.addEventListener('mousedown', _outerClickListener, true), 10);
         }
 
         return menu;
@@ -79,6 +123,7 @@ const PopupMenuManager = (() => {
     return {
         show: create,
         closeAll: _closeAll,
+        closeSubmenus: _closeSubmenus,
         /**
          * Specialized File Context Menu
          */

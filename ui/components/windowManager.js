@@ -596,6 +596,8 @@ class WindowManager {
         const appMenu = document.getElementById('mbar-app-menu');
         const closeAppBtn = document.getElementById('mbar-close-app');
         const prefsBtn = document.getElementById('mbar-app-prefs');
+        const prefsContainer = document.getElementById('mbar-app-prefs-container');
+        const sepContainer = document.getElementById('mbar-app-sep-container');
 
         if (!deskLabel) return;
 
@@ -603,21 +605,70 @@ class WindowManager {
             const title = this.activeWindow.parentTitle || this.activeWindow.title;
             deskLabel.textContent = title;
             if (deskBtn) deskBtn.style.pointerEvents = 'auto';
-            if (appMenu) appMenu.style.display = '';
-            if (closeAppBtn) closeAppBtn.textContent = `Quit ${title}`;
-            if (prefsBtn) {
+            if (appMenu) {
+                appMenu.style.display = '';
+                
+                // Clear any previously injected custom menu items
+                appMenu.querySelectorAll('.gos-injected-menu-item').forEach(el => el.remove());
+                
+                let hasCustomItems = false;
+                
+                // If the app has registered custom app menus, inject them before the Preferences item
+                if (this.activeWindow.appMenu && Array.isArray(this.activeWindow.appMenu) && this.activeWindow.appMenu.length > 0) {
+                    hasCustomItems = true;
+                    this.activeWindow.appMenu.forEach(item => {
+                        const li = document.createElement('li');
+                        li.className = 'gos-injected-menu-item';
+                        if (item.type === 'sep') {
+                            li.innerHTML = '<hr class="dropdown-divider">';
+                        } else {
+                            const a = document.createElement('a');
+                            a.className = 'dropdown-item';
+                            a.href = '#';
+                            a.textContent = item.label;
+                            if (item.action) {
+                                a.onclick = (e) => {
+                                    e.preventDefault();
+                                    item.action();
+                                };
+                            }
+                            li.appendChild(a);
+                        }
+                        // Insert before the preferences container
+                        appMenu.insertBefore(li, prefsContainer);
+                    });
+                    
+                    // Add a separator after custom items if Preferences is shown
+                    if (this.activeWindow.preferencesProvider) {
+                        const sepLi = document.createElement('li');
+                        sepLi.className = 'gos-injected-menu-item';
+                        sepLi.innerHTML = '<hr class="dropdown-divider">';
+                        appMenu.insertBefore(sepLi, prefsContainer);
+                    }
+                }
+                
                 if (this.activeWindow.preferencesProvider) {
-                    prefsBtn.parentElement.style.display = '';
+                    if (prefsContainer) prefsContainer.style.display = '';
                 } else {
-                    prefsBtn.parentElement.style.display = 'none';
+                    if (prefsContainer) prefsContainer.style.display = 'none';
+                }
+                
+                // Handle built-in bottom separator
+                if (sepContainer) {
+                    sepContainer.style.display = (hasCustomItems || this.activeWindow.preferencesProvider) ? '' : 'none';
                 }
             }
+            if (closeAppBtn) closeAppBtn.textContent = `Quit ${title}`;
         } else {
             deskLabel.textContent = 'Desktop';
             if (deskBtn) deskBtn.style.pointerEvents = 'none';
-            if (appMenu) appMenu.style.display = 'none';
+            if (appMenu) {
+                appMenu.style.display = 'none';
+                appMenu.querySelectorAll('.gos-injected-menu-item').forEach(el => el.remove());
+            }
             if (closeAppBtn) closeAppBtn.textContent = 'Quit';
-            if (prefsBtn) prefsBtn.parentElement.style.display = 'none';
+            if (prefsContainer) prefsContainer.style.display = 'none';
+            if (sepContainer) sepContainer.style.display = 'none';
         }
     }
 
@@ -689,6 +740,9 @@ class WindowManager {
             draggingMaximized = win.dataset.maximized === 'true';
             pos3 = clientX;
             pos4 = clientY;
+            
+            // Close any visible system menus
+            document.querySelectorAll('.gos-win-sysmenu.visible').forEach(m => m.classList.remove('visible'));
         };
 
         const moveDragging = (clientX, clientY) => {

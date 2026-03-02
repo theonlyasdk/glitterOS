@@ -106,9 +106,8 @@ function launchAssistant() {
     inputArea.rows = 1;
 
     const sendBtn = document.createElement('button');
-    sendBtn.className = 'gos-w32-btn disabled';
+    sendBtn.className = 'gos-w32-btn gos-assistant-send-btn disabled';
     sendBtn.disabled = true;
-    sendBtn.style.padding = '8px';
     sendBtn.innerHTML = '<i class="bi bi-send-fill"></i>';
     sendBtn.onclick = () => handleSend();
 
@@ -646,7 +645,7 @@ function launchAssistant() {
         dlgContainer.style.flexDirection = 'column';
 
         const header = document.createElement('div');
-        header.className = 'gos-taskmgr-tabs';
+        header.className = 'gos-tab-strip';
 
         const tabContent = document.createElement('div');
         tabContent.className = 'gos-taskmgr-content';
@@ -754,11 +753,11 @@ function launchAssistant() {
 
         tabs.forEach(tab => {
             const el = document.createElement('div');
-            el.className = 'gos-taskmgr-tab' + (tab.id === activeTab ? ' active' : '');
+            el.className = 'gos-tab' + (tab.id === activeTab ? ' active' : '');
             el.textContent = tab.label;
             el.onclick = () => {
                 activeTab = tab.id;
-                header.querySelectorAll('.gos-taskmgr-tab').forEach(t => t.classList.toggle('active', t === el));
+                header.querySelectorAll('.gos-tab').forEach(t => t.classList.toggle('active', t === el));
                 if (tab.id === 'general') renderGeneral();
             };
             header.appendChild(el);
@@ -804,6 +803,10 @@ function launchAssistant() {
 
     const win = wm.createWindow('Assistant', container, { icon: 'ri-sparkling-fill', width: 800, height: 600 });
     win.preferencesProvider = openPreferences;
+    win.appMenu = [
+        { label: 'Clear History', action: () => clearAllHistory() }
+    ];
+    wm.updateMenubarLabel();
 
     if (_threads.length > 0) {
         _activeThreadId = _threads[0].id;

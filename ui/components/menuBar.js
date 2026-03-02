@@ -112,18 +112,25 @@ function buildAppMenuBar() {
             activeItem = null;
         }
         hoverEnabled = false;
+        if (typeof PopupMenuManager !== 'undefined' && PopupMenuManager.closeSubmenus) {
+            PopupMenuManager.closeSubmenus();
+        }
     };
 
     const onClickOutside = (e) => {
-        if (!bar.contains(e.target)) {
+        // Find if click is within the menubar, its dropdown, or any active submenu
+        const isWithinMenu = bar.contains(e.target);
+        const isWithinSubmenu = e.target.closest('.gos-context-submenu');
+        
+        if (!isWithinMenu && !isWithinSubmenu) {
             closeAll();
         }
     };
 
-    document.addEventListener('mousedown', onClickOutside);
+    document.addEventListener('mousedown', onClickOutside, true);
 
     bar._cleanup = () => {
-        document.removeEventListener('mousedown', onClickOutside);
+        document.removeEventListener('mousedown', onClickOutside, true);
     };
 
     bar.createMenu = (label, items) => {
@@ -174,12 +181,18 @@ function buildAppMenuBar() {
                     el.classList.remove('gos-dropdown-item-ghost');
                     closeAll();
                     if (menuItem.action) menuItem.action();
-                }, 150);
+                }, 300);
             };
 
-            if (menuItem.onMouseEnter) {
-                el.onmouseenter = (e) => menuItem.onMouseEnter(e, el);
-            }
+            el.onmouseenter = (e) => {
+                if (menuItem.hasSubmenu && menuItem.onMouseEnter) {
+                    menuItem.onMouseEnter(e, el);
+                } else {
+                    if (typeof PopupMenuManager !== 'undefined' && PopupMenuManager.closeSubmenus) {
+                        PopupMenuManager.closeSubmenus();
+                    }
+                }
+            };
 
             dropdown.appendChild(el);
         });
