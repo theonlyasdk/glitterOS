@@ -276,6 +276,26 @@ function launchControlPanel() {
             providerSelect.onchange = () => renderWallpaperProvider(providerSelect.value);
             renderWallpaperProvider(savedProvider);
         } else if (id === 'system') {
+            // System settings section
+            const sysTitle = document.createElement('div');
+            sysTitle.style.cssText = 'font-size:1.1rem; font-weight:600; margin-bottom:12px; color:var(--accent-color);';
+            sysTitle.textContent = 'System';
+            mainContent.appendChild(sysTitle);
+
+            const restoreCheck = Widgets.createUWPCheckbox('Restore previous session on boot',
+                registry.get('Software.GlitterOS.System.RestoreSession', true),
+                (checked) => {
+                    registry.set('Software.GlitterOS.System.RestoreSession', checked);
+                    if (checked) wm.saveSession();
+                    else registry.delete('Software.GlitterOS.WindowManager.Session');
+                }
+            );
+            mainContent.appendChild(restoreCheck);
+
+            const sep = document.createElement('hr');
+            sep.style.cssText = 'border:0;border-top:1px solid #3a3a3a;margin:20px 0;';
+            mainContent.appendChild(sep);
+
             const card = document.createElement('div');
             card.style.cssText = 'background:#252525;border:1px solid #3a3a3a;padding:20px;margin-top:8px;';
 
@@ -588,7 +608,8 @@ function launchControlPanel() {
     wm.createWindow('Control Panel', container, {
         width: 750,
         height: 500,
-        icon: 'ri-settings-3-line'
+        icon: 'ri-settings-3-line',
+        appId: 'controlpanel'
     });
 
     renderSection('personalization');

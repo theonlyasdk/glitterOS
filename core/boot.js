@@ -74,8 +74,62 @@ function truncateFilename(name, limit) {
     return name.substring(0, limit - 3) + "...";
 }
 
+// ── Application Initialization ───────────────────────────────────────────
+async function restoreSession() {
+    const restoreEnabled = registry.get('Software.GlitterOS.System.RestoreSession', true);
+    if (!restoreEnabled) return;
+
+    const session = registry.get('Software.GlitterOS.WindowManager.Session', []);
+    if (!Array.isArray(session) || session.length === 0) return;
+
+    if (typeof SysLog !== 'undefined') SysLog.info(`System: Restoring ${session.length} windows from previous session...`);
+
+    // Sort by Z-index to restore stack order
+    const sortedSession = [...session].sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
+
+    for (const winState of sortedSession) {
+        const app = AppRegistry.get(winState.appId);
+        if (app) {
+            try {
+                // Launch the app
+                app.launch(winState.args);
+
+                // The window is now in wm.windows. Find the most recent one for this appId.
+                const newWin = wm.windows.filter(w => w.appId === winState.appId).pop();
+                if (newWin) {
+                    const winElem = newWin.element;
+
+                    // Apply saved state
+                    winElem.style.left = winState.x + 'px';
+                    winElem.style.top = winState.y + 'px';
+                    winElem.style.width = winState.width + 'px';
+                    winElem.style.height = winState.height + 'px';
+                    winElem.style.zIndex = winState.zIndex;
+
+                    if (winState.maximized) {
+                        // Mock a non-maximized state first to store old values
+                        winElem.dataset.oldWidth = winElem.style.width;
+                        winElem.dataset.oldHeight = winElem.style.height;
+                        winElem.dataset.oldLeft = winElem.style.left;
+                        winElem.dataset.oldTop = winElem.style.top;
+
+                        // Then trigger maximization
+                        wm.toggleMaximize(winElem);
+                    }
+
+                    if (winState.minimized) {
+                        wm.minimizeWindow(newWin.id);
+                    }
+                }
+            } catch (err) {
+                console.error(`Failed to restore app ${winState.appId}:`, err);
+            }
+        }
+    }
+}
+
 // ── LDE Boot — calls gosInit after all modules are loaded ────────────────────
-function gosInit() {
+async function gosInit() {
     assertExistsElseReload(menubar);
     assertExistsElseReload(desktop);
     assertExistsElseReload(taskbar);
@@ -112,6 +166,20 @@ function gosInit() {
     document.body.classList.add('loaded');
     if (typeof SysLog !== 'undefined') SysLog.info("glitterOS: Desktop loaded.");
 
+    // Check if there are any windows. If not, maybe restore session or launch default app.
+    const restoreEnabled = registry.get('Software.GlitterOS.System.RestoreSession', true);
+    const sessionData = registry.get('Software.GlitterOS.WindowManager.Session', []);
+    const hasSavedSession = Array.isArray(sessionData) && sessionData.length > 0;
+
+    if (restoreEnabled && hasSavedSession) {
+        await restoreSession();
+    } else {
+        // Launch initial CMD if no session to restore
+        if (typeof launchCommandPrompt === 'function') {
+            launchCommandPrompt(null, true);
+        }
+    }
+
     // Disable browser right-click menu globally and show custom desktop menu
     document.addEventListener('contextmenu', (e) => {
         e.preventDefault();
@@ -139,8 +207,14 @@ function gosInit() {
         }
     });
 
-    // Launch CMD on boot
-    launchCommandPrompt(null, true);
+    // Hide lock screen
+    const lockScreen = document.getElementById('lock-screen');
+    if (lockScreen) {
+        setTimeout(() => {
+            lockScreen.classList.add('fade-out');
+            setTimeout(() => lockScreen.style.display = 'none', 1000);
+        }, 500);
+    }
 }
 
 function gosInitGlobalShortcuts() {
@@ -155,6 +229,70 @@ function gosInitGlobalShortcuts() {
             if (shortcut.action) {
                 e.preventDefault();
                 shortcut.action();
+            }
+        }
+
+        // Arrow keys to navigate desktop icons
+        if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) {
+            // Only navigate if NO window is active
+            if (wm && wm.activeWindow) return;
+
+            const icons = Array.from(document.querySelectorAll('.gos-desktop-shortcut'));
+            if (icons.length === 0) return;
+
+            e.preventDefault();
+
+            const selectedIcons = icons.filter(i => i.classList.contains('selected'));
+            let targetIcon = null;
+            if (selectedIcons.length === 0) {
+                targetIcon = icons[0];
+            } else {
+                // Find the "lead" icon (the last one selected)
+                const leadIcon = selectedIcons[selectedIcons.length - 1];
+                const leadRect = leadIcon.getBoundingClientRect();
+                
+                let bestDist = Infinity;
+                
+                icons.forEach(icon => {
+                    if (icon === leadIcon) return;
+                    const rect = icon.getBoundingClientRect();
+                    
+                    let isCorrectDirection = false;
+                    let dist = 0;
+
+                    const centerX = rect.left + rect.width / 2;
+                    const centerY = rect.top + rect.height / 2;
+                    const leadCenterX = leadRect.left + leadRect.width / 2;
+                    const leadCenterY = leadRect.top + leadRect.height / 2;
+
+                    if (key === 'arrowup') {
+                        isCorrectDirection = centerY < leadCenterY - leadRect.height / 2;
+                        // Favor vertical alignment
+                        dist = Math.abs(centerX - leadCenterX) + Math.abs(centerY - leadCenterY) * 0.5;
+                    } else if (key === 'arrowdown') {
+                        isCorrectDirection = centerY > leadCenterY + leadRect.height / 2;
+                        dist = Math.abs(centerX - leadCenterX) + Math.abs(centerY - leadCenterY) * 0.5;
+                    } else if (key === 'arrowleft') {
+                        isCorrectDirection = centerX < leadCenterX - leadRect.width / 2;
+                        dist = Math.abs(centerX - leadCenterX) * 0.5 + Math.abs(centerY - leadCenterY);
+                    } else if (key === 'arrowright') {
+                        isCorrectDirection = centerX > leadCenterX + leadRect.width / 2;
+                        dist = Math.abs(centerX - leadCenterX) * 0.5 + Math.abs(centerY - leadCenterY);
+                    }
+
+                    if (isCorrectDirection && dist < bestDist) {
+                        bestDist = dist;
+                        targetIcon = icon;
+                    }
+                });
+            }
+
+            if (targetIcon) {
+                if (!e.shiftKey) {
+                    icons.forEach(i => i.classList.remove('selected'));
+                }
+                targetIcon.classList.add('selected');
+                targetIcon.scrollIntoView({ block: 'nearest', inline: 'nearest' });
             }
         }
 

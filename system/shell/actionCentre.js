@@ -18,35 +18,75 @@ function ensureToastContainer() {
 
 function layoutToastStack() {
     const wrap = ensureToastContainer();
-    const toasts = Array.from(wrap.children);
+    const toasts = Array.from(wrap.children); // [newest, ..., oldest]
+    
+    // Reset all styles
     toasts.forEach((t) => {
         t.classList.remove('stacked');
         t.classList.remove('hidden-stack');
+        t.style.position = '';
+        t.style.bottom = '';
         t.style.marginTop = '';
         t.style.transform = '';
         t.style.zIndex = '';
+        t.style.opacity = '';
+        t.style.width = '';
     });
 
-    const taskbar = document.getElementById('taskbar');
-    const taskbarTop = taskbar ? taskbar.getBoundingClientRect().top : window.innerHeight;
-    const needsStack = toasts.length > 0 && toasts[toasts.length - 1].getBoundingClientRect().bottom > (taskbarTop - 8);
-    if (!needsStack) return;
+    const wrapRect = wrap.getBoundingClientRect();
+    const availableHeight = wrapRect.height;
+    
+    let currentY = 0;
+    let stackStartIdx = -1;
 
-    const overlapStep = 26;
+    // Identify where the stack should start (from the newest down)
     for (let i = 0; i < toasts.length; i++) {
         const toast = toasts[i];
         if (toast.classList.contains('entering')) continue;
-        if (i > 4) {
-            toast.classList.add('hidden-stack');
-            continue;
+        
+        // Use getBoundingClientRect to get actual height even if CSS or scale is applied
+        const h = toast.getBoundingClientRect().height;
+        // If this toast would overflow the bottom of the container
+        if (currentY + h > availableHeight) {
+            stackStartIdx = i;
+            break;
         }
-        const scale = Math.max(0.84, 1 - (i * 0.04));
-        if (i > 0) toast.style.marginTop = `-${overlapStep}px`;
-        toast.style.transformOrigin = 'top right';
-        toast.style.transform = `scale(${scale})`;
-        toast.style.zIndex = `${500 - i}`;
-        if (i > 0) toast.classList.add('stacked');
+        currentY += h + 8; // 8 is gap
     }
+
+    if (stackStartIdx === -1) return;
+
+    // Stack items that reached the bottom
+    const stackedItems = toasts.slice(stackStartIdx); // [newer, ..., oldest]
+    const oldestIdx = stackedItems.length - 1;
+
+    stackedItems.forEach((toast, idx) => {
+        toast.style.position = 'absolute';
+        toast.style.bottom = '0';
+        toast.style.width = '100%';
+        toast.style.boxSizing = 'border-box';
+        
+        // idx goes from 0 (newest in stack) to oldestIdx (oldest in stack)
+        // User wants oldest on top (front)
+        const depth = oldestIdx - idx; // 0 for oldest, increasing for newer
+        
+        // Oldest (depth 0) is front-most
+        toast.style.zIndex = `${2000 - depth}`;
+        
+        // Newer cards (higher depth) shift UP to peek out
+        // Increased offset to 24px per card for better 'deck' visibility
+        const translateY = -(depth * 24);
+        const scale = Math.max(0.88, 1 - (depth * 0.02));
+        
+        toast.style.transformOrigin = 'bottom center';
+        toast.style.transform = `translateY(${translateY}px) scale(${scale})`;
+        toast.classList.add('stacked');
+        
+        // Hide if too many in stack
+        if (depth > 4) {
+            toast.classList.add('hidden-stack');
+        }
+    });
 }
 
 function createNotificationNode(n, isToast = false) {

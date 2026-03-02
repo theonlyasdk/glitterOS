@@ -515,6 +515,7 @@ function launchTaskManager() {
         icon: 'ri-dashboard-line',
         width: 600,
         height: 400,
+        appId: 'taskmanager',
         onClose: () => {
             stopPerfMonitoring();
             window.removeEventListener('gos-window-changed', winChangeListener);

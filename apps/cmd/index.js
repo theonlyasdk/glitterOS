@@ -813,15 +813,16 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         }
 
         const possiblePaths = [
-            line,
-            line + '.exe',
-            'C:\\glitterOS\\System\\' + line,
-            'C:\\glitterOS\\System\\' + line + '.exe'
+            cmd,
+            cmd + '.exe',
+            'C:\\glitterOS\\System\\' + cmd,
+            'C:\\glitterOS\\System\\' + cmd + '.exe'
         ];
 
         for (const p of possiblePaths) {
             if (fs.exists(p)) {
-                const res = SystemExec.run(p);
+                const argStr = args.join(' ');
+                const res = SystemExec.run(p, argStr || null);
                 if (res.ok) return { ok: true };
                 if (res.error === 'App not installed') return { ok: false };
             }
@@ -845,10 +846,10 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         if (tokens[0].toLowerCase().endsWith('.smc')) return tokens.length === 1 && fs.exists(tokens[0]);
 
         const candidates = [
-            line,
-            line + '.exe',
-            'C:\\glitterOS\\System\\' + line,
-            'C:\\glitterOS\\System\\' + line + '.exe'
+            cmd,
+            cmd + '.exe',
+            'C:\\glitterOS\\System\\' + cmd,
+            'C:\\glitterOS\\System\\' + cmd + '.exe'
         ];
         return candidates.some(p => fs.exists(p));
     }
@@ -905,7 +906,7 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         return false;
     }
 
-    function executeCommandLine(raw) {
+    async function executeCommandLine(raw) {
         const line = raw.trim();
         if (!line) return { ok: true };
 
@@ -923,8 +924,8 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
                     return commandError('Invalid THEN/ELSE command expression.', 'Use: IF <condition> THEN <command> ELSE <command>.');
                 }
                 const condOk = executeCondition(condExpr);
-                if (condOk) return executeCommandLine(thenExpr);
-                if (elseExpr) return executeCommandLine(elseExpr);
+                if (condOk) return await executeCommandLine(thenExpr);
+                if (elseExpr) return await executeCommandLine(elseExpr);
                 return { ok: true };
             }
             return commandError('IF statement requires THEN.', 'Use: IF <condition> THEN <command> [ELSE <command>].');
@@ -934,7 +935,7 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         if (andParts.length > 1) {
             let last = { ok: true };
             for (const p of andParts) {
-                last = executeCommandLine(p);
+                last = await executeCommandLine(p);
                 if (!last.ok) break;
             }
             return last;
@@ -944,7 +945,7 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         if (orParts.length > 1) {
             let last = { ok: false };
             for (const p of orParts) {
-                last = executeCommandLine(p);
+                last = await executeCommandLine(p);
                 if (last.ok) break;
             }
             return last;
@@ -987,7 +988,7 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         return last;
     }
 
-    function executeScriptContent(content, scriptPath = null) {
+    async function executeScriptContent(content, scriptPath = null) {
         if (typeof SmcInterpreter === 'undefined' || !SmcInterpreter.runScript) {
             return commandError('SMC interpreter service is unavailable.', 'Ensure core/services/smcInterpreter.js is loaded before CMD.');
         }
@@ -997,7 +998,7 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         const prevMode = { ..._scriptMode };
         let scriptFlags = { active: true, silent: false, noEcho: false };
         try {
-            const result = SmcInterpreter.runScript(content, {
+            const result = await SmcInterpreter.runScript(content, {
                 tokenize,
                 evaluateCondition: executeCondition,
                 executeCommand: (line, lineNum) => executeCommandLine(line),
@@ -1032,9 +1033,9 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
     }
 
     // ── Input dispatch ────────────────────────────────────────────────────────
-    function dispatch(raw) {
+    async function dispatch(raw) {
         if (!raw.trim()) return;
-        executeScriptContent(raw);
+        await executeScriptContent(raw);
     }
 
     // ── Keyboard handler ──────────────────────────────────────────────────────
@@ -1339,7 +1340,11 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         winOptions.y = 60;
     }
 
-    const winObj = wm.createWindow('    Command Prompt', container, winOptions);
+    const winObj = wm.createWindow('    Command Prompt', container, {
+        ...winOptions,
+        appId: 'cmd',
+        args: autoRun
+    });
 
     // Watch for window focus/blur via MutationObserver on the window element
     const focusObserver = new MutationObserver((mutations) => {

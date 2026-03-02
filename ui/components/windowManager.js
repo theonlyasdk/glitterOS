@@ -94,6 +94,8 @@ class WindowManager {
             win.style.width = (options.width || 400) + 'px';
             win.style.height = (options.height || 300) + 'px';
         }
+        if (options.maximized) win.dataset.maximized = 'true';
+        
         win.style.zIndex = ++this.zIndexCounter;
 
         const header = document.createElement('div');
@@ -272,7 +274,9 @@ class WindowManager {
             icon: options.icon || 'ri-window-line',
             element: win,
             zIndex: win.style.zIndex,
-            showSysMenu: showSysMenu
+            showSysMenu: showSysMenu,
+            appId: options.appId || null,
+            args: options.args || null
         };
 
         this.windows.push(winObj);
@@ -322,7 +326,36 @@ class WindowManager {
             });
         });
 
+        this.saveSession();
         return winObj;
+    }
+
+    saveSession() {
+        const restoreEnabled = registry.get('Software.GlitterOS.System.RestoreSession', true);
+        if (!restoreEnabled) {
+            registry.delete('Software.GlitterOS.WindowManager.Session');
+            return;
+        }
+
+        const session = this.windows
+            .filter(w => w.appId && !w.modal)
+            .map(w => {
+                const rect = w.element.getBoundingClientRect();
+                return {
+                    appId: w.appId,
+                    args: w.args,
+                    title: w.title,
+                    x: w.element.offsetLeft,
+                    y: w.element.offsetTop,
+                    width: w.element.offsetWidth,
+                    height: w.element.offsetHeight,
+                    maximized: w.element.dataset.maximized === 'true',
+                    minimized: w.element.classList.contains('minimized'),
+                    zIndex: w.element.style.zIndex
+                };
+            });
+        
+        registry.set('Software.GlitterOS.WindowManager.Session', session);
     }
 
     toggleMaximize(win) {
@@ -356,6 +389,7 @@ class WindowManager {
         win.offsetHeight; // Force reflow
         win.classList.remove('no-transition');
         if (typeof SysLog !== 'undefined') SysLog.debug(`WindowManager: Window "${win.id}" ${isMax ? 'restored' : 'maximized'}`);
+        this.saveSession();
     }
 
     focusWindow(id) {
@@ -400,6 +434,7 @@ class WindowManager {
 
         this.updateTaskbar();
         this.updateMenubarLabel();
+        this.saveSession();
     }
 
     minimizeWindow(id) {
@@ -437,10 +472,12 @@ class WindowManager {
             const visibleWindows = this.windows.filter(w => !w.element.classList.contains('minimized'));
             if (visibleWindows.length > 0) {
                 const topWin = visibleWindows.sort((a, b) => b.element.style.zIndex - a.element.style.zIndex)[0];
+                if (topWin) this.focusWindow(topWin.id);
             }
         }
         this.updateTaskbar();
         if (typeof SysLog !== 'undefined') SysLog.debug(`WindowManager: Window "${id}" minimized`);
+        this.saveSession();
     }
 
     restoreWindow(id) {
@@ -465,6 +502,7 @@ class WindowManager {
         this.activeWindow = winObj;
         this.updateTaskbar();
         if (typeof SysLog !== 'undefined') SysLog.debug(`WindowManager: Window "${id}" restored`);
+        this.saveSession();
     }
 
     closeWindow(id) {
@@ -505,6 +543,7 @@ class WindowManager {
             this.updateTaskbar();
             this.updateMenubarLabel();
             window.dispatchEvent(new CustomEvent('gos-window-changed'));
+            this.saveSession();
         }, 300);
 
         if (this.activeWindow && this.activeWindow.id === id) {
@@ -800,6 +839,7 @@ class WindowManager {
                 win.classList.remove('dragging');
                 this.handleSnap(win, pos3, pos4);
                 this.snapPreview.classList.remove('visible');
+                this.saveSession();
             }
         };
 
@@ -945,6 +985,7 @@ class WindowManager {
                 document.removeEventListener('mouseup', stopResize);
                 document.removeEventListener('touchmove', onTouchMove);
                 document.removeEventListener('touchend', stopResize);
+                this.saveSession();
             };
 
             const onMouseMove = (e) => moveResize(e.clientX, e.clientY);

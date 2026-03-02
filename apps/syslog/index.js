@@ -78,6 +78,7 @@ function launchSysLog() {
         width: 600,
         height: 400,
         icon: 'bi-journal-code',
+        appId: 'syslog',
         onClose: () => {
             SysLog.unsubscribe(unsubs);
         }

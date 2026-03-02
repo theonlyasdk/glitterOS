@@ -869,7 +869,9 @@ function launchFileManager(startPath) {
     wm.createWindow('File Explorer', container, {
         icon: 'ri-folder-open-line',
         width: 700,
-        height: 480
+        height: 480,
+        appId: 'filemanager',
+        args: startPath
     });
 }
 

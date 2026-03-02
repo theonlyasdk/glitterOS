@@ -319,6 +319,8 @@ function launchNotepad(filePath = null) {
         icon: 'ri-file-text-line',
         width: 600,
         height: 400,
+        appId: 'notepad',
+        args: filePath,
         onClose: () => {
             menubar._cleanup();
             document.removeEventListener('mousedown', onOutsideMenuClickCapture, true);

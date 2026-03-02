@@ -878,7 +878,9 @@ function launchEdit(filePath = null, parentContainer = null, onExit = null) {
             width: 640,
             height: 400,
             icon: 'bi-pencil-square',
-            noResize: false
+            noResize: false,
+            appId: 'editor',
+            args: filePath
         });
         updateTitle();
         updateLineNumbers();

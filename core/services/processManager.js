@@ -15,7 +15,7 @@ const ProcessManager = (() => {
 
     return {
         /** Launch a file if it's an executable or associated with an app */
-        run(path) {
+        run(path, args = null) {
             if (typeof fs === 'undefined') return { error: 'FS not loaded' };
             const stat = fs.stat(path);
             if (stat.error) return { error: stat.error };
@@ -25,7 +25,7 @@ const ProcessManager = (() => {
             if (appId) {
                 const app = AppRegistry.get(appId);
                 if (app) {
-                    app.launch();
+                    app.launch(args);
                     return { ok: true };
                 } else {
                     if (typeof wm !== 'undefined') {

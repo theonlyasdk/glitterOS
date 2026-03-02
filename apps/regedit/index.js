@@ -822,6 +822,7 @@ function launchRegistryEditor() {
         icon: 'bi-database-fill-gear',
         width: 720,
         height: 440,
+        appId: 'regedit',
         onClose: () => {
             if (_ctxMenu) _ctxMenu.remove();
         }

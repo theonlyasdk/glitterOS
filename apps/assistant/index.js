@@ -801,7 +801,7 @@ function launchAssistant() {
 
     inputArea.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } };
 
-    const win = wm.createWindow('Assistant', container, { icon: 'ri-sparkling-fill', width: 800, height: 600 });
+    const win = wm.createWindow('Assistant', container, { icon: 'ri-sparkling-fill', width: 800, height: 600, appId: 'assistant' });
     win.preferencesProvider = openPreferences;
     win.appMenu = [
         { label: 'Clear History', action: () => clearAllHistory() }

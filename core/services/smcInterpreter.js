@@ -1,3 +1,7 @@
+/**
+ * SMC Interpreter - Scriptable Macro Commands for glitterOS
+ * Enhanced version with flow control, variables, procedures, and async wait.
+ */
 const SmcInterpreter = (() => {
     function normalize(content) {
         return String(content).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
@@ -106,6 +110,14 @@ const SmcInterpreter = (() => {
                 continue;
             }
 
+            // Detect wait command
+            const waitMatch = line.match(/^wait\s+(.+)$/i);
+            if (waitMatch) {
+                nodes.push({ type: 'wait', value: waitMatch[1], lineNum });
+                i++;
+                continue;
+            }
+
             const assign = parseAssignment(line);
             if (assign) {
                 if (assign.error) return { error: `${assign.error} at Line ${lineNum}` };
@@ -203,7 +215,7 @@ const SmcInterpreter = (() => {
         return out;
     }
 
-    function runScript(content, hooks = {}, state = null) {
+    async function runScript(content, hooks = {}, state = null) {
         const {
             tokenize = (s) => String(s).trim() ? String(s).trim().split(/\s+/) : [],
             evaluateCondition = () => false,
@@ -409,10 +421,10 @@ const SmcInterpreter = (() => {
             return base.endsWith('\\') ? base + cleaned : `${base}\\${cleaned}`;
         };
 
-        function handleCommandExecution(line, lineNum, scope) {
+        async function handleCommandExecution(line, lineNum, scope) {
             const expanded = expandVariables(line, scope);
             if (onCommand) onCommand(expanded);
-            const result = executeCommand(expanded) || { ok: true };
+            const result = await executeCommand(expanded, lineNum) || { ok: true };
             if (!result.ok) {
                 if (result.haltScript) {
                     return result; // explicitly return and don't suppress
@@ -435,7 +447,7 @@ const SmcInterpreter = (() => {
             return { ok: true };
         }
 
-        function runNodes(nodes, scope = { variables: {}, parent: null }, depth = 0) {
+        async function runNodes(nodes, scope = { variables: {}, parent: null }, depth = 0) {
             if (depth > recursionLimit) {
                 if (onError) onError(formatError('Procedure recursion limit exceeded.'));
                 return { ok: false };
@@ -445,6 +457,22 @@ const SmcInterpreter = (() => {
                     if (node.name === 'ignore_subcmd_errors') {
                         ctx.ignoreNextCommand = true;
                     }
+                    continue;
+                }
+                if (node.type === 'wait') {
+                    let ms;
+                    try {
+                        ms = evaluateExpression(node.value, scope, node.lineNum);
+                        ms = parseInt(ms);
+                    } catch (e) {
+                        if (onError) onError(formatError(`Wait error: ${e.message}`, node.lineNum));
+                        return { ok: false };
+                    }
+                    if (isNaN(ms)) {
+                        if (onError) onError(formatError(`Invalid wait value: ${node.value}`, node.lineNum));
+                        return { ok: false };
+                    }
+                    await new Promise(resolve => setTimeout(resolve, ms));
                     continue;
                 }
                 if (node.type === 'var_echo') {
@@ -476,7 +504,7 @@ const SmcInterpreter = (() => {
                         const existing = findInScopes(node.name, scope);
                         if (existing) {
                             if (!ctx.flags.allowCasting && typeof existing.value !== typeof newVal) {
-                                if (onError) onError(formatError(`Type mismatch: cannot assign ${typeof newVal} to ${typeof existing.value} variable ${node.name}. Use ![allow_casting]`, node.lineNum));
+                                if (onError) onError(formatError(`Type mismatch: cannot assign ${typeof newVal} to ${typeof oldVal} variable ${node.name}. Use ![allow_casting]`, node.lineNum));
                                 return { ok: false };
                             }
                             if (existing.scope === 'global') ctx.globalScope[node.name] = newVal;
@@ -500,7 +528,7 @@ const SmcInterpreter = (() => {
                         const condition = expandVariables(node.condition, scope);
                         const condOk = evaluateCondition(condition);
                         if (!condOk) break;
-                        const res = runNodes(node.body, { variables: {}, parent: scope }, depth);
+                        const res = await runNodes(node.body, { variables: {}, parent: scope }, depth);
                         if (!res.ok) return res;
                         if (ctx.ignoreNextCommand) ctx.ignoreNextCommand = false;
                     }
@@ -524,7 +552,7 @@ const SmcInterpreter = (() => {
                     const previousCwd = ctx.cwd;
                     ctx.cwd = resolved.includes('\\') ? resolved.substring(0, resolved.lastIndexOf('\\')) || 'C:\\' : 'C:\\';
                     // Imports share the same global scope but start with a fresh local scope
-                    const res = runScript(fileRes.content, { ...hooks, filename: importPath }, ctx);
+                    const res = await runScript(fileRes.content, { ...hooks, filename: importPath }, ctx);
                     ctx.cwd = previousCwd;
                     ctx.importStack.pop();
                     if (!res.ok) return res;
@@ -533,7 +561,7 @@ const SmcInterpreter = (() => {
                 if (node.type === 'if') {
                     const condition = expandVariables(node.condition, scope);
                     const chosen = evaluateCondition(condition) ? node.thenNodes : node.elseNodes;
-                    const res = runNodes(chosen, { variables: {}, parent: scope }, depth);
+                    const res = await runNodes(chosen, { variables: {}, parent: scope }, depth);
                     if (!res.ok) return res;
                     continue;
                 }
@@ -564,21 +592,21 @@ const SmcInterpreter = (() => {
                             lineNum: node.lineNum
                         });
 
-                        const res = runNodes(proc.body, procScope, depth + 1);
+                        const res = await runNodes(proc.body, procScope, depth + 1);
                         
                         ctx.callStack.pop();
 
                         if (!res.ok) return res;
                         continue;
                     }
-                    const res = handleCommandExecution(expandedLine, node.lineNum, scope);
+                    const res = await handleCommandExecution(expandedLine, node.lineNum, scope);
                     if (!res.ok) return res;
                 }
             }
             return { ok: true };
         }
 
-        const runResult = runNodes(parsed.nodes, { variables: {}, parent: null }, 0);
+        const runResult = await runNodes(parsed.nodes, { variables: {}, parent: null }, 0);
         runResult.flags = ctx.flags;
         return runResult;
     }
