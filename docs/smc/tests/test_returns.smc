@@ -1,0 +1,26 @@
+# SMC Test: Return Values and Bracketed Calls
+
+proc @double : $val do
+    return $val * 2
+end
+
+proc @multiply : $a, $b do
+    return $a * $b
+end
+
+var $X = 5
+var $Y = [@double $X]
+echo "Double %{X} is %{Y}"
+
+var $Z = [@multiply $X, $Y]
+echo "%{X} * %{Y} = %{Z}"
+
+# Nested calls
+var $RESULT = [@double [@multiply 3, 4]]
+echo "Double(3 * 4) = %{RESULT}"
+
+if $RESULT == 24 then
+    echo "Return value test PASSED"
+else
+    echo "Return value test FAILED"
+end

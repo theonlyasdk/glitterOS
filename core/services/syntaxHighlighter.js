@@ -10,9 +10,10 @@ const SyntaxHighlighter = (() => {
         const kws = new Set([
             'if', 'then', 'else', 'end', 'proc', 'do', 'var', 'let', 'set', 'while', 'global', 'wait', 'echo', 'type', 'cd', 'dir', 'md', 'mkdir', 'del', 'rm',
             'rd', 'rmdir', 'ren', 'copy', 'ver', 'help', 'cls', 'exit', 'history', 'runsmc', 'notify',
-            'pwd', 'ls', 'cat', 'cp', 'mv', 'clear'
+            'pwd', 'ls', 'cat', 'cp', 'mv', 'clear',
+            'none', 'return', 'break', 'continue', 'for', 'in', 'try', 'catch', 'exists'
         ]);
-        const ops = ['==', '!=', '<=', '>=', '<', '>', '||', '&&', '|', '=', '+', '-', '*', '/'];
+        const ops = ['==', '!=', '<=', '>=', '<', '>', '||', '&&', '|', '=', '+', '-', '*', '/', '..', '!', '?'];
         
         return String(text).split('\n').map((line) => {
             const trimmed = line.trim();
@@ -64,7 +65,16 @@ const SyntaxHighlighter = (() => {
                     continue;
                 }
                 
-                // Procedure calls / declarations
+                // Result tags [:ok] [:error]
+                if (ch === '[' && line[i+1] === ':') {
+                    let j = i + 2;
+                    while (j < line.length && /[A-Za-z0-9_]/.test(line[j])) j++;
+                    out += `<span class="gos-syn-op">[</span><span class="gos-syn-kw" style="color: #ce9178;">${esc(line.slice(i+1, j))}</span>`;
+                    i = j;
+                    continue;
+                }
+
+                // Procedure calls / declarations / bracketed calls
                 if (ch === '@') {
                     let j = i + 1;
                     while (j < line.length && /[A-Za-z0-9_]/.test(line[j])) j++;

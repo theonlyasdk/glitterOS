@@ -1,0 +1,21 @@
+# Standalone SMC Test
+
+var $NAME = "SMC Standalone"
+echo "Running: %{NAME}"
+
+proc @factorial : $n do
+    if $n <= 1 then
+        return 1
+    else
+        return $n * [@factorial $n - 1]
+    end
+end
+
+var $RES = [@factorial 5]
+echo "Factorial of 5 is: %{RES}"
+
+if $RES == 120 then
+    echo "SUCCESS"
+else
+    echo "FAILURE"
+end

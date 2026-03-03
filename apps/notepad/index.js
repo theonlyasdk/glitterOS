@@ -95,6 +95,11 @@ function launchNotepad(filePath = null) {
     function updateSelectionOverlayState() {
         const hasRange = (textarea.selectionEnd - textarea.selectionStart) > 0;
         syntaxLayer.style.visibility = hasRange ? 'hidden' : 'visible';
+        if (hasRange) {
+            textarea.classList.add('has-selection');
+        } else {
+            textarea.classList.remove('has-selection');
+        }
     }
 
     function syntaxLabel(mode, title) {

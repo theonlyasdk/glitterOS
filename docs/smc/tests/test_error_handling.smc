@@ -1,0 +1,41 @@
+# SMC Test: Error Handling (Try/Catch and Try?)
+
+proc @risky : $success do
+    if $success then
+        return [:ok "Operation successful"]
+    else
+        return [:error "Operation failed"]
+    end
+end
+
+# 1. Block Catch
+var $R1 = try [@risky true] catch $err do
+    echo "This should NOT be called for success"
+end
+echo "R1: %{R1}"
+
+var $R2 = try [@risky false] catch $err do
+    echo "Caught expected error: %{err}"
+    $R2 = "Recovered Value"
+end
+echo "R2: %{R2}"
+
+# 2. Inline Catch
+var $R3 = try [@risky false] catch $err then return [:error "Forwarding error: " + $err]
+echo "This line should NOT be reached"
+
+proc @test_bubbling do
+    # 3. Try? operator (Auto-bubbling)
+    var $R4 = try? [@risky false]
+    echo "This line should NOT be reached in bubble test"
+    return [:ok "Should not happen"]
+end
+
+var $FINAL = [@test_bubbling]
+echo "Final Bubbled Result: %{FINAL}"
+
+if $FINAL == [:error "Operation failed"] then
+    echo "Error handling test PASSED"
+else
+    echo "Error handling test FAILED (Final: %{FINAL})"
+end

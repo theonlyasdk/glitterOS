@@ -330,11 +330,19 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
                     'Open Task Manager and restart NotificationService, then try NOTIFY again.'
                 );
             }
+            
+            let raw = '';
             const rawInput = (ctx.rawArgText || '').trim();
-            if (!rawInput || !isQuotedText(rawInput)) {
-                return commandError('NOTIFY requires a quoted message string.', 'Use: NOTIFY "Title|Message"');
+            if (isQuotedText(rawInput)) {
+                raw = rawInput.slice(1, -1).trim();
+            } else if (args.length > 0) {
+                raw = args.join(' ').trim();
             }
-            const raw = rawInput.slice(1, -1).trim();
+
+            if (!raw) {
+                return commandError('NOTIFY requires a message string.', 'Use: NOTIFY "Title|Message" or NOTIFY $variable');
+            }
+
             let title = 'Dummy Notification';
             let message = 'This is a test notification from CMD.';
             if (raw) {
@@ -997,11 +1005,36 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
             : fs.pwd();
         const prevMode = { ..._scriptMode };
         let scriptFlags = { active: true, silent: false, noEcho: false };
+
+        const builtins = {};
+        Object.keys(CMDS).forEach(name => {
+            builtins[name] = async (args, context) => {
+                let rawArgText = '';
+                if (context && context.line) {
+                    const tokens = tokenize(context.line);
+                    if (tokens.length > 0) {
+                        const firstToken = tokens[0];
+                        const idx = context.line.indexOf(firstToken);
+                        if (idx >= 0) {
+                            rawArgText = context.line.slice(idx + firstToken.length).trim();
+                        }
+                    }
+                }
+                if (!rawArgText && args.length > 0) {
+                    rawArgText = args.join(' ');
+                }
+                const result = CMDS[name](args, { rawArgText, line: context.line, cmd: name });
+                return result || { ok: true };
+            };
+        });
+
         try {
             const result = await SmcInterpreter.runScript(content, {
                 tokenize,
                 evaluateCondition: executeCondition,
                 executeCommand: (line, lineNum) => executeCommandLine(line),
+                fs: window.fs,
+                builtins,
                 filename: scriptPath || 'interactive',
                 onFlags: (flags) => {
                     const normalized = { active: true, silent: !!flags.silent, noEcho: !!flags.noEcho };

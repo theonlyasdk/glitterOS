@@ -1,0 +1,3 @@
+# Type mismatch reassign
+var $val = 10
+$val = "text"

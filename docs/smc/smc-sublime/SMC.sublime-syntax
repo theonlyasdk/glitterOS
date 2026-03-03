@@ -1,0 +1,115 @@
+%YAML 1.2
+---
+# SMC Syntax Definition for Sublime Text
+name: SMC
+file_extensions: [smc]
+scope: source.smc
+
+contexts:
+  main:
+    # Comments
+    - match: '#'
+      scope: punctuation.definition.comment.smc
+      push: line_comment
+    - match: '//'
+      scope: punctuation.definition.comment.smc
+      push: line_comment
+    - match: '(?i)\brem\b'
+      scope: keyword.other.rem.smc
+      push: line_comment
+
+    # Directives
+    - match: '!\['
+      scope: punctuation.definition.directive.begin.smc
+      push: directive_body
+
+    # Strings
+    - match: '"'
+      scope: punctuation.definition.string.begin.smc
+      push: string_double
+    - match: "'"
+      scope: punctuation.definition.string.begin.smc
+      push: string_single
+
+    # Keywords
+    - match: '(?i)\b(if|then|else|end|proc|do|while|for|in|try|catch|return|break|continue|wait|import|global|var|let|set|exists)\b'
+      scope: keyword.control.smc
+
+    # Constants
+    - match: '(?i)\b(true|false|none)\b'
+      scope: constant.language.smc
+
+    # Common Builtins
+    - match: '(?i)\b(echo|type|cd|dir|md|mkdir|del|rm|rd|rmdir|ren|copy|ver|help|cls|exit|history|runsmc|notify|pwd|ls|cat|cp|mv|clear)\b'
+      scope: support.function.smc
+
+    # Result Tags
+    - match: '\[:(ok|error)\b'
+      scope: constant.language.result.smc
+      push: result_body
+
+    # Procedures
+    - match: '@[A-Za-z_][A-Za-z0-9_]*'
+      scope: entity.name.function.smc
+
+    # Variables
+    - match: '\$[A-Za-z_][A-Za-z0-9_]*'
+      scope: variable.other.smc
+
+    # Numbers
+    - match: '\b\d+(\.\d+)?\b'
+      scope: constant.numeric.smc
+
+    # Operators
+    - match: '==|!=|<=|>=|<|>|\+|\-|\*|/|\.\.|!|\?|=|:'
+      scope: keyword.operator.smc
+
+    # Brackets
+    - match: '\[|\]'
+      scope: punctuation.section.brackets.smc
+
+  line_comment:
+    - meta_scope: comment.line.smc
+    - match: $
+      pop: true
+
+  result_body:
+    - meta_scope: meta.result.smc
+    - match: '\]'
+      scope: constant.language.result.smc
+      pop: true
+    - include: main
+
+  directive_body:
+    - meta_scope: meta.directive.smc
+    - match: '\]'
+      scope: punctuation.definition.directive.end.smc
+      pop: true
+    - match: '[^\]|]+'
+      scope: entity.other.attribute-name.smc
+    - match: '\|'
+      scope: punctuation.separator.directive.smc
+
+  string_double:
+    - meta_scope: string.quoted.double.smc
+    - match: '%[A-Za-z_][A-Za-z0-9_]*%'
+      scope: variable.interpolation.smc
+    - match: '([%$]\{)[A-Za-z_][A-Za-z0-9_]*\}'
+      scope: variable.interpolation.smc
+    - match: '\$[A-Za-z_][A-Za-z0-9_]*'
+      scope: variable.interpolation.smc
+    - match: '"'
+      scope: punctuation.definition.string.end.smc
+      pop: true
+
+  string_single:
+    - meta_scope: string.quoted.single.smc
+    - match: '%[A-Za-z_][A-Za-z0-9_]*%'
+      scope: variable.interpolation.smc
+    - match: '([%$]\{)[A-Za-z_][A-Za-z0-9_]*\}'
+      scope: variable.interpolation.smc
+    - match: '\$[A-Za-z_][A-Za-z0-9_]*'
+      scope: variable.interpolation.smc
+    - match: "'"
+      scope: punctuation.definition.string.end.smc
+      pop: true

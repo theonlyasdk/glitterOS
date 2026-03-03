@@ -24,3 +24,4 @@ dist-ssr
 *.sw?
 /res/WhiteSur-cursors-master
 .agents
+/core/smc/dist

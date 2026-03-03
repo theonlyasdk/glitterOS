@@ -1,0 +1,2 @@
+# Variable declared but not initialized
+var $NAME

@@ -1,0 +1,4 @@
+# Missing END test
+if true then
+    echo "Wait for it..."
+# End is missing here

@@ -1,0 +1,38 @@
+# SMC Test: None and Strict Initialization
+
+![allow_casting]
+
+# Strict initialization - must assign a value
+var $X = none
+echo "X is: %{X}"
+
+if !$X then
+    echo "X is correctly evaluated as falsy"
+else
+    echo "FAILED: X should be falsy"
+end
+
+# Reassignment to other types
+$X = "initialized"
+echo "X is now: %{X}"
+
+if $X then
+    echo "X is now correctly evaluated as truthy"
+else
+    echo "FAILED: X should be truthy"
+end
+
+# Multi-step initialization
+var $Y = none
+proc @init_y : $val do
+    $Y = $val
+end
+
+[@init_y 100]
+echo "Y initialized to: %{Y}"
+
+if $Y == 100 then
+    echo "None and re-initialization test PASSED"
+else
+    echo "None and re-initialization test FAILED"
+end

@@ -1,0 +1,50 @@
+# SMC Test: Complex Expressions
+
+var $A = 10
+var $B = 20
+var $C = $A + $B
+echo "10 + 20 = %{C}"
+
+var $PATH = "C:\Users" / "User" / "Documents"
+echo "Path join: %{PATH}"
+
+if $A < $B then
+    echo "10 < 20 is true"
+else
+    echo "FAILED: 10 < 20 is false"
+end
+
+if $B >= $A then
+    echo "20 >= 10 is true"
+else
+    echo "FAILED: 20 >= 10 is false"
+end
+
+if $A == 10 then
+    echo "10 == 10 is true"
+else
+    echo "FAILED: 10 == 10 is false"
+end
+
+# Comparison with variables and arithmetic
+if $A + 10 == $B then
+    echo "10 + 10 == 20 is true"
+else
+    echo "FAILED: 10 + 10 == 20 is false"
+end
+
+# Range expression in variable
+var $RANGE = 1..10
+echo "Range: %{RANGE}"
+
+if $RANGE == 1..10 then
+    echo "Range test PASSED"
+else
+    echo "Range test FAILED"
+end
+
+if $RANGE == "1..10" then
+    echo "FAILED: Range should not equal string"
+else
+    echo "Strict Type Check PASSED: Range != String"
+end

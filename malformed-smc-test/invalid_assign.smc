@@ -1,0 +1,2 @@
+# Variable declaration without $
+var name = "Glitter"

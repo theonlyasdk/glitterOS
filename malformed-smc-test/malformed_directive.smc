@@ -1,0 +1,3 @@
+# Directive after code (Illegal)
+echo "Hello"
+![no_echo]

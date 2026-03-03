@@ -101,20 +101,35 @@
     display: none;
 }
 
-.gos-notepad-content.syntax-active {
+.gos-notepad-content.syntax-active:not(:focus-within) {
     color: transparent;
     caret-color: #eee;
-    background: transparent !important;
+}
+
+.gos-notepad-content.syntax-active:focus {
+    /* When focused, we need to be careful. 
+       If we have a selection, we want to see the textarea text (for selection to be visible).
+       If we don't have a selection, we want it transparent so syntax layer shows through.
+       Since CSS can't detect 'has selection', we rely on JS toggling a class or visibility.
+    */
+    color: transparent;
+    caret-color: #eee;
+}
+
+/* We will handle the actual 'disappearing' logic in JS by toggling a class when selection exists,
+   or simply by making the textarea text visible again when it has a selection. */
+.gos-notepad-content.syntax-active.has-selection {
+    color: #eee !important;
 }
 
 .gos-notepad-content::selection {
-    background: #aaaaaa;
-    color: #000000;
+    background: #444444;
+    color: #ffffff;
 }
 
 .gos-notepad-content.syntax-active::selection {
-    background: #aaaaaa;
-    color: #000000;
+    background: #444444;
+    color: #ffffff;
 }
 
 .gos-notepad-content:hover,

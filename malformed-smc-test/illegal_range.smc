@@ -1,0 +1,3 @@
+# Illegal range operation
+var $r = 1..10
+var $fail = $r + 5
