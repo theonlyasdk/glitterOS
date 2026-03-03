@@ -1,0 +1,26 @@
+# Fibonacci Test (Iterative)
+proc @fib : $n do
+    if $n <= 1 then
+        return $n
+    end
+    
+    var $a = 0
+    var $b = 1
+    var $temp = 0
+    
+    for $i in 2..$n do
+        $temp = $a + $b
+        $a = $b
+        $b = $temp
+    end
+    
+    return $b
+end
+
+echo "Fibonacci Sequence:"
+for $j in 0..15 do
+    var $res = [@fib $j]
+    # Comma separation is now required for multiple args
+    var $msg = [@append "fib(", $j, ") = ", $res]
+    echo $msg
+end

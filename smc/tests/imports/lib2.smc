@@ -1,0 +1,8 @@
+# Lib 2
+import "lib1.smc"
+
+var $LIB2_LOADED = true
+
+proc @func2 do
+    return "hello from lib2"
+end

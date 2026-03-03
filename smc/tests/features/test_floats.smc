@@ -1,0 +1,40 @@
+# SMC Test: Float Types
+
+# 1. Declaration and Type Check
+var $i = 10
+var $f = 10.5
+
+var $ti = [?typeof $i]
+var $tf = [?typeof $f]
+
+if $ti == "int" then echo "  PASS: type of 10 is int" else echo "  FAIL: type of 10 is %{ti}"
+if $tf == "float" then echo "  PASS: type of 10.5 is float" else echo "  FAIL: type of 10.5 is %{tf}"
+
+# 2. Arithmetic
+var $sum = $i + $f
+if [?typeof $sum] == "float" then echo "  PASS: int + float = float" else echo "  FAIL: int + float = %{[?typeof $sum]}"
+
+var $div = 10 / 4
+if [?typeof $div] == "int" then echo "  PASS: 10 / 4 = int" else echo "  FAIL: 10 / 4 = float (should be int if no decimals in literals)"
+# Note: In JS 10/4 is 2.5. If literals were ints, result might be expected to be int or float depending on language design.
+# Currently our interpreter does: res = isAnyFloat ? makeFloat(r) : r;
+# So 10 / 4 will be 2.5 but typed as "int" because no float literals were involved.
+# This is a bit weird. Let's check.
+echo "  DEBUG: 10 / 4 = %{div} type=%{[?typeof $div]}"
+
+# 3. Implicit Conversion (Int to Float)
+var $my_float = 5.5
+$my_float = 10  # Should succeed and convert to float
+if [?typeof $my_float] == "float" then echo "  PASS: implicit int to float conversion" else echo "  FAIL: implicit int to float"
+
+# 4. Error: Float to Int (Strict)
+var $my_int = 100
+echo "  EXPECTING ERROR NEXT LINE: float to int"
+# This next assignment should fail in strict mode (default)
+try 
+    $my_int = 5.5
+catch $err do
+    echo "  PASS: caught expected error: %{err}"
+end
+
+if $my_int == 100 then echo "  PASS: my_int remains 100" else echo "  FAIL: my_int changed to %{my_int}"

@@ -1,0 +1,10 @@
+# Lib 1
+var $LIB1_LOADED = true
+global $G_LIB1 = "global from lib1"
+
+proc @func1 do
+    return "hello from lib1"
+end
+
+# Circular import test
+import "lib2.smc"

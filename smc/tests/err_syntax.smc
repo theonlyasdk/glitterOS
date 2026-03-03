@@ -1,0 +1,3 @@
+# Syntax Error: Missing commas in bracketed call
+var $s = [@append "Hello" "World"]
+echo $s

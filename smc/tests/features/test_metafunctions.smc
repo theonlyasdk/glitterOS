@@ -1,0 +1,20 @@
+# SMC Test: Metafunctions
+
+var $s = "glitter"
+var $n = 42
+var $none = none
+var $r = 1..10
+
+var $ts = [?typeof $s]
+var $tn = [?typeof $n]
+var $tnone = [?typeof $none]
+var $tr = [?typeof $r]
+
+if $ts == "string" then echo "  PASS: typeof string" else echo "  FAIL: typeof string (%{ts})"
+if $tn == "number" then echo "  PASS: typeof number" else echo "  FAIL: typeof number (%{tn})"
+if $tnone == "none" then echo "  PASS: typeof none" else echo "  FAIL: typeof none (%{tnone})"
+if $tr == "range" then echo "  PASS: typeof range" else echo "  FAIL: typeof range (%{tr})"
+
+# Testing nested/complex expression in typeof
+var $nested = [?typeof [@upper "test"]]
+if $nested == "string" then echo "  PASS: typeof nested" else echo "  FAIL: typeof nested"

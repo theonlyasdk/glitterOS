@@ -1,0 +1,2 @@
+$a = [sqrt 16]
+echo $a

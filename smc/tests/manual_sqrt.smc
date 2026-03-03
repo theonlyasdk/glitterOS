@@ -1,0 +1,44 @@
+# Manual Square Root Test (Newton's Method)
+# Formula: x_{n+1} = 0.5 * (x_n + S / x_n)
+
+proc @abs : $v do
+    if $v < 0 then
+        return 0 - $v
+    end
+    return $v
+end
+
+proc @manual_sqrt : $S do
+    if $S < 0 then
+        return none
+    end
+    if $S == 0 then
+        return 0
+    end
+    
+    var $x = $S * 1.0
+    var $last_x = 0.0
+    var $diff = 1.0
+    var $precision = 0.00001
+    
+    while $diff > $precision do
+        $last_x = $x
+        $x = 0.5 * ($x + $S / $x)
+        
+        var $delta = $x - $last_x
+        $diff = [@abs $delta]
+    end
+    
+    return $x
+end
+
+echo "Manual Square Root Estimates:"
+var $targets = 2
+var $r2 = [@manual_sqrt 2]
+echo [@append "sqrt(2) approx: ", $r2]
+
+var $r144 = [@manual_sqrt 144]
+echo [@append "sqrt(144) approx: ", $r144]
+
+var $r625 = [@manual_sqrt 625]
+echo [@append "sqrt(625) approx: ", $r625]

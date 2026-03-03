@@ -1,0 +1,6 @@
+# Deep lib
+global $G_DEEP = "global from deep"
+
+proc @deep_func do
+    return "hello from deep"
+end

@@ -998,7 +998,7 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
 
     async function executeScriptContent(content, scriptPath = null) {
         if (typeof SmcInterpreter === 'undefined' || !SmcInterpreter.runScript) {
-            return commandError('SMC interpreter service is unavailable.', 'Ensure core/services/smcInterpreter.js is loaded before CMD.');
+            return commandError('SMC interpreter service is unavailable.', 'Ensure smc/dist/smc.min.js is loaded before CMD.');
         }
         const cwd = scriptPath && scriptPath.includes('\\')
             ? (scriptPath.substring(0, scriptPath.lastIndexOf('\\')) || 'C:\\')

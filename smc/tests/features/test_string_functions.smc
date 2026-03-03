@@ -1,0 +1,45 @@
+# SMC Test: String Builtins
+
+var $TEXT = "  Hello GlitterOS  "
+
+# Length
+var $l = [@len $TEXT]
+if $l == 19 then echo "  PASS: len" else echo "  FAIL: len (%{l})"
+
+# Upper/Lower
+var $u = [@upper "abc"]
+if $u == "ABC" then echo "  PASS: upper" else echo "  FAIL: upper"
+
+var $low = [@lower "ABC"]
+if $low == "abc" then echo "  PASS: lower" else echo "  FAIL: lower"
+
+# Trim
+var $t = [@trim $TEXT]
+if $t == "Hello GlitterOS" then echo "  PASS: trim" else echo "  FAIL: trim"
+
+# Replace
+var $r = [@replace "apple pie", "apple", "cherry"]
+if $r == "cherry pie" then echo "  PASS: replace" else echo "  FAIL: replace (%{r})"
+
+# Substr
+var $sub = [@substr "glitterOS", 7, 2]
+if $sub == "OS" then echo "  PASS: substr" else echo "  FAIL: substr (%{sub})"
+
+# IndexOf
+var $idx = [@index_of "hello", "e"]
+if $idx == 1 then echo "  PASS: index_of" else echo "  FAIL: index_of"
+
+# CharAt
+var $c = [@char_at "abc", 1]
+if $c == "b" then echo "  PASS: char_at" else echo "  FAIL: char_at"
+
+# TypeOf
+var $type1 = [@type_of "text"]
+var $type2 = [@type_of 123]
+var $type3 = [@type_of none]
+var $type4 = [@type_of 1..5]
+
+if $type1 == "string" then echo "  PASS: type_of string" else echo "  FAIL: type_of string (%{type1})"
+if $type2 == "number" then echo "  PASS: type_of number" else echo "  FAIL: type_of number"
+if $type3 == "none" then echo "  PASS: type_of none" else echo "  FAIL: type_of none"
+if $type4 == "range" then echo "  PASS: type_of range" else echo "  FAIL: type_of range"

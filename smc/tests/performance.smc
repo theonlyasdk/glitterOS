@@ -1,0 +1,10 @@
+$n = 500
+$sum = 0
+for $i in 1..$n do
+    $x = $i * 2
+    $y = $x / 2
+    if $y == $i then
+        $sum = $sum + 1
+    end
+end
+echo $sum

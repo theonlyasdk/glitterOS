@@ -1,0 +1,16 @@
+# Runtime Error: Division by zero with call stack trace
+
+proc @div : $a, $b do
+    echo [@append "Dividing ", $a, " by ", $b]
+    return $a / $b
+end
+
+proc @calculate : $x do
+    echo "Starting calculation..."
+    var $res = [@div $x, 0]
+    return $res
+end
+
+echo "App starting..."
+var $final = [@calculate 100]
+echo $final

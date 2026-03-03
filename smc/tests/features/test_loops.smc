@@ -1,0 +1,37 @@
+# SMC Test: Loop Controls (Break and Continue)
+
+echo "Testing FOR loop ranges and continue..."
+var $SUM = 0
+for $i in 1..10 do
+    if $i == 5 then
+        echo "Skipping 5 with continue"
+        continue
+    end
+    $SUM = $SUM + $i
+    echo "Current Sum: %{SUM} (i = %{i})"
+end
+
+# Sum(1..10) is 55. Without 5, it should be 50.
+if $SUM == 50 then
+    echo "FOR loop and continue test PASSED"
+else
+    echo "FOR loop and continue test FAILED (Sum: %{SUM})"
+end
+
+echo ""
+echo "Testing WHILE loop and break..."
+var $COUNT = 0
+while true do
+    $COUNT = $COUNT + 1
+    if $COUNT == 8 then
+        echo "Breaking at 8"
+        break
+    end
+    echo "Counter: %{COUNT}"
+end
+
+if $COUNT == 8 then
+    echo "WHILE loop and break test PASSED"
+else
+    echo "WHILE loop and break test FAILED"
+end

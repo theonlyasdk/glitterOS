@@ -1,0 +1,42 @@
+# Main Import Test
+import "lib1.smc"
+import "nested/deep.smc"
+
+echo "Testing imports..."
+
+# Check if global variables from imports are available
+if $G_LIB1 == "global from lib1" then
+    echo "  PASS: Global from lib1 available"
+else
+    echo "  FAIL: Global from lib1 NOT available (%{G_LIB1})"
+end
+
+if $G_DEEP == "global from deep" then
+    echo "  PASS: Global from deep available"
+else
+    echo "  FAIL: Global from deep NOT available"
+end
+
+# Check procedure calls from imports
+var $r1 = [@func1]
+if $r1 == "hello from lib1" then
+    echo "  PASS: func1 call works"
+else
+    echo "  FAIL: func1 call failed (%{r1})"
+end
+
+var $r2 = [@func2]
+if $r2 == "hello from lib2" then
+    echo "  PASS: func2 call works (circular check)"
+else
+    echo "  FAIL: func2 call failed"
+end
+
+var $rd = [@deep_func]
+if $rd == "hello from deep" then
+    echo "  PASS: deep_func call works"
+else
+    echo "  FAIL: deep_func call failed"
+end
+
+echo "Import tests complete."

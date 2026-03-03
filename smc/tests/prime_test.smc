@@ -1,0 +1,29 @@
+# Prime Number Test
+proc @is_prime : $n do
+    if $n < 2 then
+        return false
+    end
+    if $n == 2 then
+        return true
+    end
+    
+    # Simple check up to sqrt(n)
+    var $limit = [@sqrt $n]
+    for $i in 2..$limit do
+        var $div = $n / $i
+        # If div is an integer, then n is divisible by i
+        # In our runtime, if result is whole, it becomes INT
+        if [@typeof $div] == "int" then
+            return false
+        end
+    end
+    
+    return true
+end
+
+echo "Primes up to 50:"
+for $k in 1..50 do
+    if [@is_prime $k] then
+        echo $k
+    end
+end

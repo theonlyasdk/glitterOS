@@ -1,0 +1,12 @@
+$a = 10
+$b = 20
+$c = $a + $b
+echo $c
+if $c > 25 then
+    echo "Greater than 25"
+else
+    echo "Less than 25"
+end
+for $i in 1..5 do
+    echo $i
+end
