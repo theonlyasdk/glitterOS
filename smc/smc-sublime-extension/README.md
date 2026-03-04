@@ -25,7 +25,7 @@ node install.js
 5.  **Open an `.smc` file.** Sublime Text should automatically recognize the syntax. If not, go to `View -> Syntax -> SMC (Scriptable Macro Commands)`.
 
 ## Features
-- Full support for new keywords: `try`, `catch`, `for`, `none`, etc.
+- Full support for keywords: `try`, `catch`, `for`, `none`, etc.
 - Highlighting for result tags like `[:ok]` and `[:error]`.
 - Procedure and variable highlighting (`@proc`, `$var`).
 - String interpolation support (`%{VAR}`).

@@ -12,7 +12,7 @@ Comments can be full-line or inline.
 
 ### Interpreter Directives
 Directives must appear at the very top of the script.
-Syntax: `![flag1 | flag2]`
+Syntax: `![flag1 | flag2 | ...]`
 * `ignore_errors`: Continues execution if a command fails.
 * `no_echo`: Does not print commands to the terminal before executing them.
 * `silent`: Suppresses all output (including `echo`).
@@ -45,7 +45,7 @@ The interpreter searches the current block, then parent blocks, then the global 
 ```
 var $something = none
 if !$something then
-    echo "$something is a none value"
+    echo "%{something} is a none value"
 end
 ```
 
@@ -57,22 +57,6 @@ SMC supports Integers, Strings, and Ranges.
 * **Path Joining:** `$DIR / "subdir" / "file.txt"` automatically joins segments using DOS backslashes.
 * **Ranges:** `1..10` creates a range from 1 to 10.
 * **Strict Typing:** By default, you cannot change a variable's type unless `![allow_casting]` is active.
-
-## Function and Procedure Invocation
-SMC uses a bracketed syntax for both built-in functions and user-defined procedures.
-
-### Mandatory `@` Prefix
-Every function or procedure call **must** be prefixed with the `@` character. Calls without this prefix (e.g., `[sqrt 16]`) will result in a compilation or interpretation error.
-
-### Mandatory Comma Separation
-Arguments in bracketed calls **must** be separated by commas if there is more than one argument.
-```
-# Basic function call
-[@my_func $arg1, $arg2]
-
-# Capture return value
-var $result = [@sqrt $val]
-```
 
 ## Compilation (SMC to C)
 glitterOS includes a high-performance native compiler (`smcc`) that transpiles SMC scripts into memory-safe C code and then compiles them into native binaries.
@@ -125,18 +109,35 @@ end
 * **`break`**: Immediately exits the loop.
 * **`continue`**: Skips to the next iteration.
 
+## Procedure Invocation
+SMC uses a bracketed syntax for both built-in and user-defined procedures.
+
 ## Procedures (Functions)
-Procedures use the `@` prefix. They can accept arguments and return values using the `return` keyword.
+
+### `@` Prefix for Procedure Names
+Every function or procedure call **must** be prefixed with the `@` character. Calls without this prefix (e.g., `[sqrt 16]`) will result in an error.
+
+### Comma Separation of Arguments
+Arguments in bracketed calls **must** be separated by commas if there is more than one argument.
+```
+# Capture return value
+var $result = [@func_that_requires_2_args $val1, $val2]
+```
+
+### Example
 ```
 proc @add_numbers : $a, $b do
     return $a + $b
 end
 
+# Basic procedure call syntax
+# [@my_proc $arg1, $arg2]
+
 var $SUM = [@add_numbers 10, 20]
 ```
 
 ## Error Handling and the Result Type
-Functions often return a **Result Wrapper**: `[:ok $value]` or `[:error $err]`. SMC provides three ways to unwrap them:
+Procedures often return a **Result Wrapper**: `[:ok $value]` or `[:error $err]`. SMC provides three ways to unwrap them:
 
 ### 1. The Block Catch
 ```
@@ -158,16 +159,14 @@ var $data = try? [@fetch $id]
 ```
 
 ## Built-in Commands
-* Filesystem: `dir`, `cd`, `pwd`, `md`, `rd`, `copy`, `ren`, `del`, `type`, `exists`
-* System: `cls`, `ver`, `help`, `exit`, `wait`, `notify`, `runsmc`
-* Logic: `echo`, `return`
+* System: `echo`
+* ... you can declare your own built-in commands by creating a custom interpreter wrapper using SMC.js library
 
 ## Built-in Functions
 SMC includes core mathematical and string functions. All must be called using the `[@func args]` syntax:
 * `[@random min, max]`: Returns a random number between `min` and `max`.
 * `[@sqrt x]`: Returns the square root of `x`.
 * `[@append str1, str2, ...]`: Concatenates multiple strings together (preferred over `+`).
-* `[@typeof x]`: Returns the data type of the value ("int", "float", "string", "bool", "none", "range").
 * `[@abs x]`: Returns the absolute value of `x`.
 * `[@floor x]`, `[@ceil x]`, `[@round x]`: Standard rounding functions.
 * `[@pow base, exp]`: Returns `base` raised to the power of `exp`.
@@ -178,9 +177,15 @@ SMC includes core mathematical and string functions. All must be called using th
 * `[@index_of str, search]`: Finds the position of a substring.
 * `[@char_at str, index]`: Returns the character at a specific position.
 
+## Metafunctions
+Metafunctions return information associated with the SMC script itself.
+* `[?typeof x]`: Returns the data type of the value ("int", "float", "string", "bool", "none", "range").
+
 ## Example Scripts
 
-### Example: Robust System Check
+### Example 1: glitterOS-specific script
+The following script checks if `C:\glitterOS` directory is present inside the glitterOS filesystem by calling a glitterOS specific `exists` builtin.
+This would result in an error if you try to compile it with `smcc`, but feel free to provide your own implementation for `exists` if you wish to use it!
 ```
 ![no_echo]
 
@@ -193,7 +198,11 @@ proc @check_directory : $dir do
 end
 
 var $res = try [@check_directory "C:\glitterOS"] catch $err do
-    notify "System Error" $err
+    var $errstr = [@append "System check failed: ", $err]
+
+    # Syntax of 1st arg of notify is "Title|Message"
+    # Here, notify sends a notification to glitterOS NotificationService
+    notify "Error!|%{errstr}"
     exit
 end
 

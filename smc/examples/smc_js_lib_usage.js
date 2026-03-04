@@ -10,11 +10,11 @@ const Smc = require('../src/main');
  */
 const myScript = `
 $name = "Developer"
-echo "Hello, " + $name
+echo "Hello, %{name}"
 $val = [@sqrt 100]
-echo "Square root of 100 is: " + $val
+echo "Square root of 100 is: %{val}"
 if $val == 10 then
-    echo "Logic works!"
+    echo "Square root of 100 is 10!"
 end
 `;
 
@@ -23,7 +23,7 @@ end
  */
 async function main() {
     console.log('--- 1. Interpreting SMC ---');
-    
+
     // Minimal configuration: just provide an echo implementation
     await Smc.runScript(myScript, {
         builtins: {
@@ -32,17 +32,16 @@ async function main() {
         onError: (err) => console.error('SMC Error:', err)
     });
 
-    console.log('\n--- 2. Compiling SMC to C ---');
-    
+    console.log('\nCompiling SMC to C....');
+
     try {
         // High-level one-liner to get C code
-        const cCode = Smc.compileToC(myScript);
-        
+        const smc_c_code = Smc.compileToC(myScript);
+
         console.log('Generated C Code:');
         console.log('-----------------------------------');
-        console.log(cCode);
+        console.log(smc_c_code);
         console.log('-----------------------------------');
-        
     } catch (e) {
         console.error('Compilation Failed:', e.message);
     }
