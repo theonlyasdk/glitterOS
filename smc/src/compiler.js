@@ -1,79 +1,84 @@
 /**
  * SMC C Transpiler
  */
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define([], factory);
+    } else if (typeof module === 'object' && module.exports) {
+        module.exports = factory();
+    } else {
+        root.SmcCompiler = factory();
+    }
+}(typeof self !== 'undefined' ? self : this, function () {
+    const generateC = (nodes, filename = 'script.smc', debug = false) => {
+        const { SIGNAL_CONTINUE, SIGNAL_BREAK, SIGNAL_RETURN } = (typeof SmcConstants !== 'undefined') ? SmcConstants : { SIGNAL_CONTINUE: Symbol('continue'), SIGNAL_BREAK: Symbol('break'), SIGNAL_RETURN: Symbol('return') };
+        const parseProcedureCallArgs = (typeof SmcParser !== 'undefined') ? SmcParser.parseProcedureCallArgs : ((t, tok) => []);
 
-const generateC = (nodes, filename = 'script.smc', debug = false) => {
-    const { SIGNAL_CONTINUE, SIGNAL_BREAK, SIGNAL_RETURN } = typeof require !== 'undefined' ? require('./constants') : (root.SmcConstants || {});
-    const { parseProcedureCallArgs } = typeof require !== 'undefined' ? require('./parser') : (root.SmcParser || {});
+        const robustTokenize = (s) => {
+            const tokens = [];
+            let curr = '';
+            let depth = 0;
+            let inQuotes = false;
+            for (let i = 0; i < s.length; i++) {
+                const c = s[i];
+                if (c === '"') inQuotes = !inQuotes;
+                if (!inQuotes) {
+                    if (c === '[' || c === '(') depth++;
+                    if (c === ']' || c === ')') depth--;
+                    if ((c === ' ' || c === ',') && depth === 0) {
+                        if (curr) tokens.push(curr);
+                        curr = ''; continue;
+                    }
+                }
+                curr += c;
+            }
+            if (curr) tokens.push(curr);
+            return tokens;
+        };
 
-    const robustTokenize = (s) => {
-        const tokens = [];
-        let curr = '';
-        let depth = 0;
-        let inQuotes = false;
-        for (let i = 0; i < s.length; i++) {
-            const c = s[i];
-            if (c === '"') inQuotes = !inQuotes;
-            if (!inQuotes) {
-                if (c === '[' || c === '(') depth++;
-                if (c === ']' || c === ')') depth--;
-                if ((c === ' ' || c === ',') && depth === 0) {
-                    if (curr) tokens.push(curr);
-                    curr = ''; continue;
+        const splitByOp = (expr, op) => {
+            let depth = 0, inQuotes = false;
+            for (let i = expr.length - 1; i >= 0; i--) {
+                const c = expr[i];
+                if (c === '"') inQuotes = !inQuotes;
+                if (!inQuotes) {
+                    if (c === ']' || c === ')') depth++;
+                    if (c === '[' || c === '(') depth--;
+                    if (depth === 0 && expr.substring(i - op.length + 1, i + 1) === op) {
+                        return [expr.substring(0, i - op.length + 1), expr.substring(i + 1)];
+                    }
                 }
             }
-            curr += c;
-        }
-        if (curr) tokens.push(curr);
-        return tokens;
-    };
+            return null;
+        };
 
-    const splitByOp = (expr, op) => {
-        let depth = 0, inQuotes = false;
-        for (let i = expr.length - 1; i >= 0; i--) {
-            const c = expr[i];
-            if (c === '"') inQuotes = !inQuotes;
-            if (!inQuotes) {
-                if (c === ']' || c === ')') depth++;
-                if (c === '[' || c === '(') depth--;
-                if (depth === 0 && expr.substring(i - op.length + 1, i + 1) === op) {
-                    return [expr.substring(0, i - op.length + 1), expr.substring(i + 1)];
-                }
-            }
-        }
-        return null;
-    };
-
-    // Evaluation helper for constant folding
-    const tryEvaluate = (expr) => {
-        if (typeof evaluateExpression === 'undefined') return null;
-        if (expr.includes('$') || expr.includes('[') || expr.includes('(')) return null;
-        
-        try {
-            const mockHooks = {
-                tokenize: (s) => String(s).trim() ? String(s).trim().split(/\s+/) : []
-            };
-            const mockCtx = {
-                globalScope: {},
-                builtins: {}
-            };
-            const result = evaluateExpression(expr, { variables: {} }, 0, 0, mockCtx, {}, mockHooks, new Map(), 'compile_time');
+        // Evaluation helper for constant folding
+        const tryEvaluate = (expr) => {
+            // Note: In browser context, we might not have all symbols globally yet
+            // but we can try using SmcInterpreter.interpreter functions if they are global
+            const evalExpr = (typeof SmcInterpreterCore !== 'undefined') ? SmcInterpreterCore.evaluateExpression : null;
+            if (!evalExpr) return null;
+            if (expr.includes('$') || expr.includes('[') || expr.includes('(')) return null;
             
-            if (result === null) return 'make_none()';
-            if (typeof result === 'number') return result % 1 === 0 ? `make_int(${result})` : `make_float(${result})`;
-            if (typeof result === 'boolean') return result ? 'make_bool(true)' : 'make_bool(false)';
-            if (typeof result === 'string') return `make_string("${result.replace(/"/g, '\\\\"')}")`;
-            if (typeof result === 'object' && result.__tag === 'float') return `make_float(${result.value})`;
-            return null;
-        } catch (e) {
-            return null;
-        }
-    };
+            try {
+                const mockHooks = {
+                    tokenize: (s) => String(s).trim() ? String(s).trim().split(/\s+/) : []
+                };
+                const mockCtx = {
+                    globalScope: {},
+                    builtins: {}
+                };
+                // This might be sync or async depending on version, but transpiler expects sync evaluation or skips it.
+                // For now, we skip evaluation in transpiler if it's too complex or requires async.
+                return null;
+            } catch (e) {
+                return null;
+            }
+        };
 
-    let output = '';
-    
-    // Runtime C Code
-    output += `
+        let output = '';
+        
+        output += `
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -110,7 +115,6 @@ typedef struct Value {
     } data;
 } Value;
 
-// Error Tracking & Call Stack
 const char* current_file = "${filename}";
 int current_line = 0;
 int current_col = 0;
@@ -166,7 +170,6 @@ void runtime_error(const char* msg) {
     exit(1);
 }
 
-// Memory Management & Safety
 Value copy_value(Value v) {
     if (v.type == VAL_STRING) {
 #if SMC_DEBUG
@@ -349,7 +352,6 @@ Value gt(Value a, Value b) {
     return make_bool(false);
 }
 
-// Builtins
 Value builtin_sqrt(Value a) {
     if (a.type != VAL_INT && a.type != VAL_FLOAT) runtime_error("sqrt requires a number.");
     double f = (a.type == VAL_FLOAT) ? a.data.f_val : (double)a.data.i_val;
@@ -411,7 +413,6 @@ Value builtin_echo(Value* args, int count) {
     return make_none();
 }
 
-// Hash Table Variable Registry
 #define HASH_SIZE 4096
 typedef struct {
     char* key;
@@ -429,9 +430,6 @@ unsigned int hash(const char* str) {
 }
 
 void set_var(const char* name, Value v) {
-#if SMC_DEBUG
-    printf("%s SETVAR: %s\\n", SMC_DBG_PREFIX, name);
-#endif
     unsigned int h = hash(name);
     while (hash_table[h].occupied) {
         if (strcmp(hash_table[h].key, name) == 0) {
@@ -460,9 +458,6 @@ Value get_var(const char* name) {
 }
 
 void cleanup_vars() {
-#if SMC_DEBUG
-    printf("%s CLEANUP: variables\\n", SMC_DBG_PREFIX);
-#endif
     for (int i = 0; i < HASH_SIZE; i++) {
         if (hash_table[i].occupied) {
             free(hash_table[i].key);
@@ -470,190 +465,161 @@ void cleanup_vars() {
         }
     }
 }
-
-// Function Declarations
 `;
 
-    // Forward declare procedures
-    const procs = nodes.filter(n => n.type === 'proc');
-    const getCProcName = (name) => 'proc_' + name.replace(/^@/, '').replace(/[^a-zA-Z0-9_]/g, '_');
+        const procs = nodes.filter(n => n.type === 'proc');
+        const getCProcName = (name) => 'proc_' + name.replace(/^@/, '').replace(/[^a-zA-Z0-9_]/g, '_');
 
-    for (const p of procs) {
-        output += `Value ${getCProcName(p.name)}(Value* args, int count);\n`;
-    }
-
-    const compileExpr = (expr) => {
-        expr = expr.trim();
-        if (!expr) return 'make_none()';
-
-        // Literal check first
-        if (/^[0-9]+$/.test(expr)) return `make_int(${expr})`;
-        if (/^[0-9]+\.[0-9]+$/.test(expr)) return `make_float(${expr})`;
-        if (expr === 'true') return 'make_bool(true)';
-        if (expr === 'false') return 'make_bool(false)';
-        if (expr === 'none') return 'make_none()';
-        if (expr.startsWith('"') && expr.endsWith('"')) {
-             const inner = expr.slice(1, -1).replace(/"/g, '\\\\"');
-             return `make_string("${inner}")`;
+        for (const p of procs) {
+            output += `Value ${getCProcName(p.name)}(Value* args, int count);\n`;
         }
 
-        // Constant Folding attempt for other expressions
-        const folded = tryEvaluate(expr);
-        if (folded) return folded;
-
-        // Brackets [@func arg]
-        if (expr.startsWith('[') && expr.endsWith(']')) {
-            const inner = expr.slice(1, -1).trim();
-            if (inner.startsWith('@')) {
-                // Procedure/Builtin call
-                const tokens = robustTokenize(inner);
-                const name = tokens[0];
-                const cleanName = name.slice(1);
-                
-                // Get the argument string by stripping the name from the inner content
-                const argText = inner.slice(name.length).trim();
-                const argsRaw = parseProcedureCallArgs(argText, robustTokenize);
-                const args = argsRaw.map(compileExpr);
-                
-                if (cleanName === 'sqrt') return `builtin_sqrt(${args[0] || 'make_none()'})`;
-                if (cleanName === 'abs') return `builtin_abs(${args[0] || 'make_none()'})`;
-                if (cleanName === 'len') return `builtin_len(${args[0] || 'make_none()'})`;
-                if (cleanName === 'typeof') return `builtin_typeof(${args[0] || 'make_none()'})`;
-                if (cleanName === 'append') return `builtin_append((Value[]){${args.join(', ')}}, ${args.length})`;
-                
-                const proc = procs.find(p => p.name === cleanName || p.name === '@' + cleanName);
-                if (proc) {
-                    const cName = getCProcName(proc.name);
-                    return `${cName}((Value[]){${args.length ? args.join(', ') : 'make_none()'}}, ${args.length})`;
-                }
-                throw new Error(`Compile Error: Unknown function or procedure '@${cleanName}'.`);
-            } else {
-                throw new Error(`Compile Error: Built-in or procedure call '${inner}' must be prefixed with '@' (e.g. '[${inner} ...]' -> '[@${inner} ...]').`);
+        const compileExpr = (expr) => {
+            expr = expr.trim();
+            if (!expr) return 'make_none()';
+            if (/^[0-9]+$/.test(expr)) return `make_int(${expr})`;
+            if (/^[0-9]+\.[0-9]+$/.test(expr)) return `make_float(${expr})`;
+            if (expr === 'true') return 'make_bool(true)';
+            if (expr === 'false') return 'make_bool(false)';
+            if (expr === 'none') return 'make_none()';
+            if (expr.startsWith('"') && expr.endsWith('"')) {
+                 const inner = expr.slice(1, -1).replace(/"/g, '\\\\"');
+                 return `make_string("${inner}")`;
             }
-        }
-
-        // Parens grouping
-        if (expr.startsWith('(') && expr.endsWith(')')) {
-            return compileExpr(expr.slice(1, -1));
-        }
-
-        // Arithmetic
-        const ops = ['==', '!=', '<=', '>=', '<', '>', '+', '-', '*', '/'];
-        for (const op of ops) {
-            const parts = splitByOp(expr, op);
-            if (parts) {
-                const opFuncMap = {
-                    '==': 'eq', '!=': 'neq', '<=': 'le', '>=': 'ge', '<': 'lt', '>': 'gt',
-                    '+': 'add', '-': 'sub', '*': 'mul', '/': 'dv'
-                };
-                if (op === '!=') return `make_bool(!is_truthy(eq(${compileExpr(parts[0])}, ${compileExpr(parts[1])})))`;
-                return `${opFuncMap[op]}(${compileExpr(parts[0])}, ${compileExpr(parts[1])})`;
-            }
-        }
-
-        if (expr.startsWith('$')) return `get_var("${expr.slice(1)}")`;
-
-        return `make_string("${expr.replace(/"/g, '\\\\"')}")`;
-    };
-
-    const compileCondition = (cond) => {
-        return `is_truthy(${compileExpr(cond)})`;
-    };
-
-    const compileNodes = (nodes, indent = '    ', isMain = false) => {
-        let code = '';
-        for (const node of nodes) {
-            if (node.type === 'file_marker') {
-                code += `${indent}// --- ${node.action === 'start' ? 'START' : 'END'} OF FILE: ${node.path} ---\n`;
-                continue;
-            }
-            code += `${indent}current_line = ${node.lineNum}; current_col = ${node.col || 0};\n`;
-            if (node.type === 'assign' || node.type === 'var') {
-                code += `${indent}{ Value v = ${compileExpr(node.value)}; set_var("${node.name}", v); free_value(v); }\n`;
-            } else if (node.type === 'global') {
-                code += `${indent}set_var("${node.name}", ${compileExpr(node.value)});\n`;
-            } else if (node.type === 'cmd') {
-                const line = node.line.trim();
-                if (line.startsWith('echo ')) {
-                    const argText = line.slice(5).trim();
-                    const args = robustTokenize(argText).map(compileExpr);
-                    code += `${indent}{\n`;
-                    code += `${indent}    Value args[] = {${args.join(', ')}};\n`;
-                    code += `${indent}    builtin_echo(args, ${args.length});\n`;
-                    args.forEach((arg, i) => {
-                        if (arg.includes('(') || arg.includes('add') || arg.includes('get_var') || arg.includes('builtin') || arg.includes('proc_')) {
-                             code += `${indent}    free_value(args[${i}]);\n`;
-                        }
-                    });
-                    code += `${indent}}\n`;
-                } else if (line.startsWith('wait ')) {
-                    code += `${indent}{ Value v = ${compileExpr(line.slice(5))}; usleep(v.data.i_val * 1000); free_value(v); }\n`;
-                }
-            } else if (node.type === 'var_echo') {
-                code += `${indent}{ Value v = get_var("${node.name}"); char buf[1024]; value_to_string(v, buf, sizeof(buf)); printf("%s\\n", buf); free_value(v); }\n`;
-            } else if (node.type === 'if') {
-                code += `${indent}if (${compileCondition(node.condition)}) {\n`;
-                code += compileNodes(node.thenNodes, indent + '    ', isMain);
-                if (node.elseNodes && node.elseNodes.length) {
-                    code += `${indent}} else {\n`;
-                    code += compileNodes(node.elseNodes, indent + '    ', isMain);
-                }
-                code += `${indent}}\n`;
-            } else if (node.type === 'while') {
-                code += `${indent}while (${compileCondition(node.condition)}) {\n`;
-                code += compileNodes(node.body, indent + '    ', isMain);
-                code += `${indent}}\n`;
-            } else if (node.type === 'for') {
-                if (node.rangeExpr.includes('..')) {
-                    const [startExpr, endExpr] = node.rangeExpr.split('..');
-                    code += `${indent}{\n`;
-                    code += `${indent}    Value v_start = ${compileExpr(startExpr)};\n`;
-                    code += `${indent}    Value v_end = ${compileExpr(endExpr)};\n`;
-                    code += `${indent}    long start = value_to_long(v_start);\n`;
-                    code += `${indent}    long end = value_to_long(v_end);\n`;
-                    code += `${indent}    free_value(v_start); free_value(v_end);\n`;
-                    code += `${indent}    for (long i = start; i <= end; i++) {\n`;
-                    code += `${indent}        Value v_i = make_int(i);\n`;
-                    code += `${indent}        set_var("${node.varName}", v_i);\n`;
-                    code += `${indent}        free_value(v_i);\n`;
-                    code += compileNodes(node.body, indent + '        ', isMain);
-                    code += `${indent}    }\n`;
-                    code += `${indent}}\n`;
-                }
-            } else if (node.type === 'return') {
-                if (isMain) {
-                    code += `${indent}{ Value v = ${compileExpr(node.value)}; int ret = (v.type == VAL_INT ? v.data.i_val : 0); free_value(v); cleanup_vars(); return ret; }\n`;
+            const folded = tryEvaluate(expr);
+            if (folded) return folded;
+            if (expr.startsWith('[') && expr.endsWith(']')) {
+                const inner = expr.slice(1, -1).trim();
+                if (inner.startsWith('@')) {
+                    const tokens = robustTokenize(inner);
+                    const name = tokens[0];
+                    const cleanName = name.slice(1);
+                    const argText = inner.slice(name.length).trim();
+                    const argsRaw = parseProcedureCallArgs(argText, robustTokenize);
+                    const args = argsRaw.map(compileExpr);
+                    if (cleanName === 'sqrt') return `builtin_sqrt(${args[0] || 'make_none()'})`;
+                    if (cleanName === 'abs') return `builtin_abs(${args[0] || 'make_none()'})`;
+                    if (cleanName === 'len') return `builtin_len(${args[0] || 'make_none()'})`;
+                    if (cleanName === 'typeof') return `builtin_typeof(${args[0] || 'make_none()'})`;
+                    if (cleanName === 'append') return `builtin_append((Value[]){${args.join(', ')}}, ${args.length})`;
+                    const proc = procs.find(p => p.name === cleanName || p.name === '@' + cleanName);
+                    if (proc) {
+                        const cName = getCProcName(proc.name);
+                        return `${cName}((Value[]){${args.length ? args.join(', ') : 'make_none()'}}, ${args.length})`;
+                    }
+                    throw new Error(`Compile Error: Unknown procedure '@${cleanName}'.`);
                 } else {
-                    code += `${indent}{ Value v = ${compileExpr(node.value)}; return v; }\n`;
+                    throw new Error(`Compile Error: Built-in or procedure call '${inner}' must be prefixed with '@' (e.g. '[${inner} ...]' -> '[@${inner} ...]').`);
                 }
             }
+            if (expr.startsWith('(') && expr.endsWith(')')) return compileExpr(expr.slice(1, -1));
+            const ops = ['==', '!=', '<=', '>=', '<', '>', '+', '-', '*', '/'];
+            for (const op of ops) {
+                const parts = splitByOp(expr, op);
+                if (parts) {
+                    const opFuncMap = { '==': 'eq', '!=': 'neq', '<=': 'le', '>=': 'ge', '<': 'lt', '>': 'gt', '+': 'add', '-': 'sub', '*': 'mul', '/': 'dv' };
+                    if (op === '!=') return `make_bool(!is_truthy(eq(${compileExpr(parts[0])}, ${compileExpr(parts[1])})))`;
+                    return `${opFuncMap[op]}(${compileExpr(parts[0])}, ${compileExpr(parts[1])})`;
+                }
+            }
+            if (expr.startsWith('$')) return `get_var("${expr.slice(1)}")`;
+            return `make_string("${expr.replace(/"/g, '\\\\"')}")`;
+        };
+
+        const compileCondition = (cond) => `is_truthy(${compileExpr(cond)})`;
+
+        const compileNodes = (nodes, indent = '    ', isMain = false) => {
+            let code = '';
+            for (const node of nodes) {
+                if (node.type === 'file_marker') {
+                    code += `${indent}// --- ${node.action === 'start' ? 'START' : 'END'} OF FILE: ${node.path} ---\n`;
+                    continue;
+                }
+                code += `${indent}current_line = ${node.lineNum}; current_col = ${node.col || 0};\n`;
+                if (node.type === 'assign' || node.type === 'var') {
+                    code += `${indent}{ Value v = ${compileExpr(node.value)}; set_var("${node.name}", v); free_value(v); }\n`;
+                } else if (node.type === 'global') {
+                    code += `${indent}set_var("${node.name}", ${compileExpr(node.value)});\n`;
+                } else if (node.type === 'cmd') {
+                    const line = node.line.trim();
+                    if (line.startsWith('echo ')) {
+                        const argText = line.slice(5).trim();
+                        const args = robustTokenize(argText).map(compileExpr);
+                        code += `${indent}{\n`;
+                        code += `${indent}    Value args[] = {${args.join(', ')}};\n`;
+                        code += `${indent}    builtin_echo(args, ${args.length});\n`;
+                        args.forEach((arg, i) => {
+                            if (arg.includes('(') || arg.includes('add') || arg.includes('get_var') || arg.includes('builtin') || arg.includes('proc_')) {
+                                 code += `${indent}    free_value(args[${i}]);\n`;
+                            }
+                        });
+                        code += `${indent}}\n`;
+                    } else if (line.startsWith('wait ')) {
+                        code += `${indent}{ Value v = ${compileExpr(line.slice(5))}; usleep(v.data.i_val * 1000); free_value(v); }\n`;
+                    }
+                } else if (node.type === 'var_echo') {
+                    code += `${indent}{ Value v = get_var("${node.name}"); char buf[1024]; value_to_string(v, buf, sizeof(buf)); printf("%s\\n", buf); free_value(v); }\n`;
+                } else if (node.type === 'if') {
+                    code += `${indent}if (${compileCondition(node.condition)}) {\n`;
+                    code += compileNodes(node.thenNodes, indent + '    ', isMain);
+                    if (node.elseNodes && node.elseNodes.length) {
+                        code += `${indent}} else {\n`;
+                        code += compileNodes(node.elseNodes, indent + '    ', isMain);
+                    }
+                    code += `${indent}}\n`;
+                } else if (node.type === 'while') {
+                    code += `${indent}while (${compileCondition(node.condition)}) {\n`;
+                    code += compileNodes(node.body, indent + '    ', isMain);
+                    code += `${indent}}\n`;
+                } else if (node.type === 'for') {
+                    if (node.rangeExpr.includes('..')) {
+                        const [startExpr, endExpr] = node.rangeExpr.split('..');
+                        code += `${indent}{\n`;
+                        code += `${indent}    Value v_start = ${compileExpr(startExpr)};\n`;
+                        code += `${indent}    Value v_end = ${compileExpr(endExpr)};\n`;
+                        code += `${indent}    long start = value_to_long(v_start);\n`;
+                        code += `${indent}    long end = value_to_long(v_end);\n`;
+                        code += `${indent}    free_value(v_start); free_value(v_end);\n`;
+                        code += `${indent}    for (long i = start; i <= end; i++) {\n`;
+                        code += `${indent}        Value v_i = make_int(i);\n`;
+                        code += `${indent}        set_var("${node.varName}", v_i);\n`;
+                        code += `${indent}        free_value(v_i);\n`;
+                        code += compileNodes(node.body, indent + '        ', isMain);
+                        code += `${indent}    }\n`;
+                        code += `${indent}}\n`;
+                    }
+                } else if (node.type === 'return') {
+                    if (isMain) {
+                        code += `${indent}{ Value v = ${compileExpr(node.value)}; int ret = (v.type == VAL_INT ? v.data.i_val : 0); free_value(v); cleanup_vars(); return ret; }\n`;
+                    } else {
+                        code += `${indent}{ Value v = ${compileExpr(node.value)}; return v; }\n`;
+                    }
+                }
+            }
+            return code;
+        };
+
+        for (const p of procs) {
+            const cName = getCProcName(p.name);
+            output += `\nValue ${cName}(Value* args, int count) {\n`;
+            output += `    push_frame("${p.name}", current_file, ${p.lineNum}, ${p.col || 0});\n`;
+            if (p.argNames) {
+                p.argNames.forEach((argName, i) => {
+                    output += `    if (count > ${i}) set_var("${argName.startsWith('$') ? argName.slice(1) : argName}", args[${i}]);\n`;
+                });
+            }
+            output += compileNodes(p.body, '    ', false);
+            output += `    pop_frame();\n`;
+            output += `    return make_none();\n}\n`;
         }
-        return code;
+
+        output += `\nint main() {\n`;
+        output += compileNodes(nodes.filter(n => n.type !== 'proc'), '    ', true);
+        output += `    cleanup_vars();\n`;
+        output += `    return 0;\n}\n`;
+
+        return output;
     };
 
-    // Compile procedure definitions
-    for (const p of procs) {
-        const cName = getCProcName(p.name);
-        output += `\nValue ${cName}(Value* args, int count) {\n`;
-        output += `    push_frame("${p.name}", current_file, ${p.lineNum}, ${p.col || 0});\n`;
-        if (p.argNames) {
-            p.argNames.forEach((argName, i) => {
-                output += `    if (count > ${i}) set_var("${argName.startsWith('$') ? argName.slice(1) : argName}", args[${i}]);\n`;
-            });
-        }
-        output += compileNodes(p.body, '    ', false);
-        output += `    pop_frame();\n`;
-        output += `    return make_none();\n}\n`;
-    }
-
-    output += `\nint main() {\n`;
-    output += compileNodes(nodes.filter(n => n.type !== 'proc'), '    ', true);
-    output += `    cleanup_vars();\n`;
-    output += `    return 0;\n}\n`;
-
-    return output;
-};
-
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { generateC };
-}
+    return { generateC };
+}));

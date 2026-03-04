@@ -5,6 +5,26 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
     const container = document.createElement('div');
     container.className = 'gos-cmd';
 
+    // ── Window Creation ──
+    const winOptions = {
+        icon: 'ri-terminal-box-line',
+        width: 700,
+        height: 450
+    };
+
+    if (isBoot) {
+        const margin = 40;
+        winOptions.x = window.innerWidth - winOptions.width - margin;
+        winOptions.y = 60;
+    }
+
+    const winObj = wm.createWindow('    Command Prompt', container, {
+        ...winOptions,
+        appId: 'cmd',
+        args: autoRun
+    });
+    const winId = winObj.id;
+
     // Hidden real input that captures keystrokes
     const hiddenInput = document.createElement('input');
     hiddenInput.className = 'gos-cmd-hidden-input';
@@ -37,6 +57,162 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         persistCwd();
     }
 
+    // ── Built-in Procedures registration ─────────────────────────────────────
+    if (typeof SmcBuiltins !== 'undefined') {
+        SmcBuiltins.register('msgbox', async (args, ctx = {}) => {
+            const title = args[0] || 'Message';
+            const message = args[1] || '';
+            const icon = args[2] || 'ri-information-line';
+            return new Promise((resolve) => {
+                wm.messageBox(title, message, {
+                    icon,
+                    modal: true,
+                    parentWinId: ctx.parentWinId,
+                    onOk: () => resolve(null)
+                });
+            });
+        }, {
+            args: [
+                { name: 'title', required: true, type: 'string' },
+                { name: 'message', required: true, type: 'string' },
+                { name: 'icon', required: false, type: 'string' }
+            ]
+        });
+
+        SmcBuiltins.register('input', async (args, ctx = {}) => {
+            const title = args[0] || 'Input';
+            const prompt = args[1] || 'Enter value:';
+            const defaultValue = args[2] || '';
+            return new Promise((resolve) => {
+                const container = document.createElement('div');
+                container.style.padding = '15px';
+                container.style.display = 'flex';
+                container.style.flexDirection = 'column';
+                container.style.gap = '10px';
+                
+                const promptText = document.createElement('div');
+                promptText.textContent = prompt;
+                container.appendChild(promptText);
+
+                const inputWidget = Widgets.createInput(null, defaultValue);
+                container.appendChild(inputWidget);
+                const inputEl = inputWidget.querySelector('input');
+
+                const btnContainer = document.createElement('div');
+                btnContainer.style.display = 'flex';
+                btnContainer.style.justifyContent = 'flex-end';
+                btnContainer.style.gap = '10px';
+                btnContainer.style.marginTop = '5px';
+
+                const okBtn = Widgets.createButton('OK', () => {
+                    const val = inputEl.value;
+                    wm.closeWindow(win.id);
+                    resolve(val);
+                });
+                const cancelBtn = Widgets.createButton('Cancel', () => {
+                    wm.closeWindow(win.id);
+                    resolve(null);
+                });
+
+                btnContainer.appendChild(okBtn);
+                btnContainer.appendChild(cancelBtn);
+                container.appendChild(btnContainer);
+
+                const win = wm.createWindow(title, container, {
+                    width: 350,
+                    height: 180,
+                    noResize: true,
+                    modal: true,
+                    icon: 'ri-edit-line',
+                    parentWinId: ctx.parentWinId
+                });
+
+                inputEl.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') okBtn.click();
+                    if (e.key === 'Escape') cancelBtn.click();
+                });
+
+                setTimeout(() => inputEl.focus(), 100);
+            });
+        }, {
+            args: [
+                { name: 'title', required: true, type: 'string' },
+                { name: 'prompt', required: true, type: 'string' },
+                { name: 'default', required: false, type: 'string' }
+            ]
+        });
+
+        SmcBuiltins.register('dialog', async (args, ctx = {}) => {
+            const title = args[0] || 'Dialog';
+            const message = args[1] || '';
+            const type = args[2] || 'ok';
+            const icon = args[3] || 'ri-question-line';
+            return new Promise((resolve) => {
+                wm.messageBox(title, message, {
+                    icon,
+                    modal: true,
+                    buttons: type,
+                    parentWinId: ctx.parentWinId,
+                    onOk: () => resolve('ok'),
+                    onYes: () => resolve('yes'),
+                    onNo: () => resolve('no'),
+                    onCancel: () => resolve('cancel')
+                });
+            });
+        }, {
+            args: [
+                { name: 'title', required: true, type: 'string' },
+                { name: 'message', required: true, type: 'string' },
+                { name: 'type', required: false, type: 'string' },
+                { name: 'icon', required: false, type: 'string' }
+            ]
+        });
+
+        SmcBuiltins.register('notify', async (args, ctx = {}) => {
+            if (typeof NotificationService === 'undefined') return { ok: false, error: 'NotificationService unavailable' };
+            
+            let raw = args[0] || '';
+            // If called as a command with raw text instead of tokens
+            if (!raw && ctx.line) {
+                const tokens = robustTokenize(ctx.line);
+                if (tokens.length > 1) {
+                    const firstToken = tokens[0];
+                    const idx = ctx.line.indexOf(firstToken);
+                    if (idx >= 0) {
+                        raw = ctx.line.slice(idx + firstToken.length).trim().replace(/^["']|["']$/g, '');
+                    }
+                }
+            }
+
+            let title = 'Notification';
+            let message = raw;
+            if (raw.includes('|')) {
+                const parts = raw.split('|');
+                title = parts[0].trim();
+                message = parts[1].trim();
+            }
+            
+            NotificationService.notify({ title, message });
+            return null;
+        }, {
+            args: [
+                { name: 'message', required: true, type: 'string' }
+            ]
+        });
+    }
+
+    // Register metadata for other standard commands if they are used as procedures
+    if (typeof SmcBuiltins !== 'undefined') {
+        SmcBuiltins.setMeta('dir', { args: [{ name: 'path', type: 'string' }] });
+        SmcBuiltins.setMeta('cd', { args: [{ name: 'path', type: 'string' }] });
+        SmcBuiltins.setMeta('type', { args: [{ name: 'path', required: true, type: 'string' }] });
+        SmcBuiltins.setMeta('md', { args: [{ name: 'path', required: true, type: 'string' }] });
+        SmcBuiltins.setMeta('del', { args: [{ name: 'path', required: true, type: 'string' }] });
+        SmcBuiltins.setMeta('rd', { args: [{ name: 'path', required: true, type: 'string' }] });
+        SmcBuiltins.setMeta('ren', { args: [{ name: 'old', required: true, type: 'string' }, { name: 'new', required: true, type: 'string' }] });
+        SmcBuiltins.setMeta('copy', { args: [{ name: 'src', required: true, type: 'string' }, { name: 'dst', required: true, type: 'string' }] });
+    }
+
     // ── Path helpers ──────────────────────────────────────────────────────────
     function getPrompt() {
         return fs.pwd() + '> ';
@@ -47,20 +223,15 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
-    const CMD_SYNTAX_KEYWORDS = new Set([
-        'if', 'then', 'else', 'end', 'proc', 'do',
-        'echo', 'type', 'cd', 'dir', 'md', 'mkdir', 'del', 'rm', 'rd', 'rmdir',
-        'ren', 'copy', 'edit', 'runsmc', 'notify', 'ver', 'help', 'cls', 'exit',
-        'history', 'pwd', 'ls', 'cat', 'cp', 'mv', 'clear'
-    ]);
-    const CMD_SYNTAX_OPERATORS = ['==', '!=', '||', '&&', '|', '>'];
+    function highlightCmdText(raw, markCommandValidity = true, validationLine = null, cursorPos = -1) {
+        if (typeof tokenizeForHighlighting === 'undefined') {
+            return escHtml(raw);
+        }
 
-    function highlightCmdText(raw, markCommandValidity = true, validationLine = null) {
         const line = String(raw || '');
-        let out = '';
-        let i = 0;
         const lineForValidation = validationLine == null ? line : String(validationLine);
         const validCommand = markCommandValidity ? validateSingle(lineForValidation) : false;
+        
         let cmdStart = -1;
         let cmdEnd = -1;
         if (markCommandValidity) {
@@ -71,12 +242,8 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
                 if (cmdStart === -1 && /\s/.test(ch)) continue;
                 if (cmdStart === -1) cmdStart = k;
                 if ((ch === '"' || ch === "'") && (k === 0 || line[k - 1] !== '\\')) {
-                    if (!inQuotes) {
-                        inQuotes = true;
-                        quoteChar = ch;
-                    } else if (quoteChar === ch) {
-                        inQuotes = false;
-                    }
+                    if (!inQuotes) { inQuotes = true; quoteChar = ch; }
+                    else if (quoteChar === ch) { inQuotes = false; }
                 }
                 if (!inQuotes && /\s/.test(ch)) {
                     cmdEnd = k;
@@ -85,69 +252,68 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
             }
             if (cmdStart !== -1 && cmdEnd === -1) cmdEnd = line.length;
         }
+
         const cmdClass = validCommand ? 'gos-cmd-syn-cmd-valid' : 'gos-cmd-syn-cmd-invalid';
-        const wrapChunk = (text, baseClass, start, end) => {
-            if (!text) return '';
-            if (markCommandValidity && cmdStart !== -1 && start >= cmdStart && end <= cmdEnd) {
-                return `<span class="${cmdClass}">${escHtml(text)}</span>`;
-            }
-            if (baseClass) return `<span class="${baseClass}">${escHtml(text)}</span>`;
-            return escHtml(text);
-        };
+        
+        const tokens = tokenizeForHighlighting(line);
+        let currentPos = 0;
 
-        while (i < line.length) {
-            const ch = line[i];
+        let html = tokens.map(token => {
+            const val = token.value;
+            const start = currentPos;
+            const end = currentPos + val.length;
+            currentPos = end;
 
-            if (ch === '"' || ch === "'") {
-                const quote = ch;
-                let j = i + 1;
-                while (j < line.length) {
-                    if (line[j] === '\\') { j += 2; continue; }
-                    if (line[j] === quote) { j++; break; }
-                    j++;
+            const wrap = (content, cls) => {
+                if (!content && content !== "") return '';
+                let out = `<span class="${cls || ''}">${escHtml(content)}</span>`;
+                if (markCommandValidity && cmdStart !== -1 && start >= cmdStart && end <= cmdEnd) {
+                    out = `<span class="${cmdClass}">${out}</span>`;
                 }
-                out += wrapChunk(line.slice(i, j), 'gos-cmd-syn-str', i, j);
-                i = j;
-                continue;
+                return out;
+            };
+
+            const clsMap = {
+                'comment': 'gos-cmd-syn-com',
+                'string': 'gos-cmd-syn-str',
+                'keyword': 'gos-cmd-syn-kw',
+                'operator': 'gos-cmd-syn-op',
+                'number': 'gos-cmd-syn-num',
+                'variable': 'gos-cmd-syn-varref',
+                'procedure': 'gos-cmd-syn-proc'
+            };
+            const cls = clsMap[token.type] || '';
+
+            if (cursorPos >= start && cursorPos < end) {
+                const rel = cursorPos - start;
+                return wrap(val.slice(0, rel), cls) + 
+                       `<span class="gos-cmd-cursor">${escHtml(val[rel])}</span>` + 
+                       wrap(val.slice(rel + 1), cls);
             }
 
-            const op = CMD_SYNTAX_OPERATORS.find(o => line.startsWith(o, i));
-            if (op) {
-                out += wrapChunk(op, 'gos-cmd-syn-op', i, i + op.length);
-                i += op.length;
-                continue;
-            }
+            return wrap(val, cls);
+        }).join('');
 
-            if (/[0-9]/.test(ch)) {
-                let j = i + 1;
-                while (j < line.length && /[0-9.]/.test(line[j])) j++;
-                out += wrapChunk(line.slice(i, j), 'gos-cmd-syn-num', i, j);
-                i = j;
-                continue;
-            }
-
-            if (/[A-Za-z_]/.test(ch)) {
-                let j = i + 1;
-                while (j < line.length && /[A-Za-z0-9_]/.test(line[j])) j++;
-                const word = line.slice(i, j);
-                const low = word.toLowerCase();
-                if (CMD_SYNTAX_KEYWORDS.has(low)) {
-                    out += wrapChunk(word, 'gos-cmd-syn-kw', i, j);
-                } else {
-                    out += wrapChunk(word, '', i, j);
-                }
-                i = j;
-                continue;
-            }
-
-            out += wrapChunk(ch, '', i, i + 1);
-            i++;
+        if (cursorPos === line.length && cursorPos !== -1) {
+            html += `<span class="gos-cmd-cursor">&nbsp;</span>`;
         }
 
-        return out;
+        return html || (cursorPos !== -1 ? `<span class="gos-cmd-cursor">&nbsp;</span>` : "");
     }
 
     let _scriptMode = { active: false, silent: false, noEcho: false };
+    
+    // Persistent SMC Execution State
+    let _smcState = {
+        globalScope: {},
+        rootScope: { variables: {}, parent: null },
+        importStack: [],
+        callStack: [],
+        ignoreNextCommand: false,
+        cwd: fs.pwd(),
+        builtins: null, // Will be initialized on first run
+        procedures: new Map()
+    };
 
     function setInterpreterMode(flags = {}) {
         _scriptMode.active = !!flags.active;
@@ -264,15 +430,13 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         if (!_activeLine) return;
         const val = hiddenInput.value;
         const cur = hiddenInput.selectionStart ?? val.length;
-        // Split around cursor for blinking block render
-        const before = highlightCmdText(val.slice(0, cur), true, val);
-        const after = highlightCmdText(val.slice(cur + 1), true, val);
-        const curChar = escHtml(val[cur] || ' ');
+        
+        const highlighted = highlightCmdText(val, true, val, cur);
+        
         _activeLine.innerHTML =
             `<span class="gos-cmd-prompt">${escHtml(getPrompt())}</span>` +
-            `<span class="gos-cmd-typed gos-cmd-syn">${before}</span>` +
-            `<span class="gos-cmd-cursor">${curChar}</span>` +
-            `<span class="gos-cmd-typed gos-cmd-syn">${after}</span>`;
+            `<span class="gos-cmd-typed gos-cmd-syn">${highlighted}</span>`;
+            
         terminal.scrollTop = terminal.scrollHeight;
     }
 
@@ -305,6 +469,9 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
                 '<span style="color:#e8c84a">COPY</span>      Copies one file to another location.<br>' +
                 '<span style="color:#e8c84a">EDIT</span>      Starts the glitterOS Editor.<br>' +
                 '<span style="color:#e8c84a">RUNSMC</span>    Executes a .smc script file.<br>' +
+                '<span style="color:#e8c84a">MSGBOX</span>    Displays a message box: MSGBOX "Title" "Message" "Icon".<br>' +
+                '<span style="color:#e8c84a">INPUT</span>     Prompts for input: INPUT "Title" "Prompt" "Default".<br>' +
+                '<span style="color:#e8c84a">DIALOG</span>    Advanced dialog: DIALOG "Title" "Msg" "Type" "Icon".<br>' +
                 '<span style="color:#e8c84a">NOTIFY</span>    Sends a test notification to Action Centre.<br>' +
                 '<span style="color:#e8c84a">ALIAS</span>    Lists or defines custom command shortcuts.<br>' +
                 '<span style="color:#e8c84a">VER</span>       Displays the Windows version.<br>' +
@@ -318,49 +485,14 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
                 if (c !== _activeLine) c.remove();
             });
         },
+        msgbox(args) { return SmcBuiltins.getAll().msgbox(args); },
+        input(args) { return SmcBuiltins.getAll().input(args); },
+        dialog(args) { return SmcBuiltins.getAll().dialog(args); },
+        notify(args, ctx = {}) { return SmcBuiltins.getAll().notify(args, ctx); },
         ver() {
             appendLine('glitterOS [Version 4.2.0.6969]');
             appendHTML('(c) theonlyasdk 2026. All rights reserved. Type <span style="color:#e8c84a">HELP</span> for help.');
             appendLine('glitterOS Command Prompt v1.0');
-        },
-        notify(args, ctx = {}) {
-            if (typeof NotificationService === 'undefined') {
-                return commandError(
-                    'NotificationService is not available.',
-                    'Open Task Manager and restart NotificationService, then try NOTIFY again.'
-                );
-            }
-            
-            let raw = '';
-            const rawInput = (ctx.rawArgText || '').trim();
-            if (isQuotedText(rawInput)) {
-                raw = rawInput.slice(1, -1).trim();
-            } else if (args.length > 0) {
-                raw = args.join(' ').trim();
-            }
-
-            if (!raw) {
-                return commandError('NOTIFY requires a message string.', 'Use: NOTIFY "Title|Message" or NOTIFY $variable');
-            }
-
-            let title = 'Dummy Notification';
-            let message = 'This is a test notification from CMD.';
-            if (raw) {
-                const parts = raw.split('|');
-                if (parts[0] && parts[0].trim()) title = parts[0].trim();
-                if (parts[1] && parts[1].trim()) message = parts[1].trim();
-            }
-
-            const res = NotificationService.notify({
-                title,
-                message,
-                actions: []
-            });
-
-            if (res.error) {
-                return commandError(`Failed to send notification: ${res.error}`, 'Ensure NotificationService is enabled and retry.');
-            }
-            appendLine('Notification sent.');
         },
         alias(args, ctx = {}) {
             const rawArgText = String(ctx.rawArgText || '').trim();
@@ -468,10 +600,7 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
                 appendLine(stdin);
                 return;
             }
-            if (!isQuotedText(rawInput)) {
-                return commandError('ECHO requires a quoted string.', 'Use: ECHO "your text here"');
-            }
-            appendLine(rawInput.slice(1, -1));
+            appendLine(args.join(' '));
         },
         md(args) {
             const { flags, args: targets } = parseOptionArgs(args);
@@ -610,7 +739,7 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         }
     };
 
-    function tokenize(line) {
+    function robustTokenize(line) {
         const tokens = [];
         let current = "";
         let inQuotes = false;
@@ -665,7 +794,7 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
     function expandAliasLine(line, visited = new Set()) {
         const trimmed = String(line || '').trim();
         if (!trimmed) return '';
-        const tokens = tokenize(trimmed);
+        const tokens = robustTokenize(trimmed);
         if (!tokens.length) return trimmed;
         const alias = resolveAlias(tokens[0]);
         if (!alias) return trimmed;
@@ -792,30 +921,35 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         return -1;
     }
 
-    function executeSingle(raw) {
+    async function executeSingle(raw) {
         const line = raw.trim();
         if (!line) return { ok: true };
 
         const expandedLine = expandAliasLine(line);
-        const tokens = tokenize(expandedLine);
+        const tokens = robustTokenize(expandedLine);
         if (tokens.length === 0) return { ok: true };
         const cmd = tokens[0].toLowerCase();
         const args = tokens.slice(1);
 
-        if (tokens[0].toLowerCase().endsWith('.smc') && tokens.length === 1) {
-            if (!fs.exists(tokens[0])) {
-                return commandError('The system cannot find the file specified.', 'Make sure the .smc file exists in the current directory or provide its full path.');
+        // Support running scripts by name: test.smc or @test.smc
+        const isSmc = cmd.endsWith('.smc') || (cmd.startsWith('@') && cmd.slice(1).endsWith('.smc'));
+        if (isSmc) {
+            const cleanPath = cmd.startsWith('@') ? cmd.slice(1) : cmd;
+            if (!fs.exists(cleanPath)) {
+                return commandError('The system cannot find the file specified.', `Make sure the script file '${cleanPath}' exists.`);
             }
-            const smcRes = fs.cat(tokens[0]);
+            const smcRes = fs.cat(cleanPath);
             if (smcRes.error) {
                 return commandError('The system cannot find the file specified.', 'Verify read access and script path, then retry.');
             }
-            return executeScriptContent(smcRes.content, tokens[0]);
+            // Passing args could be implemented by setting special variables like $1, $2 etc.
+            // For now we just execute it in the current persistent state.
+            return await executeScriptContent(smcRes.content, cleanPath, { winId });
         }
 
             if (CMDS[cmd]) {
                 const rawArgText = expandedLine.slice(tokens[0].length).trim();
-                const result = CMDS[cmd](args, { rawArgText, line: expandedLine, cmd });
+                const result = await CMDS[cmd](args, { rawArgText, line: expandedLine, cmd });
             if (result && typeof result.ok === 'boolean') return result;
             return { ok: true };
         }
@@ -842,10 +976,10 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         );
     }
 
-    function validateSingle(raw) {
+    async function validateSingle(raw) {
         const line = raw.trim();
         if (!line) return true;
-        const tokens = tokenize(line);
+        const tokens = robustTokenize(line);
         if (!tokens.length) return true;
         const cmd = tokens[0].toLowerCase();
         if (CMDS[cmd]) return true;
@@ -862,7 +996,7 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         return candidates.some(p => fs.exists(p));
     }
 
-    function validateFlowSyntax(raw) {
+    async function validateFlowSyntax(raw) {
         const line = raw.trim();
         if (!line) return true;
 
@@ -877,28 +1011,35 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
                 : line.slice(thenPos + 4).trim();
             const elseExpr = elsePos > thenPos ? line.slice(elsePos + 4).trim() : '';
             if (!condExpr || !thenExpr) return false;
-            if (!validateFlowSyntax(thenExpr)) return false;
-            if (elseExpr && !validateFlowSyntax(elseExpr)) return false;
+            if (!(await validateFlowSyntax(thenExpr))) return false;
+            if (elseExpr && !(await validateFlowSyntax(elseExpr))) return false;
             return true;
         }
 
         const andParts = splitByOperator(line, '&&');
-        if (andParts.length > 1) return andParts.every(p => validateFlowSyntax(p));
+        if (andParts.length > 1) {
+            for (const p of andParts) { if (!(await validateFlowSyntax(p))) return false; }
+            return true;
+        }
         const orParts = splitByOperator(line, '||');
-        if (orParts.length > 1) return orParts.every(p => validateFlowSyntax(p));
+        if (orParts.length > 1) {
+            for (const p of orParts) { if (!(await validateFlowSyntax(p))) return false; }
+            return true;
+        }
 
         const redir = parseRedirection(line);
         if (redir.error) return false;
         const pipeParts = splitTopLevelPipes(redir.command);
         if (!pipeParts.length || pipeParts.some(p => !p)) return false;
-        return pipeParts.every(p => validateSingle(p));
+        for (const p of pipeParts) { if (!(await validateSingle(p))) return false; }
+        return true;
     }
 
-    function executeCondition(expr) {
+    async function executeCondition(expr) {
         const cond = expr.trim();
         if (!cond) return false;
         const match = cond.match(/^(.+?)\s*(==|!=|<=|>=|<|>)\s*(.+)$/);
-        if (!match) return executeSingle(cond).ok;
+        if (!match) return (await executeSingle(cond)).ok;
         const left = match[1].trim().replace(/^["']|["']$/g, '');
         const op = match[2];
         const right = match[3].trim().replace(/^["']|["']$/g, '');
@@ -928,10 +1069,10 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
                     ? line.slice(thenPos + 4, elsePos).trim()
                     : line.slice(thenPos + 4).trim();
                 const elseExpr = elsePos > thenPos ? line.slice(elsePos + 4).trim() : '';
-                if (!validateFlowSyntax(thenExpr) || (elseExpr && !validateFlowSyntax(elseExpr))) {
+                if (!(await validateFlowSyntax(thenExpr)) || (elseExpr && !(await validateFlowSyntax(elseExpr)))) {
                     return commandError('Invalid THEN/ELSE command expression.', 'Use: IF <condition> THEN <command> ELSE <command>.');
                 }
-                const condOk = executeCondition(condExpr);
+                const condOk = await executeCondition(condExpr);
                 if (condOk) return await executeCommandLine(thenExpr);
                 if (elseExpr) return await executeCommandLine(elseExpr);
                 return { ok: true };
@@ -970,7 +1111,7 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         }
 
         if (stages.length === 1 && !redir.outputPath) {
-            return executeSingle(stages[0]);
+            return await executeSingle(stages[0]);
         }
 
         let stdin = '';
@@ -979,7 +1120,7 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
             const prevContext = _execContext;
             _execContext = { capture: true, lines: [], stdin };
             try {
-                last = executeSingle(stage);
+                last = await executeSingle(stage);
             } finally {
                 stdin = _execContext.lines.join('\n');
                 _execContext = prevContext;
@@ -996,7 +1137,7 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         return last;
     }
 
-    async function executeScriptContent(content, scriptPath = null) {
+    async function executeScriptContent(content, scriptPath = null, options = {}) {
         if (typeof SmcInterpreter === 'undefined' || !SmcInterpreter.runScript) {
             return commandError('SMC interpreter service is unavailable.', 'Ensure smc/dist/smc.min.js is loaded before CMD.');
         }
@@ -1006,35 +1147,42 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
         const prevMode = { ..._scriptMode };
         let scriptFlags = { active: true, silent: false, noEcho: false };
 
-        const builtins = {};
-        Object.keys(CMDS).forEach(name => {
-            builtins[name] = async (args, context) => {
-                let rawArgText = '';
-                if (context && context.line) {
-                    const tokens = tokenize(context.line);
-                    if (tokens.length > 0) {
-                        const firstToken = tokens[0];
-                        const idx = context.line.indexOf(firstToken);
-                        if (idx >= 0) {
-                            rawArgText = context.line.slice(idx + firstToken.length).trim();
+        if (!_smcState.builtins) {
+            _smcState.builtins = Object.assign({}, SmcInterpreter.MATH_BUILTINS || {}, SmcInterpreter.STRING_BUILTINS || {});
+            Object.keys(CMDS).forEach(name => {
+                _smcState.builtins[name] = async (args, context) => {
+                    let rawArgText = '';
+                    if (context && context.line) {
+                        const tokens = robustTokenize(context.line);
+                        if (tokens.length > 0) {
+                            const firstToken = tokens[0];
+                            const idx = context.line.indexOf(firstToken);
+                            if (idx >= 0) {
+                                rawArgText = context.line.slice(idx + firstToken.length).trim();
+                            }
                         }
                     }
-                }
-                if (!rawArgText && args.length > 0) {
-                    rawArgText = args.join(' ');
-                }
-                const result = CMDS[name](args, { rawArgText, line: context.line, cmd: name });
-                return result || { ok: true };
-            };
-        });
+                    if (!rawArgText && args.length > 0) {
+                        rawArgText = args.join(' ');
+                    }
+                    const result = await CMDS[name](args, { ...context, rawArgText, cmd: name, parentWinId: options.winId });
+                    return result || { ok: true };
+                };
+            });
+        }
+
+        // Always merge latest SmcBuiltins (they might have been registered after first run)
+        const activeBuiltins = Object.assign({}, _smcState.builtins, typeof SmcBuiltins !== 'undefined' ? SmcBuiltins.getAll() : {});
+
+        _smcState.cwd = cwd;
 
         try {
             const result = await SmcInterpreter.runScript(content, {
-                tokenize,
+                tokenize: robustTokenize,
                 evaluateCondition: executeCondition,
                 executeCommand: (line, lineNum) => executeCommandLine(line),
                 fs: window.fs,
-                builtins,
+                builtins: activeBuiltins,
                 filename: scriptPath || 'interactive',
                 onFlags: (flags) => {
                     const normalized = { active: true, silent: !!flags.silent, noEcho: !!flags.noEcho };
@@ -1045,6 +1193,23 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
                     if (scriptFlags.noEcho) return;
                     commitActiveLine(line);
                     if (_activeLine === null) createActiveLine();
+                },
+                onResult: (res) => {
+                    if (scriptFlags.silent) return;
+                    if (res === null) return; // Don't show none
+                    
+                    // Filter out standard command results
+                    if (res && typeof res === 'object' && res.ok === true && !res.__tag) return;
+
+                    const type = SmcInterpreter.interpreter.getSmcType(res);
+                    const val = SmcInterpreter.interpreter.getVal(res);
+                    let valStr;
+                    if (val && typeof val === 'object' && val.value !== undefined && res.__tag) {
+                        valStr = typeof val.value === 'string' ? `"${val.value}"` : JSON.stringify(val.value);
+                    } else {
+                        valStr = typeof val === 'string' ? `"${val}"` : JSON.stringify(val);
+                    }
+                    appendLine(`[:${type} ${valStr}]`);
                 },
                 onError: (err) => {
                     if (!scriptFlags.silent) {
@@ -1058,7 +1223,7 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
                 },
                 recursionLimit: 32,
                 cwd
-            }, null);
+            }, _smcState);
             return result;
         } finally {
             setInterpreterMode(prevMode);
@@ -1066,9 +1231,9 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
     }
 
     // ── Input dispatch ────────────────────────────────────────────────────────
-    async function dispatch(raw) {
+    async function dispatch(raw, options = {}) {
         if (!raw.trim()) return;
-        await executeScriptContent(raw);
+        await executeScriptContent(raw, null, options);
     }
 
     // ── Keyboard handler ──────────────────────────────────────────────────────
@@ -1161,15 +1326,21 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
             const raw = hiddenInput.value;
             commitActiveLine(raw);
             hiddenInput.value = '';
-            if (raw.trim()) {
-                cmdHistory.unshift(raw);
-                // Limit history to 50 items
-                if (cmdHistory.length > 50) cmdHistory.pop();
-                registry.set('Software.GlitterOS.Cmd.History', cmdHistory);
-                histIdx = -1;
-                dispatch(raw);
-            }
-            if (_activeLine === null) createActiveLine(); // might be replaced by app
+            
+            (async () => {
+                hiddenInput.disabled = true; // Prevent input while processing
+                if (raw.trim()) {
+                    cmdHistory.unshift(raw);
+                    // Limit history to 50 items
+                    if (cmdHistory.length > 50) cmdHistory.pop();
+                    registry.set('Software.GlitterOS.Cmd.History', cmdHistory);
+                    histIdx = -1;
+                    await dispatch(raw, { winId: winObj.id });
+                }
+                if (_activeLine === null) createActiveLine();
+                hiddenInput.disabled = false;
+                hiddenInput.focus();
+            })();
         } else if (e.key === 'ArrowUp') {
             tabMatches = [];
             e.preventDefault();
@@ -1360,25 +1531,6 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
     // Create the first active input line
     createActiveLine();
 
-    // ── Launch window ─────────────────────────────────────────────────────────
-    const winOptions = {
-        icon: 'ri-terminal-box-line',
-        width: 600,
-        height: 380
-    };
-
-    if (isBoot) {
-        const margin = 40;
-        winOptions.x = window.innerWidth - winOptions.width - margin;
-        winOptions.y = 60;
-    }
-
-    const winObj = wm.createWindow('    Command Prompt', container, {
-        ...winOptions,
-        appId: 'cmd',
-        args: autoRun
-    });
-
     // Watch for window focus/blur via MutationObserver on the window element
     const focusObserver = new MutationObserver((mutations) => {
         mutations.forEach((m) => {
@@ -1411,7 +1563,7 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
                 if (res.error) {
                     appendCmdError('The system cannot find the file specified.', 'Check the autorun script path and try again.');
                 } else {
-                    executeScriptContent(res.content);
+                    executeScriptContent(res.content, p, { winId: winObj.id });
                 }
             } else {
                 hiddenInput.value = String(autoRun);
@@ -1419,7 +1571,7 @@ function launchCommandPrompt(autoRun = null, isBoot = false) {
                 const raw = hiddenInput.value;
                 commitActiveLine(raw);
                 hiddenInput.value = '';
-                dispatch(raw);
+                dispatch(raw, { winId: winObj.id });
             }
             if (_activeLine === null) createActiveLine();
         }, 100);

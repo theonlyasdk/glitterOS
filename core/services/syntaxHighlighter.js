@@ -7,171 +7,143 @@ const SyntaxHighlighter = (() => {
     }
 
     function highlightSmc(text) {
-        const kws = new Set([
-            'if', 'then', 'else', 'end', 'proc', 'do', 'var', 'let', 'set', 'while', 'global', 'wait', 'echo', 'type', 'cd', 'dir', 'md', 'mkdir', 'del', 'rm',
-            'rd', 'rmdir', 'ren', 'copy', 'ver', 'help', 'cls', 'exit', 'history', 'runsmc', 'notify',
-            'pwd', 'ls', 'cat', 'cp', 'mv', 'clear',
-            'none', 'return', 'break', 'continue', 'for', 'in', 'try', 'catch', 'exists'
-        ]);
-        const ops = ['==', '!=', '<=', '>=', '<', '>', '||', '&&', '|', '=', '+', '-', '*', '/', '..', '!', '?'];
-        
-        return String(text).split('\n').map((line) => {
-            const trimmed = line.trim();
-            if (!trimmed) return '';
-            
-            // Full line comments
-            if (trimmed.startsWith('//') || trimmed.toLowerCase().startsWith('rem ')) {
-                return `<span class="gos-syn-com">${esc(line)}</span>`;
-            }
+        if (typeof window.tokenizeForHighlighting !== 'function') {
+            return esc(text);
+        }
 
-            let out = '';
-            let i = 0;
-            while (i < line.length) {
-                const ch = line[i];
-                
-                // Inline comments (if outside strings)
-                if (ch === '#') {
-                    out += `<span class="gos-syn-com">${esc(line.slice(i))}</span>`;
-                    break;
-                }
-
-                if (ch === '"' || ch === "'") {
-                    const quote = ch;
-                    let j = i + 1;
-                    while (j < line.length) {
-                        if (line[j] === '\\') { j += 2; continue; }
-                        if (line[j] === quote) { j++; break; }
-                        j++;
-                    }
-                    const raw = line.slice(i, j);
+        return String(text).split('\n').map(line => {
+            const tokens = window.tokenizeForHighlighting(line) || [];
+            return tokens.map(token => {
+                const val = token.value ?? '';
+                if (token.type === 'comment') return `<span class="gos-syn-com">${esc(val)}</span>`;
+                if (token.type === 'string') {
                     const varRefRe = /%\{([A-Za-z_][A-Za-z0-9_]*)\}/g;
                     let cursor = 0;
-                    let highlightedParts = [];
-                    varRefRe.lastIndex = 0;
+                    let out = '';
                     let match;
-                    while ((match = varRefRe.exec(raw)) !== null) {
-                        if (match.index > cursor) {
-                            highlightedParts.push(esc(raw.slice(cursor, match.index)));
-                        }
-                        highlightedParts.push(`<span class="gos-syn-varref">${esc(match[0])}</span>`);
+                    while ((match = varRefRe.exec(val)) !== null) {
+                        out += esc(val.slice(cursor, match.index));
+                        out += `<span class="gos-syn-varref">${esc(match[0])}</span>`;
                         cursor = match.index + match[0].length;
                     }
-                    if (cursor < raw.length) {
-                        highlightedParts.push(esc(raw.slice(cursor)));
-                    }
-                    const highlighted = highlightedParts.join('');
-                    out += `<span class="gos-syn-str">${highlighted}</span>`;
-                    i = j;
-                    continue;
+                    out += esc(val.slice(cursor));
+                    return `<span class="gos-syn-str">${out}</span>`;
                 }
-                
-                // Result tags [:ok] [:error]
-                if (ch === '[' && line[i+1] === ':') {
-                    let j = i + 2;
-                    while (j < line.length && /[A-Za-z0-9_]/.test(line[j])) j++;
-                    out += `<span class="gos-syn-op">[</span><span class="gos-syn-kw" style="color: #ce9178;">${esc(line.slice(i+1, j))}</span>`;
-                    i = j;
-                    continue;
-                }
-
-                // Procedure calls / declarations / bracketed calls
-                if (ch === '@') {
-                    let j = i + 1;
-                    while (j < line.length && /[A-Za-z0-9_]/.test(line[j])) j++;
-                    out += `<span class="gos-syn-kw" style="color: #c586c0;">${esc(line.slice(i, j))}</span>`;
-                    i = j;
-                    continue;
-                }
-                
-                // Variable references
-                if (ch === '$') {
-                    let j = i + 1;
-                    while (j < line.length && /[A-Za-z0-9_]/.test(line[j])) j++;
-                    out += `<span class="gos-syn-varref" style="color: #9cdcfe;">${esc(line.slice(i, j))}</span>`;
-                    i = j;
-                    continue;
-                }
-
-                const op = ops.find(o => line.startsWith(o, i));
-                if (op) {
-                    out += `<span class="gos-syn-op">${esc(op)}</span>`;
-                    i += op.length;
-                    continue;
-                }
-                if (/[0-9]/.test(ch)) {
-                    let j = i + 1;
-                    while (j < line.length && /[0-9.]/.test(line[j])) j++;
-                    out += `<span class="gos-syn-num">${esc(line.slice(i, j))}</span>`;
-                    i = j;
-                    continue;
-                }
-                if (/[A-Za-z_]/.test(ch)) {
-                    let j = i + 1;
-                    while (j < line.length && /[A-Za-z0-9_]/.test(line[j])) j++;
-                    const word = line.slice(i, j);
-                    out += kws.has(word.toLowerCase()) ? `<span class="gos-syn-kw">${esc(word)}</span>` : esc(word);
-                    i = j;
-                    continue;
-                }
-                out += esc(ch);
-                i++;
-            }
-            return out;
+                if (token.type === 'keyword') return `<span class="gos-syn-kw">${esc(val)}</span>`;
+                if (token.type === 'operator') return `<span class="gos-syn-op">${esc(val)}</span>`;
+                if (token.type === 'number') return `<span class="gos-syn-num">${esc(val)}</span>`;
+                if (token.type === 'variable') return `<span class="gos-syn-varref">${esc(val)}</span>`;
+                if (token.type === 'procedure') return `<span class="gos-syn-proc">${esc(val)}</span>`;
+                return esc(val);
+            }).join('');
         }).join('\n');
     }
 
     function highlightHtml(text) {
         const src = String(text);
-
-        function highlightTag(rawTag) {
-            let i = 0;
-            let out = '<span class="gos-syn-tag">';
-
-            if (rawTag[i] === '<') { out += esc(rawTag[i]); i++; }
-            while (i < rawTag.length && /\s/.test(rawTag[i])) { out += esc(rawTag[i]); i++; }
-            if (rawTag[i] === '/') { out += esc(rawTag[i]); i++; }
-            while (i < rawTag.length && /\s/.test(rawTag[i])) { out += esc(rawTag[i]); i++; }
-
-            let j = i;
-            while (j < rawTag.length && /[A-Za-z0-9:-]/.test(rawTag[j])) j++;
-            if (j > i) out += `<span class="gos-syn-kw">${esc(rawTag.slice(i, j))}</span>`;
-            i = j;
-
-            while (i < rawTag.length) {
-                if (rawTag[i] === '"' || rawTag[i] === "'") {
-                    const q = rawTag[i];
-                    let k = i + 1;
-                    while (k < rawTag.length) {
-                        if (rawTag[k] === '\\') { k += 2; continue; }
-                        if (rawTag[k] === q) { k++; break; }
-                        k++;
-                    }
-                    out += `<span class="gos-syn-str">${esc(rawTag.slice(i, k))}</span>`;
-                    i = k;
-                    continue;
-                }
-                if (rawTag[i] === '=') {
-                    out += `<span class="gos-syn-op">=</span>`;
-                    i++;
-                    continue;
-                }
-                if (/[A-Za-z_:]/.test(rawTag[i])) {
-                    let k = i + 1;
-                    while (k < rawTag.length && /[A-Za-z0-9:._-]/.test(rawTag[k])) k++;
-                    out += `<span class="gos-syn-op">${esc(rawTag.slice(i, k))}</span>`;
-                    i = k;
-                    continue;
-                }
-                out += esc(rawTag[i]);
-                i++;
-            }
-
-            out += '</span>';
-            return out;
-        }
-
         let out = '';
         let i = 0;
+
+        function readTag(start) {
+            let j = start + 1;
+            let quote = null;
+            while (j < src.length) {
+                const ch = src[j];
+                if (quote) {
+                    if (ch === '\\') {
+                        j += 2;
+                        continue;
+                    }
+                    if (ch === quote) quote = null;
+                    j++;
+                    continue;
+                }
+                if (ch === '"' || ch === "'") {
+                    quote = ch;
+                    j++;
+                    continue;
+                }
+                if (ch === '>') break;
+                j++;
+            }
+            return j < src.length ? j : -1;
+        }
+
+        function highlightTag(rawTag) {
+            let k = 0;
+            let result = '<span class="gos-syn-tag">';
+
+            result += esc(rawTag[k++]);
+
+            while (k < rawTag.length && /\s/.test(rawTag[k])) {
+                result += esc(rawTag[k++]);
+            }
+
+            if (rawTag[k] === '/') {
+                result += esc(rawTag[k++]);
+            }
+
+            while (k < rawTag.length && /\s/.test(rawTag[k])) {
+                result += esc(rawTag[k++]);
+            }
+
+            let nameStart = k;
+            while (k < rawTag.length && /[A-Za-z0-9:-]/.test(rawTag[k])) k++;
+            if (k > nameStart) {
+                result += `<span class="gos-syn-kw">${esc(rawTag.slice(nameStart, k))}</span>`;
+            }
+
+            while (k < rawTag.length - 1) {
+                const ch = rawTag[k];
+
+                if (/\s/.test(ch)) {
+                    result += esc(ch);
+                    k++;
+                    continue;
+                }
+
+                if (ch === '"' || ch === "'") {
+                    const q = ch;
+                    let m = k + 1;
+                    while (m < rawTag.length) {
+                        if (rawTag[m] === '\\') {
+                            m += 2;
+                            continue;
+                        }
+                        if (rawTag[m] === q) {
+                            m++;
+                            break;
+                        }
+                        m++;
+                    }
+                    result += `<span class="gos-syn-str">${esc(rawTag.slice(k, m))}</span>`;
+                    k = m;
+                    continue;
+                }
+
+                if (ch === '=') {
+                    result += `<span class="gos-syn-op">=</span>`;
+                    k++;
+                    continue;
+                }
+
+                if (/[A-Za-z_:]/.test(ch)) {
+                    let m = k + 1;
+                    while (m < rawTag.length && /[A-Za-z0-9:._-]/.test(rawTag[m])) m++;
+                    result += `<span class="gos-syn-attr">${esc(rawTag.slice(k, m))}</span>`;
+                    k = m;
+                    continue;
+                }
+
+                result += esc(ch);
+                k++;
+            }
+
+            result += esc(rawTag[rawTag.length - 1]);
+            result += '</span>';
+            return result;
+        }
+
         while (i < src.length) {
             if (src.startsWith('<!--', i)) {
                 const end = src.indexOf('-->', i + 4);
@@ -180,8 +152,9 @@ const SyntaxHighlighter = (() => {
                 i = j;
                 continue;
             }
+
             if (src[i] === '<') {
-                const end = src.indexOf('>', i + 1);
+                const end = readTag(i);
                 if (end === -1) {
                     out += esc(src.slice(i));
                     break;
@@ -191,22 +164,25 @@ const SyntaxHighlighter = (() => {
                 i = end + 1;
                 continue;
             }
+
             if (src[i] === '&') {
-                const semi = src.indexOf(';', i + 1);
-                if (semi !== -1 && semi - i <= 12) {
-                    out += `<span class="gos-syn-num">${esc(src.slice(i, semi + 1))}</span>`;
-                    i = semi + 1;
+                const match = src.slice(i).match(/^&[A-Za-z0-9#]+;/);
+                if (match) {
+                    out += `<span class="gos-syn-num">${esc(match[0])}</span>`;
+                    i += match[0].length;
                     continue;
                 }
             }
+
             out += esc(src[i]);
             i++;
         }
+
         return out;
     }
 
     function detectLanguage(path) {
-        if (!path || typeof path !== 'string') return null;
+        if (typeof path !== 'string') return null;
         const m = path.trim().match(/\.([^.\\\/]+)$/);
         if (!m) return null;
         const ext = m[1].toLowerCase();
@@ -219,7 +195,7 @@ const SyntaxHighlighter = (() => {
         const lang = (language || '').toLowerCase();
         if (lang === 'smc') return highlightSmc(text);
         if (lang === 'html') return highlightHtml(text);
-        return esc(text || '');
+        return esc(text ?? '');
     }
 
     return { detectLanguage, highlight };

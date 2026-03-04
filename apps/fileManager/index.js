@@ -845,6 +845,61 @@ function launchFileManager(startPath) {
         updateSelectionUI();
     }
 
+    // ── External Upload Support ──────────────────────────────────────────────
+    function uploadFiles(files) {
+        if (!files || !files.length) return;
+        
+        Array.from(files).forEach(file => {
+            const reader = new FileReader();
+            const isSmc = file.name.toLowerCase().endsWith('.smc');
+            
+            reader.onload = (e) => {
+                const content = e.target.result;
+                const path = (_cwd.endsWith('\\') ? _cwd : _cwd + '\\') + file.name;
+                fs.write(path, content);
+                renderContent();
+            };
+
+            if (isSmc) {
+                reader.readAsText(file);
+            } else {
+                // Use readAsDataURL for binary safety (base64)
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    const dropOverlay = document.createElement('div');
+    dropOverlay.className = 'gos-fm-drop-overlay';
+    dropOverlay.style.cssText = 'position:absolute;inset:0;background:rgba(0,120,215,0.2);border:2px dashed var(--accent-color);display:none;align-items:center;justify-content:center;z-index:100;pointer-events:none;color:#fff;font-size:1.2rem;';
+    dropOverlay.innerHTML = '<div><i class="bi bi-cloud-upload" style="font-size:3rem;display:block;text-align:center;"></i>Drop files to upload</div>';
+    content.appendChild(dropOverlay);
+
+    content.addEventListener('dragover', (e) => {
+        // Only trigger for external files
+        if (e.dataTransfer.types.includes('Files')) {
+            e.preventDefault();
+            e.stopPropagation();
+            dropOverlay.style.display = 'flex';
+            e.dataTransfer.dropEffect = 'copy';
+        }
+    });
+
+    content.addEventListener('dragleave', (e) => {
+        if (!content.contains(e.relatedTarget)) {
+            dropOverlay.style.display = 'none';
+        }
+    });
+
+    content.addEventListener('drop', (e) => {
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            e.preventDefault();
+            e.stopPropagation();
+            dropOverlay.style.display = 'none';
+            uploadFiles(e.dataTransfer.files);
+        }
+    });
+
     content.addEventListener('click', (e) => {
         if (e.target === content) {
             _selected = [];

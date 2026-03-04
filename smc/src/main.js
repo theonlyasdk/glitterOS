@@ -3,13 +3,13 @@
  */
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
-        define([], factory);
+        define([], () => factory(root));
     } else if (typeof module === 'object' && module.exports) {
-        module.exports = factory();
+        module.exports = factory(root);
     } else {
-        root.SmcInterpreter = factory();
+        root.SmcInterpreter = factory(root);
     }
-}(typeof self !== 'undefined' ? self : this, function () {
+}(typeof self !== 'undefined' ? self : this, function (root) {
     const SmcInterpreter = (() => {
         const { SIGNAL_CONTINUE, SIGNAL_BREAK, SIGNAL_RETURN, INTERPRETER_ONLY_FLAGS } = typeof require !== 'undefined' ? require('./constants') : (root.SmcConstants || {});
         const { normalize, stripInlineComments, resolveImportPath, expandVariables } = typeof require !== 'undefined' ? require('./utils') : (root.SmcUtils || {});
@@ -35,7 +35,7 @@
         const { generateC } = typeof require !== 'undefined' ? require('./compiler') : (root.SmcCompiler || {});
 
         const { parseScriptLines, parseDirective, extractInterpreterFlags, parseAssignment, parseWhile, parseImport, parseScriptBlock, parseProcedureCallArgs } = parserExports;
-        const { findInScopes, getAllVariables, evaluateExpression, callFunctionOrProcedure, evaluateConditionAsync, handleCommandExecution, runNodes } = interpreterExports;
+        const { findInScopes, getAllVariables, evaluateExpression, callFunctionOrProcedure, evaluateConditionAsync, handleCommandExecution, runNodes, getSmcType, getVal } = interpreterExports;
 
         async function runScript(content, hooks = {}, state = null) {
             // Apply defaults to hooks
@@ -148,9 +148,16 @@
                 if (onFlags) onFlags(ctx.flags);
             }
 
-            const runResult = await runNodes(parsed.nodes, { variables: {}, parent: null }, 0, ctx, selfInstance, hooks, procedures, filename);
-            runResult.flags = ctx.flags;
-            return runResult;
+            const initialScope = (state && state.rootScope) ? state.rootScope : { variables: {}, parent: null };
+            try {
+                const runResult = await runNodes(parsed.nodes, initialScope, 0, ctx, selfInstance, hooks, procedures, filename);
+                runResult.flags = ctx.flags;
+                return runResult;
+            } catch (e) {
+                const msg = formatError(e.message, e.lineNum); // e.lineNum might not be set on standard Error, but interpreter can set it
+                if (onError) onError(msg);
+                return { ok: false, error: msg };
+            }
         }
 
         async function compileToC(content, hooks = {}) {
@@ -201,9 +208,11 @@
         return { 
             runScript,
             compileToC,
+            MATH_BUILTINS,
+            STRING_BUILTINS,
             utils: { normalize, stripInlineComments, resolveImportPath, expandVariables },
-            parser: { parseScriptLines, parseDirective, extractInterpreterFlags, parseAssignment, parseWhile, parseImport, parseScriptBlock, parseProcedureCallArgs },
-            interpreter: { findInScopes, getAllVariables, evaluateExpression, callFunctionOrProcedure, evaluateConditionAsync, handleCommandExecution, runNodes },
+            parser: { parseScriptLines, parseDirective, extractInterpreterFlags, parseAssignment, parseWhile, parseImport, parseScriptBlock, parseProcedureCallArgs, tokenizeSmc, tokenizeForHighlighting },
+            interpreter: { findInScopes, getAllVariables, evaluateExpression, callFunctionOrProcedure, evaluateConditionAsync, handleCommandExecution, runNodes, getSmcType, getVal },
             compiler: { generateC }
         };
     })();

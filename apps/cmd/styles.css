@@ -133,6 +133,19 @@
     color: #ffb6a6;
 }
 
+.gos-cmd-syn-com {
+    color: #6a9955;
+    font-style: italic;
+}
+
+.gos-cmd-syn-varref {
+    color: #9cdcfe;
+}
+
+.gos-cmd-syn-proc {
+    color: #c586c0;
+}
+
 .gos-cmd-syn-cmd-valid {
     color: #ffffff;
     font-weight: 700;

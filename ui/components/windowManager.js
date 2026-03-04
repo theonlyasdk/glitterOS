@@ -276,7 +276,8 @@ class WindowManager {
             zIndex: win.style.zIndex,
             showSysMenu: showSysMenu,
             appId: options.appId || null,
-            args: options.args || null
+            args: options.args || null,
+            parentWinId: options.parentWinId || null
         };
 
         this.windows.push(winObj);
@@ -285,9 +286,12 @@ class WindowManager {
         if (options.onClose) winObj.onClose = options.onClose;
         if (options.modal) {
             winObj.modal = true;
-            if (options.parentTitle) {
-                winObj.parentTitle = options.parentTitle;
-                const parentWin = this.windows.find(w => w.title.includes(options.parentTitle) || (w.parentTitle && w.parentTitle.includes(options.parentTitle)) || (w.id === options.parentId));
+            if (options.parentTitle || options.parentId || options.parentWinId) {
+                const parentWin = this.windows.find(w => 
+                    (options.parentWinId && w.id === options.parentWinId) ||
+                    (options.parentId && w.id === options.parentId) ||
+                    (options.parentTitle && w.title.includes(options.parentTitle))
+                );
                 if (parentWin) {
                     winObj.parentId = parentWin.id;
                     const overlay = document.createElement('div');
@@ -516,6 +520,10 @@ class WindowManager {
             return;
         }
 
+        // Recursively close children FIRST
+        const children = this.windows.filter(w => w.parentWinId === id);
+        children.forEach(child => this.closeWindow(child.id));
+
         if (winObj.modalShim) {
             winObj.modalShim.remove();
         }
@@ -611,7 +619,8 @@ class WindowManager {
             width: 380,
             height: 190,
             icon: options.icon || 'ri-information-line',
-            modal: options.modal || false
+            modal: options.modal || false,
+            parentWinId: options.parentWinId || null
         });
         win.element.classList.add('gos-window-messagebox');
 

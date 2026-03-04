@@ -13,7 +13,7 @@ proc @is_prime : $n do
         var $div = $n / $i
         # If div is an integer, then n is divisible by i
         # In our runtime, if result is whole, it becomes INT
-        if [@typeof $div] == "int" then
+        if [?typeof $div] == "int" then
             return false
         end
     end

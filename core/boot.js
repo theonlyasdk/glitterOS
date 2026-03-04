@@ -10,46 +10,6 @@
     }
 
     if (!fs.exists('C:\\Users\\User\\Documents\\Scripts')) fs.mkdir('C:\\Users\\User\\Documents\\Scripts');
-    if (!fs.exists('C:\\Users\\User\\Documents\\Scripts\\sample.smc')) {
-        fs.write('C:\\Users\\User\\Documents\\Scripts\\sample.smc', [
-            'echo === Sample SMC Script ===',
-            'echo Current directory:',
-            'cd',
-            'if "1" == "1" then echo Condition matched else echo Condition failed',
-            'notify Script Runner|sample.smc executed successfully'
-        ].join('\r\n'));
-    }
-    if (!fs.exists('C:\\Users\\User\\Documents\\Scripts\\workspace_setup.smc')) {
-        fs.write('C:\\Users\\User\\Documents\\Scripts\\workspace_setup.smc', [
-            'echo Preparing workspace...',
-            'md Work',
-            'md Work\\Logs',
-            'echo Ready > Work\\Logs\\status.txt',
-            'type Work\\Logs\\status.txt',
-            'notify Workspace|Workspace directories created'
-        ].join('\r\n'));
-    }
-    if (!fs.exists('C:\\Users\\User\\Documents\\Scripts\\flow_demo.smc')) {
-        fs.write('C:\\Users\\User\\Documents\\Scripts\\flow_demo.smc', [
-            'echo === Flow Demo ===',
-            'if "alpha" == "alpha" then echo EQ-OK else echo EQ-NO',
-            'if "a" != "b" then echo NEQ-OK else echo NEQ-NO',
-            'md TempFlow && echo Created TempFlow',
-            'type no_such_file.txt || echo Fallback branch executed',
-            'notify Flow Demo|Conditional and operator demo complete'
-        ].join('\r\n'));
-    }
-    if (!fs.exists('C:\\Users\\User\\Documents\\Scripts\\loop_demo.smc')) {
-        fs.write('C:\\Users\\User\\Documents\\Scripts\\loop_demo.smc', [
-            'let counter = 0',
-            'while "%counter%" != "3" do',
-            '    echo Loop iteration %counter%',
-            '    let counter = %counter% + 1',
-            'end',
-            'notify Loop Demo|Finished counter %counter%',
-            'import workspace_setup.smc'
-        ].join('\r\n'));
-    }
 
     const apps = [
         { exe: 'notepad.exe', id: 'notepad' },

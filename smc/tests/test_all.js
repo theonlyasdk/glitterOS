@@ -11,86 +11,39 @@ global.SIGNAL_BREAK = Symbol('break');
 global.SIGNAL_RETURN = Symbol('return');
 global.INTERPRETER_ONLY_FLAGS = new Set(['ignore_errors', 'no_echo', 'silent', 'allow_casting', 'echo_var_values']);
 
+// Mock SmcBuiltins
+global.SmcBuiltins = (() => {
+    const _metadata = new Map();
+    function setMeta(name, meta) { _metadata.set(name.toLowerCase(), meta); }
+    function getMeta(name) { return _metadata.get(name.toLowerCase()) || {}; }
+    function register() {} // not needed for tests
+    return { setMeta, getMeta, register };
+})();
+
+global.SmcConstants = { SIGNAL_CONTINUE, SIGNAL_BREAK, SIGNAL_RETURN, INTERPRETER_ONLY_FLAGS };
+
 const utils = require('../src/utils.js');
+global.SmcUtils = utils;
 Object.assign(global, utils);
-const math = require('../src/math.js');
-Object.assign(global, math);
-const string = require('../src/string.js');
-Object.assign(global, string);
+
 const parser = require('../src/parser.js');
+global.SmcParser = parser;
 Object.assign(global, parser);
+
+const math = require('../src/math.js');
+global.SmcMathBuiltins = math;
+Object.assign(global, math);
+
+const string = require('../src/string.js');
+global.SmcStringBuiltins = string;
+Object.assign(global, string);
+
 const interpreter = require('../src/interpreter.js');
+global.SmcInterpreterCore = interpreter;
 Object.assign(global, interpreter);
 
-// Minimal main.js logic for runner
-const SmcInterpreter = {
-    runScript: async (content, hooks = {}, state = null) => {
-        hooks.tokenize = hooks.tokenize || ((s) => String(s).trim() ? String(s).trim().split(/\s+/) : []);
-        hooks.evaluateCondition = hooks.evaluateCondition || (() => false);
-        hooks.executeCommand = hooks.executeCommand || (() => ({ ok: true }));
-        hooks.fs = hooks.fs || { exists: (p) => fs.existsSync(p), cat: (p) => ({ content: fs.readFileSync(p, 'utf8') }), pwd: () => process.cwd() };
-        hooks.builtins = hooks.builtins || {};
-        hooks.recursionLimit = hooks.recursionLimit || 32;
-        hooks.filename = hooks.filename || 'script.smc';
-
-        const {
-            onCommand = null,
-            onFlags = null,
-            onError = null,
-            onWarning = null,
-            cwd = process.cwd(),
-            filename = hooks.filename
-        } = hooks;
-
-        const ctx = state || {
-            globalScope: {},
-            importStack: [],
-            callStack: [],
-            ignoreNextCommand: false,
-            cwd,
-            builtins: Object.assign({}, MATH_BUILTINS, STRING_BUILTINS, hooks.builtins),
-            flags: {},
-            procedures: new Map()
-        };
-
-        const formatError = (msg, lineNum) => {
-            const loc = lineNum ? ` at line ${lineNum}` : '';
-            return `Error: ${filename}${loc}: ${msg}`;
-        };
-        ctx.formatError = formatError;
-
-        const selfInstance = { 
-            evaluateExpression: (expr, scope, lineNum, depth) => evaluateExpression(expr, scope, lineNum, depth, ctx, selfInstance, hooks, ctx.procedures, filename),
-            runScript: (c, h, s) => SmcInterpreter.runScript(c, h, s)
-        };
-
-        try {
-            const lines = parseScriptLines(content);
-            const extracted = extractInterpreterFlags(lines);
-            if (extracted.error) { if (onError) onError(formatError(extracted.error)); return { ok: false, error: extracted.error }; }
-            const parsed = parseScriptBlock(extracted.lines, 0, []);
-            if (parsed.error) { if (onError) onError(formatError(parsed.error)); return { ok: false, error: parsed.error }; }
-
-            ctx.flags = ctx.flags || {};
-            const flagSet = new Set((extracted.flags || []).map(f => f.toLowerCase()));
-            ctx.flags.ignoreErrors = flagSet.has('ignore_errors');
-            ctx.flags.noEcho = flagSet.has('no_echo');
-            ctx.flags.silent = flagSet.has('silent');
-            ctx.flags.allowCasting = flagSet.has('allow_casting');
-            ctx.flags.echoVarValues = flagSet.has('echo_var_values');
-            
-            if (onFlags) onFlags(ctx.flags);
-
-            const runResult = await runNodes(parsed.nodes, { variables: {}, parent: null }, 0, ctx, selfInstance, hooks, ctx.procedures, filename);
-            runResult.flags = ctx.flags;
-            return runResult;
-        } catch (e) {
-            const msg = formatError(e.message);
-            if (onError) onError(msg);
-            return { ok: false, error: msg };
-        }
-    }
-};
+// Load real SMC source
+const SmcInterpreter = require('../src/main.js');
 
 const BASE_DIR = __dirname;
 const FEATURES_DIR = path.join(BASE_DIR, 'features');
@@ -129,16 +82,44 @@ const builtins = {
     }
 };
 
+// Robust tokenize that DOES NOT unquote strings
+function robustTokenize(line) {
+    const tokens = [];
+    let current = "";
+    let inQuotes = false;
+    let quoteChar = "";
+
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if ((char === '"' || char === "'") && (i === 0 || line[i - 1] !== '\\')) {
+            if (inQuotes && char === quoteChar) {
+                inQuotes = false;
+            } else if (!inQuotes) {
+                inQuotes = true;
+                quoteChar = char;
+            } else {
+                current += char;
+            }
+        } else if (char === ' ' && !inQuotes) {
+            if (current) {
+                tokens.push(current);
+                current = "";
+            }
+        } else {
+            current += char;
+        }
+    }
+    if (current) tokens.push(current);
+    return tokens;
+}
+
 async function runTestFile(filePath, expectError = false) {
     const filename = path.basename(filePath);
     const content = fs.readFileSync(filePath, 'utf8');
     let lastError = null;
 
     const result = await SmcInterpreter.runScript(content, {
-        tokenize: (s) => {
-            const matches = s.match(/(?:[^\s"]+|"[^"]*")+/g);
-            return matches ? matches.map(t => t.startsWith('"') ? t.slice(1, -1) : t) : [];
-        },
+        tokenize: (s) => SmcParser.tokenizeSmc(s),
         executeCommand: (line) => ({ ok: true }),
         fs: mockFs,
         builtins,

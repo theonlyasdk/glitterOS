@@ -2,13 +2,6 @@
 
 This document outlines proposed features and improvements to make SMC a more powerful and versatile scripting language for glitterOS.
 
-## 1. UI & Interaction
-- **`msgbox` Function:** Allow scripts to open native system message boxes with custom buttons and icons.
-  - Syntax: `[@msgbox "Title" "Message body text" <icon_name> <buttons_type>]`
-- **`input` Function:** Pause script execution to wait for user input from the terminal or a dialog.
-  - Syntax: `[@input "Enter your name: "]` (returns the value)
-- **`dialog` Function:** Open specialized dialogs (file picker, folder picker, color picker).
-
 ## 2. System Integration
 - **Registry Access:** Direct commands to read, write, and delete registry keys.
   - Syntax: `regread $VAR "Path.To.Key"`, `regwrite "Path.To.Key" $VALUE`

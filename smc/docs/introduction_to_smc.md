@@ -19,6 +19,15 @@ Syntax: `![flag1 | flag2 | ...]`
 * `allow_casting`: Permits variable reassignment with a different data type.
 * `echo_var_values`: Prints the value of a standalone variable reference (e.g. `$VAR` on its own line).
 
+### Metafunctions and Procedures
+Special expressions use the bracketed syntax `[...]`.
+* **`[@name args]`**: Call a procedure and use its return value.
+* **`[?name args]`**: Call a metafunction (e.g., `[?typeof $var]`).
+* **`[:ok value]`**: Create a success result object.
+* **`[:error "msg"]`**: Create an error result object.
+
+> **Note:** Procedures are called with the `@` prefix. Standard built-in commands (like `echo`) do not use `[]` unless you need their return value or are using them in an expression. Script files (`.smc`) cannot be called using the `[@script.smc]` syntax; use `import` to include them.
+
 ## Variables and Scoping
 
 ### Naming Convention
@@ -112,10 +121,10 @@ end
 ## Procedure Invocation
 SMC uses a bracketed syntax for both built-in and user-defined procedures.
 
-## Procedures (Functions)
+## Procedures
 
 ### `@` Prefix for Procedure Names
-Every function or procedure call **must** be prefixed with the `@` character. Calls without this prefix (e.g., `[sqrt 16]`) will result in an error.
+Every procedure call **must** be prefixed with the `@` character. Calls without this prefix (e.g., `[sqrt 16]`) will result in an error.
 
 ### Comma Separation of Arguments
 Arguments in bracketed calls **must** be separated by commas if there is more than one argument.

@@ -193,68 +193,11 @@ function launchAssistant() {
     }
 
     function parseMarkdown(text) {
-        const codeBlocks = [];
-        const inlineCode = [];
-
-        // 1. Escape HTML
-        let html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-        // 2. Extract Multiline Code Blocks
-        html = html.replace(/```([\s\S]*?)```/g, (match, code) => {
-            const id = `__CB${codeBlocks.length}__`;
-            codeBlocks.push(code);
-            return id;
-        });
-
-        // 3. Extract Inline Code
-        html = html.replace(/`(.*?)`/g, (match, code) => {
-            const id = `__IC${inlineCode.length}__`;
-            inlineCode.push(code);
-            return id;
-        });
-
-        // 4. Process Markdown (Only on non-code parts)
-        html = html
-            .replace(/^### (.*$)/gim, '<h5>$1</h5>')
-            .replace(/^## (.*$)/gim, '<h4>$1</h4>')
-            .replace(/^# (.*$)/gim, '<h3>$1</h3>')
-            .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
-            .replace(/\*(.*?)\*/g, '<i>$1</i>');
-
-        // 4a. Lists (Bullet and Ordered)
-        // Group consecutive lines starting with * or - into <ul>
-        html = html.replace(/^[\s]*[\*\-][\s]+(.*)$/gim, '<li>$1</li>');
-        html = html.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>');
-
-        // Group consecutive lines starting with number into <ol>
-        html = html.replace(/^[\s]*[0-9]+\.[\s]+(.*)$/gim, '<li>$1</li>');
-        // Note: This simple regex might wrap adjacent <ul> and <ol> items together. 
-        // A more robust approach would be better but let's try to be smart.
-        // We'll just stick to a basic one for now that is better than nothing.
-
-        html = html.replace(/\n/g, '<br>');
-
-        // 5. Restore Code
-        codeBlocks.forEach((code, i) => {
-            html = html.replace(`__CB${i}__`, `<pre><code>${code}</code></pre>`);
-        });
-        inlineCode.forEach((code, i) => {
-            html = html.replace(`__IC${i}__`, `<code>${code}</code>`);
-        });
-
-        // 6. Wrap non-block elements in paragraphs
-        const blockSplit = html.split('<pre>');
-        html = blockSplit.map((p, i) => {
-            if (i === 0) {
-                if (!p.trim()) return '';
-                return `<p>${p}</p>`;
-            }
-            const [code, rest] = p.split('</pre>');
-            let wrappedRest = rest.trim() ? `<p>${rest}</p>` : '';
-            return `<pre>${code}</pre>${wrappedRest}`;
-        }).join('');
-
-        return html;
+        if (typeof Markdown !== 'undefined' && Markdown.render) {
+            return Markdown.render(text);
+        }
+        // Fallback if Markdown service is missing
+        return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
     }
 
     function renderMessages() {
